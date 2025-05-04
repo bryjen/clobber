@@ -1,4 +1,9 @@
 {
     "editor.formatOnSave": true,
-    "cmake.ctestArgs": [ "-V" ]
+    "cmake.ctestArgs": [
+        "-V"
+    ],
+    "files.associations": {
+        "format": "cpp"
+    }
 }

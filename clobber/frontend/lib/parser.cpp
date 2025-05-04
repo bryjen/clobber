@@ -83,7 +83,7 @@ Tokenize(const std::string &source_text) {
     std::vector<Token> tokens;
 
     int current_idx = 0;
-    int st_len      = source_text.length();
+    int st_len      = (int)source_text.length();
 
     while (current_idx < st_len) {
         int full_start_idx = 0; // token start including spaces
