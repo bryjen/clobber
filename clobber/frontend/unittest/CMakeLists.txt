@@ -5,20 +5,29 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} PRIVATE
+add_executable(clobber_tests)
+
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers
+)
+
+target_sources(clobber_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/helpers.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/tokenizer_tests.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser_tests.cpp
 )
 
 
+
 find_package(GTest CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE 
+target_link_libraries(clobber_tests PRIVATE 
     GTest::gtest GTest::gtest_main     
     clobber
 )
 
 include(GoogleTest)
-add_test(NAME all_clobber_tests COMMAND ${PROJECT_NAME})
+add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 
 # copy test files into output executable directory
@@ -29,10 +38,10 @@ add_custom_command(
 
 file(GLOB TEST_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_files/*.clj")
 
-list(LENGTH TEST_FILES shader_count)
+list(LENGTH TEST_FILES test_file_count)
 add_custom_command(
     TARGET clobber_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "[frontend/COPY_TEST_FILES] Found ${shader_count} test .clj file(s)"
+    COMMAND ${CMAKE_COMMAND} -E echo "[frontend/COPY_TEST_FILES] Found ${test_file_count} test .clj file(s)"
 )
 
 foreach(test_file ${TEST_FILES})

@@ -1,128 +1,159 @@
-#include "clobber/parser.hpp"
-#include "clobber/ast.hpp"
-#include <any>
 #include <optional>
 #include <unordered_map>
-#include <vector>
+
+#include "clobber/ast.hpp"
+#include "clobber/parser.hpp"
+
+#include "clobber/internal/parser_errors.hpp"
+
+ParserError::ParserError() {}
+
+ParserError::~ParserError() {}
+
+ParserError::ParserError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+    this->span_start      = span_start;
+    this->span_len        = span_len;
+    this->general_err_msg = general_err_msg;
+    this->err_msg         = err_msg;
+}
 
 template <typename T> using Option = std::optional<T>;
+using ParseDelegate = Option<ExprBase> (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &,
+                                           size_t &);
 
-const char eof_char = std::char_traits<char>::eof();
+// clang-format off
+Option<ExprBase> try_parse(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+Option<ExprBase> try_parse_numeric_literal_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+Option<ExprBase> try_parse_call_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+// clang-format on
 
-bool
-is_alpha(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+Option<Token>
+try_get_token(const std::vector<Token> &tokens, size_t idx) {
+    size_t tokens_len = tokens.size();
+    return (idx >= 0 && idx < tokens_len) ? std::make_optional(tokens[idx]) : std::nullopt;
 }
 
-bool
-is_numeric(char c) {
-    return c >= '0' && c <= '9';
-}
-
-bool
-is_alphanumeric(char c) {
-    return is_alpha(c) || is_numeric(c);
-}
-
-bool
-is_space(char c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-}
-
-char
-try_get_char(int idx) {
-    return eof_char;
-}
-
-/*
- * \brief
- * \return Returns the number of characters that fulfills the predicate starting from 'start_idx' inclusive.
- */
-int
-read_char_sequence(bool (*predicate)(char), const std::string &source_text, int start_idx) {
-    int current_idx = start_idx;
-
-    while (predicate(source_text[current_idx])) {
-        current_idx++;
-    }
-
-    return current_idx - start_idx;
-}
-
-/*
- * \brief
- * \return Returns the number of space characters starting from 'start_idx' inclusive.
- */
-int
-consume_space_characters(const std::string &source_text, int start_idx) {
-    return read_char_sequence(is_space, source_text, start_idx);
-}
-
-int
-try_parse_token_type(const std::string &source_text, int start_index, TokenType &out_token_type) {
-    char fst_char = try_get_char(start_index);
-
-    // we don't need to parse two character operators for now
-
+Option<ParseDelegate>
+try_get_parse_fun(TokenType token_type) {
     // clang-format off
-    std::unordered_map<char, TokenType> token_map = {
-        { '(', TokenType::OpenParen },
-        { ')', TokenType::CloseParen },
-        { '+', TokenType::PlusToken },
-        { '=', TokenType::EqualsToken },
+    static std::unordered_map<TokenType, ParseDelegate> parse_functions = {
+        { TokenType::NumericLiteralToken, try_parse_numeric_literal_expr },
+        { TokenType::OpenParen, try_parse_call_expr },
     };
     // clang-format on
 
-    auto it        = token_map.find(fst_char);
-    out_token_type = (it != token_map.end()) ? it->second : TokenType::BadToken;
-    return 1;
+    auto it = parse_functions.find(token_type);
+    return (it != parse_functions.end()) ? std::make_optional(it->second) : std::nullopt;
 }
 
-std::vector<Token>
-Tokenize(const std::string &source_text) {
-    std::vector<Token> tokens;
+Option<int>
+try_stoi(const std::string &str) {
+    Option<int> opt = std::nullopt;
+    try {
+        opt = std::make_optional(std::stoi(str));
+    } catch (...) {
+        // ignored
+    }
+    return opt;
+}
 
-    int current_idx = 0;
-    int st_len      = (int)source_text.length();
+Option<ExprBase>
+try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<Token> &tokens,
+                               std::vector<ParserError> &parser_errors, size_t &idx) {
+    NumLiteralExpr nle;
+    Token current_token;
+    std::string num_as_str;
+    Option<int> stoi_results;
 
-    while (current_idx < st_len) {
-        int full_start_idx = 0; // token start including spaces
-        int start_idx      = 0; // token start EXCLUDING spaces
-        int spaces_len     = 0; // length of space characters starting from the full start idx
-        int token_len      = 0; // length of the actual token characters from the start idx
-        TokenType token_type;
-        std::any value;
-        Token token;
+    current_token = tokens[idx]; // no bounds check, current token exists, asserted by caller
+    num_as_str    = current_token.ExtractText(source_text);
+    stoi_results  = try_stoi(num_as_str);
 
-        spaces_len     = consume_space_characters(source_text, current_idx);
-        full_start_idx = current_idx;
-        start_idx      = full_start_idx + spaces_len;
-        current_idx    = start_idx;
-
-        char peek_char = try_get_char(current_idx);
-        if (peek_char == eof_char) {
-            break;
-        } else if (is_numeric(peek_char)) {
-            // tokenize as number
-            int token_len = read_char_sequence(is_numeric, source_text, current_idx);
-            token_type    = TokenType::NumericLiteralToken;
-        } else if (isalpha(peek_char)) {
-            // tokenize as identifier or string literal
-            int token_len = read_char_sequence(is_alphanumeric, source_text, current_idx);
-            token_type    = TokenType::IdentifierToken;
-        } else {
-            // tokenize as symbol
-            int token_len = try_parse_token_type(source_text, current_idx, token_type);
-        }
-
-        token.start       = start_idx;
-        token.length      = token_len;
-        token.full_start  = full_start_idx;
-        token.full_length = spaces_len + token_len;
-        token.token_type  = token_type;
-        token.value       = value;
-        tokens.push_back(token);
+    if (!stoi_results) {
+        // TODO: Add error
+        return std::nullopt;
     }
 
-    return tokens;
+    idx++;
+    nle.value = stoi_results.value();
+    return std::make_optional(nle);
+}
+
+Option<ExprBase>
+try_parse_call_expr(const std::string &source_text, const std::vector<Token> &tokens,
+                    std::vector<ParserError> &parser_errors, size_t &idx) {
+    CallExpr ce;
+    Token operator_token;
+    Option<Token> current_token;
+    std::vector<ExprBase> arg_exprs;
+
+    operator_token = tokens[++idx];
+    current_token  = try_get_token(tokens, ++idx);
+
+    while (current_token && current_token.value().token_type != TokenType::CloseParen) {
+        Option<ExprBase> arg_expr_opt = try_parse(source_text, tokens, parser_errors, idx);
+        if (arg_expr_opt) {
+            arg_exprs.push_back(arg_expr_opt.value());
+        }
+
+        current_token = try_get_token(tokens, idx);
+    }
+
+    ce.operator_token = operator_token;
+    ce.arguments      = arg_exprs;
+    return std::make_optional(ce);
+}
+
+Option<ExprBase>
+try_parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
+          size_t &idx) {
+    Token current_token;
+    Option<Token> token_opt;
+    ParseDelegate parse_fn;
+    Option<ParseDelegate> parse_fn_opt;
+    Option<ExprBase> expr_opt;
+
+    expr_opt = std::nullopt;
+
+    token_opt = try_get_token(tokens, idx);
+    if (!token_opt) {
+        return expr_opt;
+    }
+    current_token = token_opt.value();
+
+    parse_fn_opt = try_get_parse_fun(current_token.token_type);
+    if (!parse_fn_opt) {
+        // TODO: error here
+        return expr_opt;
+    }
+    parse_fn = parse_fn_opt.value();
+
+    expr_opt = parse_fn(source_text, tokens, parser_errors, idx);
+    return expr_opt;
+}
+
+CompilationUnit
+clobber::parse(const std::string &source_text, const std::vector<Token> &tokens,
+               std::vector<ParserError> &out_parser_errors) {
+    CompilationUnit cu;
+    size_t current_idx;
+    size_t tokens_len;
+    std::vector<ExprBase> exprs;
+
+    current_idx = 0;
+    tokens_len  = tokens.size();
+    out_parser_errors.clear();
+
+    while (current_idx < tokens_len) {
+        // 'current_idx' passed by reference, implicitly modified
+        Option<ExprBase> parsed_expr_opt = try_parse(source_text, tokens, out_parser_errors, current_idx);
+        if (parsed_expr_opt) {
+            exprs.push_back(parsed_expr_opt.value());
+        }
+
+        current_idx++;
+    }
+
+    cu.exprs = exprs;
+    return cu;
 }

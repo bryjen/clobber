@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/build/vcpkg_installed/arm64-windows/include/"
+                "${workspaceFolder}/build/vcpkg_installed/arm64-windows/include/",
+                "${workspaceFolder}/clobber/frontend/include",
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "_DEBUG",
