@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+
+AccessModifierOffset: -4
+IndentWidth: 4
+
+ColumnLimit: 120
+AlwaysBreakAfterDefinitionReturnType: All
+AllowShortEnumsOnASingleLine: false
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
