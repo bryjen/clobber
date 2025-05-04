@@ -22,29 +22,7 @@ if(DEFINED ENV{VCPKG_ROOT})
 endif()
 
 
-# setup cli proj
-add_executable(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} PRIVATE
-    ${CMAKE_HOME_DIRECTORY}/src/main.cpp
-    ${CMAKE_HOME_DIRECTORY}/src/ast.cpp
-    ${CMAKE_HOME_DIRECTORY}/src/parser.cpp
-)
+enable_testing()
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_HOME_DIRECTORY}/include/
-)
-
-
-# setup test proj
-add_subdirectory(tests)
-
-set(GTEST_EXECUTABLES_DIR "$<JOIN:$<TARGET_FILE_DIR:${PROJECT_NAME}>,/../tests/Debug>")
-message(STATUS "${GTEST_EXECUTABLES_DIR}")
-file(GLOB ASSETS "assets/*")
-
-foreach(asset ${ASSETS})
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${asset}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-  )
-endforeach()
+add_subdirectory(clobber/frontend)
+add_subdirectory(clobber/cli)

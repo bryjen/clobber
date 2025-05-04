@@ -1,6 +1,4 @@
 {
-    "files.associations": {
-        "stdlib.h": "c"
-    },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "cmake.ctestArgs": [ "-V" ]
 }
