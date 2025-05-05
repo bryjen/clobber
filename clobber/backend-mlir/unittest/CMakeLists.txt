@@ -12,19 +12,11 @@ target_sources(clobber_mlir_backend_tests PRIVATE
 )
 
 # TODO: figure out how to properly propagate (or not) llvm/mlir dependencies
-target_link_libraries(clobber_mlir_backend_tests
-  PRIVATE
-    # "$ENV{LLVM_MLIR_LIB_DIR}/libA.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRIR.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRFuncDialect.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRTosaDialect.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRSupport.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRParser.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRPass.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/MLIRTransforms.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/LLVMCore.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/LLVMSupport.lib"
-    "$ENV{LLVM_MLIR_LIB_DIR}/LLVMTarget.lib"
+
+file(GLOB MLIR_LIBS "$ENV{LLVM_MLIR_LIB_DIR}/*.lib")
+target_link_libraries(clobber_mlir_backend_tests PRIVATE 
+    ${MLIR_LIBS}
+    ntdll.lib
 )
 
 target_include_directories(clobber_mlir_backend_tests

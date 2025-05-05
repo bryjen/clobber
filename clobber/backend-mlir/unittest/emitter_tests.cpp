@@ -1,15 +1,25 @@
 #pragma warning(push)
 #pragma warning(disable : 4267 4244 4996)
+#include <llvm/Support/raw_ostream.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Tosa/IR/TosaOps.h>
+#include <mlir/IR/AsmState.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/BuiltinOps.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Verifier.h>
+#include <mlir/Support/LogicalResult.h>
 #pragma warning(pop)
 
 #include <gtest/gtest.h>
 // #include "emitter.hpp"
+
+void
+mlir_test() {
+    mlir::MLIRContext context;
+    auto module = mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
+    module.print(llvm::outs());
+}
 
 void
 testTosaMLIR() {
@@ -47,6 +57,7 @@ class EmitterTests : public ::testing::TestWithParam<int> {};
 
 TEST_P(EmitterTests, IsEven) {
     testTosaMLIR();
+    // mlir_test();
     EXPECT_TRUE(true);
 }
 
