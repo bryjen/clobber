@@ -25,4 +25,5 @@ endif()
 enable_testing()
 
 add_subdirectory(clobber/frontend)
+add_subdirectory(clobber/backend-mlir)
 add_subdirectory(clobber/cli)

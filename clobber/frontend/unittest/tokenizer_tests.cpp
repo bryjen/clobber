@@ -35,7 +35,7 @@ R"(
 };
 // clang-format on
 
-class TokenizerTests : public ::testing::TestWithParam<int> {};
+class EmitterTests : public ::testing::TestWithParam<int> {};
 
 std::string
 read_all_text(const std::string &path) {
@@ -43,7 +43,7 @@ read_all_text(const std::string &path) {
     return std::string((std::istreambuf_iterator<char>(file)), {});
 }
 
-TEST_P(TokenizerTests, IsEven) {
+TEST_P(EmitterTests, IsEven) {
     int idx;
     std::string file_path;
     std::string source_text;
@@ -92,4 +92,4 @@ TEST_P(TokenizerTests, IsEven) {
 }
 
 // Define test data
-INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0, 1, 2));
+INSTANTIATE_TEST_SUITE_P(EvenValues, EmitterTests, ::testing::Values(0, 1, 2));

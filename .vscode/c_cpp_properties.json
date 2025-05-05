@@ -5,10 +5,10 @@
             "includePath": [
                 "${workspaceFolder}/build/vcpkg_installed/arm64-windows/include/",
                 "${workspaceFolder}/clobber/frontend/include",
+                "${workspaceFolder}/clobber/backend-mlir/include",
                 "${workspaceFolder}/**"
             ],
             "defines": [
-                "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
             ],
