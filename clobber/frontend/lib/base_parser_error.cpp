@@ -38,17 +38,17 @@ get_line(const std::string &src, size_t line_num) {
 }
 
 std::string
-spaces(size_t count) {
-    return std::string(" ", count);
-}
-
-std::string
 repeat(const std::string &s, size_t n) {
     std::string result;
     result.reserve(s.size() * n);
     for (size_t i = 0; i < n; ++i)
         result += s;
     return result;
+}
+
+std::string
+spaces(size_t count) {
+    return repeat(" ", count);
 }
 
 std::string
@@ -68,10 +68,10 @@ base_format(const std::string &file, const std::string &source_text, int span_st
 
     // clang-format off
     lines.push_back(std::format("Error: {}", general_error_msg));
-    lines.push_back(std::format("{}┌─ {}:{}:{}", repeat(" ", margin), file, line, col));
-    lines.push_back(std::format("{}|", repeat(" ", margin)));
-    lines.push_back(std::format("{}{}|{}{}", line, repeat(" ", margin - line_num_chars), repeat(" ", padding), get_line(source_text, line - 1)));
-    lines.push_back(std::format("{}|{}{}{} {}", repeat(" ", margin), repeat(" ", padding), repeat(" ", col == 0 ? col : col - 1), repeat("^", span_length), error_msg));
+    lines.push_back(std::format("{}┌─ {}:{}:{}", spaces(margin), file, line, col));
+    lines.push_back(std::format("{}|", spaces(margin)));
+    lines.push_back(std::format("{}{}|{}{}", line, spaces(margin - line_num_chars), spaces(padding), get_line(source_text, line - 1)));
+    lines.push_back(std::format("{}|{}{}{} {}", spaces(margin), spaces(padding), spaces(col == 0 ? col : col - 1), repeat("^", span_length), error_msg));
     // clang-format on
 
     for (const auto &s : lines) {

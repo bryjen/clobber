@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include <windows.h>
 
 #define CONSOLE_LOG
 
@@ -40,6 +40,8 @@ R"(
 class ParserTests : public ::testing::TestWithParam<int> {};
 
 TEST_P(ParserTests, IsEven) {
+    SetConsoleOutputCP(CP_UTF8);
+
     int idx;
     std::string file_path;
     std::string source_text;
