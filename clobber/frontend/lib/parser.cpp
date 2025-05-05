@@ -4,28 +4,23 @@
 #include "clobber/ast.hpp"
 #include "clobber/parser.hpp"
 
-#include "clobber/internal/parser_errors.hpp"
-
-ParserError::ParserError() {}
-
-ParserError::~ParserError() {}
-
-ParserError::ParserError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
-    this->span_start      = span_start;
-    this->span_len        = span_len;
-    this->general_err_msg = general_err_msg;
-    this->err_msg         = err_msg;
-}
-
-template <typename T> using Option = std::optional<T>;
-using ParseDelegate = Option<ExprBase> (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &,
-                                           size_t &);
+#include "clobber/internal/parser_error_factory.hpp"
 
 // clang-format off
+template <typename T> 
+using Option = std::optional<T>;
+
+using ParseDelegate = Option<ExprBase> (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+
 Option<ExprBase> try_parse(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
 Option<ExprBase> try_parse_numeric_literal_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
 Option<ExprBase> try_parse_call_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
 // clang-format on
+
+void
+recover(size_t &idx) {
+    idx = idx + 1;
+}
 
 Option<Token>
 try_get_token(const std::vector<Token> &tokens, size_t idx) {
@@ -70,7 +65,9 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
     stoi_results  = try_stoi(num_as_str);
 
     if (!stoi_results) {
-        // TODO: Add error
+        ParserError err = err::InternalErr(current_token.start, current_token.length);
+        parser_errors.push_back(err);
+        recover(idx);
         return std::nullopt;
     }
 
@@ -123,7 +120,9 @@ try_parse(const std::string &source_text, const std::vector<Token> &tokens, std:
 
     parse_fn_opt = try_get_parse_fun(current_token.token_type);
     if (!parse_fn_opt) {
-        // TODO: error here
+        ParserError err = err::InternalErr(current_token.start, current_token.length);
+        parser_errors.push_back(err);
+        recover(idx);
         return expr_opt;
     }
     parse_fn = parse_fn_opt.value();

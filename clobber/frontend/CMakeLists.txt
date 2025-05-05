@@ -4,8 +4,9 @@ add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/tokenizer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/parser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/base_parser_error.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/parser_errors.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/parser_error_factory.cpp
 )
 
 target_include_directories(clobber 

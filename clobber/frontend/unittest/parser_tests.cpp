@@ -1,4 +1,5 @@
 
+#include "helpers/helpers.hpp"
 #include <array>
 #include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
 
 #define CONSOLE_LOG
 
@@ -56,9 +58,20 @@ TEST_P(ParserTests, IsEven) {
     cu = clobber::parse(source_text, tokens, parse_errors);
 
     std::cout << std::format("[{}] exprs: {}", idx, cu.exprs.size()) << std::endl;
+    std::cout << std::format("[{}] errs:  {}", idx, parse_errors.size()) << std::endl;
+
+    if (parse_errors.size() > 0) {
+        std::string file                  = "C:/USER/Documents/clobber_proj/main.clj";
+        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, parse_errors);
+        for (size_t i = 0; i < err_msgs.size(); i++) {
+            std::cout << err_msgs[i] << "\n";
+        }
+
+        std::cout << std::endl;
+    }
 
     EXPECT_TRUE(true);
 }
 
 // Define test data
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));

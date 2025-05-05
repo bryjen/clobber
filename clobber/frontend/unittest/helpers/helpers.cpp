@@ -1,6 +1,6 @@
 #include "helpers.hpp"
+#include <clobber/parser.hpp>
 #include <format>
-
 
 template <typename T>
 bool
@@ -15,4 +15,17 @@ assert_vectors_same_size(const std::vector<T> &actual, const std::vector<T> &exp
     *out_err_msg =
         std::format("Mismatched actual & expected lengths, expected {} but got {}.", expected_len, actual_len);
     return false;
+}
+
+std::vector<std::string>
+get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<ParserError> &parse_errors) {
+    std::vector<std::string> errs;
+
+    size_t i;
+    for (i = 0; i < parse_errors.size(); i++) {
+        ParserError parse_err = parse_errors[i];
+        errs.push_back(parse_err.GetFormattedErrorMsg(file, source_text));
+    }
+
+    return errs;
 }
