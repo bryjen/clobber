@@ -1,64 +1,94 @@
+#include <array>
+#include <format>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+// #define NOMINMAX
+// #include <windows.h>
+
 #pragma warning(push)
 #pragma warning(disable : 4267 4244 4996)
-#include <llvm/Support/raw_ostream.h>
-#include <mlir/Dialect/Func/IR/FuncOps.h>
-#include <mlir/Dialect/Tosa/IR/TosaOps.h>
-#include <mlir/IR/AsmState.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/BuiltinOps.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Verifier.h>
-#include <mlir/Support/LogicalResult.h>
 #pragma warning(pop)
 
-#include <gtest/gtest.h>
-// #include "emitter.hpp"
+#include <clobber/ast.hpp>
+#include <clobber/parser.hpp>
 
-void
-mlir_test() {
-    mlir::MLIRContext context;
-    auto module = mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
-    module.print(llvm::outs());
-}
+#include "clobber/mlir-backend/emit_error.hpp"
+#include "clobber/mlir-backend/lowering.hpp"
+#include "clobber/mlir-backend/tosa_emitter.hpp"
 
-void
-testTosaMLIR() {
-    mlir::MLIRContext context;
-    context.getOrLoadDialect<mlir::tosa::TosaDialect>();
-    context.getOrLoadDialect<mlir::func::FuncDialect>();
+// clang-format off
+const std::array<std::string, 3> test_source_contents = {
+//1.
+R"((+ 1 2)
+(* 3 4))",
 
-    mlir::OpBuilder builder(&context);
-    auto module = mlir::ModuleOp::create(builder.getUnknownLoc());
+//2.
+R"(
+(let [x 10
+      y 5]
+  (+ x y))
+)",
 
-    // tensor<i32> scalar type
-    auto type     = mlir::RankedTensorType::get({}, builder.getIntegerType(32));
-    auto funcType = builder.getFunctionType({type, type}, {});
-
-    auto func   = builder.create<mlir::func::FuncOp>(builder.getUnknownLoc(), "main", funcType);
-    auto &entry = *func.addEntryBlock();
-    builder.setInsertionPointToStart(&entry);
-
-    auto sum =
-        builder.create<mlir::tosa::AddOp>(builder.getUnknownLoc(), type, entry.getArgument(0), entry.getArgument(1));
-
-    builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
-
-    module.push_back(func);
-
-    if (mlir::failed(mlir::verify(module))) {
-        llvm::errs() << "TOSA MLIR verification failed\n";
-    } else {
-        llvm::outs() << "TOSA MLIR module:\n";
-        module.dump();
-    }
-}
+//3.
+R"(
+(fn [x] (* x x))
+((fn [x] (* x x)) 5)
+)"
+};
+// clang-format on
 
 class EmitterTests : public ::testing::TestWithParam<int> {};
 
-TEST_P(EmitterTests, IsEven) {
+TEST_P(EmitterTests, SanityCheck) {
     testTosaMLIR();
     // mlir_test();
     EXPECT_TRUE(true);
 }
 
-INSTANTIATE_TEST_SUITE_P(EvenValues, EmitterTests, ::testing::Values(0, 1, 2));
+TEST_P(EmitterTests, TOSA_Emitter_Tests) {
+    // SetConsoleOutputCP(CP_UTF8);
+
+    int idx;
+    std::string file_path;
+    std::string source_text;
+    std::vector<Token> tokens;
+    std::string str_buf;
+
+    CompilationUnit cu;
+    std::vector<ParserError> parse_errors;
+
+    mlir::MLIRContext context;
+    mlir::ModuleOp module_op;
+    std::vector<EmitError> emit_errors;
+
+    idx = GetParam();
+
+    str_buf     = std::format("[{}]", idx);
+    source_text = test_source_contents[idx];
+    tokens      = clobber::tokenize(source_text);
+    cu          = clobber::parse(source_text, tokens, parse_errors);
+
+    TosaEmitter::init_context(context);
+    module_op = TosaEmitter::lower_ast_to_tosa(context, cu, emit_errors);
+
+    if (mlir::failed(mlir::verify(module_op))) {
+        llvm::errs() << "TOSA MLIR verification failed\n";
+        module_op.dump();
+    } else {
+        llvm::outs() << "TOSA MLIR module:\n";
+        module_op.dump();
+    }
+
+    EXPECT_TRUE(true);
+}
+
+INSTANTIATE_TEST_SUITE_P(TOSA_Emitter_Tests, EmitterTests, ::testing::Values(0));

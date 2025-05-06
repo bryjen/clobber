@@ -30,15 +30,14 @@ public:
     std::string ExtractFullText(const std::string &);
 };
 
-/*
 enum class ExprType {
     CallExpr,
     NumericLiteralExpr,
 };
-*/
 
 struct ExprBase {
-    // ExprType expr_type;
+    ExprType expr_type;
+    virtual ~ExprBase() = default;
 };
 
 struct NumLiteralExpr final : ExprBase {

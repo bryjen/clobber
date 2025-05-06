@@ -1,6 +1,0 @@
-#ifndef CLOBBER_MLIR_EMITTER
-#define CLOBBER_MLIR_EMITTER
-
-void testTosaMLIR();
-
-#endif // CLOBBER_MLIR_EMITTER

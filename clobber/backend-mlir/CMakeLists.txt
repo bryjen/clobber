@@ -1,10 +1,10 @@
 project(clobber_mlir_backend CXX)
 
 add_library(clobber_mlir_backend
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/emitter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/emit_error.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/tosa_emitter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/lowering.cpp
 )
-
-
 
 
 # llvm/mlir linking
@@ -21,33 +21,15 @@ message(STATUS "[ENV:LLVM_SRC_DIR]:      $ENV{LLVM_SRC_DIR}")
 message(STATUS "[ENV:LLVM_BUILD_DIR]:    $ENV{LLVM_BUILD_DIR}")
 message(STATUS "[ENV:LLVM_MLIR_LIB_DIR]: $ENV{LLVM_MLIR_LIB_DIR}")
 
-# credits: chatgpt
-macro(find_and_link_llvm_mlir_libraries target liblist)
-  foreach(lib ${liblist})
-    find_library(${lib}
-      NAMES ${lib}
-      PATHS $ENV{LLVM_BUILD_DIR}/Release/lib
-      NO_DEFAULT_PATH
-    )
-    if(NOT ${lib})
-      message(FATAL_ERROR "Library ${lib} not found in $ENV{LLVM_BUILD_DIR}/Release/lib")
-    endif()
-    target_link_libraries(${target} PRIVATE ${${lib}})
-  endforeach()
-endmacro()
+# load and link all .lib files
+file(GLOB MLIR_LIBS "$ENV{LLVM_MLIR_LIB_DIR}/*.lib")
+target_link_libraries(clobber_mlir_backend PRIVATE 
+    # llvm/mlir 
+    ${MLIR_LIBS}
+    ntdll.lib
 
-find_and_link_llvm_mlir_libraries(clobber_mlir_backend
-  MLIRIR
-  MLIRFuncDialect
-  MLIRTosaDialect
-  MLIRSupport
-  MLIRParser
-  MLIRPass
-  MLIRTransforms
-
-  LLVMCore
-  LLVMSupport
-  LLVMTarget
+    # clobber frontend
+    clobber
 )
 
 target_include_directories(clobber_mlir_backend
@@ -63,6 +45,7 @@ target_include_directories(clobber_mlir_backend
   PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
+
 
 # configure tests
 enable_testing()
