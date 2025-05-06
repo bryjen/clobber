@@ -14,15 +14,17 @@ endif()
 if(NOT DEFINED ENV{LLVM_BUILD_DIR})
   message(FATAL_ERROR "Environment variable LLVM_BUILD_DIR is not set. Set it to the base directory LLVM build output.")
 endif()
-if(NOT DEFINED ENV{LLVM_MLIR_LIB_DIR})
-  message(FATAL_ERROR "Environment variable LLVM_MLIR_LIB_DIR is not set. Set it to the directory containing .lib files.")
-endif()
+
+set(LLVM_MLIR_LIB_DIR "$ENV{LLVM_BUILD_DIR}\\${LLVM_CONFIG}\\lib")
+
+message(STATUS "[LLVM_CONFIG]:           ${LLVM_CONFIG}")
 message(STATUS "[ENV:LLVM_SRC_DIR]:      $ENV{LLVM_SRC_DIR}")
 message(STATUS "[ENV:LLVM_BUILD_DIR]:    $ENV{LLVM_BUILD_DIR}")
-message(STATUS "[ENV:LLVM_MLIR_LIB_DIR]: $ENV{LLVM_MLIR_LIB_DIR}")
+message(STATUS "[LLVM_MLIR_LIB_DIR]:     ${LLVM_MLIR_LIB_DIR}")
 
 # load and link all .lib files
-file(GLOB MLIR_LIBS "$ENV{LLVM_MLIR_LIB_DIR}/*.lib")
+file(GLOB MLIR_LIBS "${LLVM_MLIR_LIB_DIR}/*.lib")
+message(STATUS ${MLIR_LIBS})
 target_link_libraries(clobber_mlir_backend PRIVATE 
     # llvm/mlir 
     ${MLIR_LIBS}
@@ -46,6 +48,9 @@ target_include_directories(clobber_mlir_backend
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
+if (MSVC)
+  target_compile_options(clobber_mlir_backend PRIVATE /MP)
+endif()
 
 # configure tests
 enable_testing()

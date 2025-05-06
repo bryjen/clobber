@@ -6,7 +6,6 @@
 
 #include <mlir/Dialect/SPIRV/IR/SPIRVDialect.h>
 #include <mlir/Dialect/SPIRV/IR/SPIRVOps.h>
-
 #pragma warning(pop)
 
 #include "clobber/ast.hpp"
@@ -20,7 +19,12 @@ Lowering::lower_to_spirv(mlir::MLIRContext &context, const mlir::ModuleOp &tosa_
 }
 
 mlir::ModuleOp
-Lowering::lower_to_llvm(mlir::MLIRContext &context, const mlir::ModuleOp &tosa_module,
-                        std::vector<EmitError> &emit_errors) {
+Lowering::LLVM::lower(mlir::MLIRContext &context, const mlir::ModuleOp &tosa_module,
+                      std::vector<EmitError> &emit_errors) {
+    throw 0;
+}
+
+void
+Lowering::LLVM::run(const mlir::ModuleOp &module, std::vector<EmitError> &emit_errors) {
     throw 0;
 }

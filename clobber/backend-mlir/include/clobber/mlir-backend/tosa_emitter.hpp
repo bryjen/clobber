@@ -13,7 +13,8 @@ struct CompilationUnit; // clobber/ast.hpp
 struct EmitError;       // emit_error.hpp
 struct EmitError;       // emit_error.hpp
 
-void testTosaMLIR();
+void test_tosa_mlir_1();
+void test_tosa_mlir_2();
 
 namespace TosaEmitter {
 /* @brief

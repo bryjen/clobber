@@ -6,6 +6,7 @@
 
 #include <mlir/Dialect/SPIRV/IR/SPIRVDialect.h>
 #include <mlir/Dialect/SPIRV/IR/SPIRVOps.h>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
 #pragma warning(pop)
 
 #include <optional>
@@ -28,7 +29,7 @@ struct EmittedOp {
 using LoweringDelegate = bool (*)(mlir::OpBuilder &, std::vector<EmitError> &, const ExprBase &, EmittedOp &);
 
 void
-testTosaMLIR() {
+test_tosa_mlir_1() {
     mlir::MLIRContext context;
     context.getOrLoadDialect<mlir::tosa::TosaDialect>();
     context.getOrLoadDialect<mlir::func::FuncDialect>();
@@ -44,8 +45,7 @@ testTosaMLIR() {
     auto &entry = *func.addEntryBlock();
     builder.setInsertionPointToStart(&entry);
 
-    auto sum =
-        builder.create<mlir::tosa::AddOp>(builder.getUnknownLoc(), type, entry.getArgument(0), entry.getArgument(1));
+    auto sum = builder.create<mlir::tosa::AddOp>(builder.getUnknownLoc(), type, entry.getArgument(0), entry.getArgument(1));
 
     builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
 
@@ -59,7 +59,44 @@ testTosaMLIR() {
     }
 }
 
-mlir::func::FuncOp init_entry_point(mlir::OpBuilder &);
+void
+test_tosa_mlir_2() {
+    mlir::MLIRContext context;
+    context.loadDialect<mlir::tosa::TosaDialect, mlir::func::FuncDialect, mlir::tensor::TensorDialect>();
+
+    mlir::OpBuilder builder(&context);
+    mlir::ModuleOp module = mlir::ModuleOp::create(builder.getUnknownLoc());
+
+    mlir::Type i32Type                = builder.getIntegerType(32);
+    mlir::RankedTensorType tensorType = mlir::RankedTensorType::get({1, 1}, i32Type);
+
+    mlir::FunctionType funcType = builder.getFunctionType({}, {});
+    mlir::func::FuncOp func     = builder.create<mlir::func::FuncOp>(builder.getUnknownLoc(), "entry", funcType);
+    mlir::Block &entryBlock     = *func.addEntryBlock();
+    builder.setInsertionPointToStart(&entryBlock);
+
+    // Constant [[42]]
+    mlir::DenseElementsAttr tensorAttr = mlir::DenseElementsAttr::get(tensorType, {42});
+    mlir::tosa::ConstOp constOp        = builder.create<mlir::tosa::ConstOp>(builder.getUnknownLoc(), tensorType, tensorAttr);
+
+    // Add [[42]] + [[42]]
+    mlir::tosa::AddOp addOp =
+        builder.create<mlir::tosa::AddOp>(builder.getUnknownLoc(), tensorType, constOp.getResult(), constOp.getResult());
+
+    // Return
+    builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
+
+    module.push_back(func);
+
+    if (mlir::failed(mlir::verify(module))) {
+        llvm::errs() << "TOSA MLIR verification failed\n";
+    } else {
+        llvm::outs() << "TOSA MLIR module:\n";
+        module.dump();
+    }
+}
+
+void init_entry_fn(mlir::OpBuilder &, mlir::func::FuncOp &);
 bool lower_numerical_literal_expr(mlir::OpBuilder &, std::vector<EmitError> &, const ExprBase &, EmittedOp &);
 bool lower_call_expr(mlir::OpBuilder &, std::vector<EmitError> &, const ExprBase &, EmittedOp &);
 bool lower_expr(mlir::OpBuilder &, std::vector<EmitError> &, const ExprBase &, EmittedOp &);
@@ -73,14 +110,13 @@ TosaEmitter::init_context(mlir::MLIRContext &context) {
 }
 
 mlir::ModuleOp
-TosaEmitter::lower_ast_to_tosa(mlir::MLIRContext &context, const CompilationUnit &clobber_cu,
-                               std::vector<EmitError> &emit_errors) {
+TosaEmitter::lower_ast_to_tosa(mlir::MLIRContext &context, const CompilationUnit &clobber_cu, std::vector<EmitError> &emit_errors) {
     mlir::func::FuncOp entry_point_fn;
 
     mlir::OpBuilder builder(&context);
     mlir::ModuleOp module = mlir::ModuleOp::create(builder.getUnknownLoc());
 
-    init_entry_point(builder);
+    init_entry_fn(builder, entry_point_fn);
 
     for (const ExprBase &expr : clobber_cu.exprs) {
         EmittedOp op;
@@ -94,33 +130,36 @@ TosaEmitter::lower_ast_to_tosa(mlir::MLIRContext &context, const CompilationUnit
             auto something2 = lower_call_expr(builder, emit_errors, expr, op);
             break;
         }
+        default: {
+            // TODO: emit error here
+            throw 69420;
+        }
         }
     }
 
+    builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
     module.push_back(entry_point_fn);
+
     return module;
 }
 
-mlir::func::FuncOp
-init_entry_point(mlir::OpBuilder &builder) {
+void
+init_entry_fn(mlir::OpBuilder &builder, mlir::func::FuncOp &out_fn) {
     mlir::FunctionType entry_point_type = builder.getFunctionType({}, {});
-    mlir::func::FuncOp entry_point_fn =
-        builder.create<mlir::func::FuncOp>(builder.getUnknownLoc(), "main", entry_point_type);
-
-    mlir::Block &entry_point = *entry_point_fn.addEntryBlock(); // set the 'cursor' to inside the entry point fn
+    mlir::func::FuncOp entry_point_fn   = builder.create<mlir::func::FuncOp>(builder.getUnknownLoc(), "main", entry_point_type);
+    mlir::Block &entry_point            = *entry_point_fn.addEntryBlock(); // set the 'cursor' to inside the entry point fn
     builder.setInsertionPointToStart(&entry_point);
 
-    return entry_point_fn;
+    out_fn = entry_point_fn;
 }
 
 bool
-lower_numerical_literal_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const ExprBase &expr,
-                             EmittedOp &out_op) {
+lower_numerical_literal_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const ExprBase &expr, EmittedOp &out_op) {
     // TOSA doesn't natively support integers as is, so we have to use a 1x1 tensor type
     // auto *ptr = dynamic_cast<const NumLiteralExpr *>(&expr);
     const NumLiteralExpr &num_lit_expr = static_cast<const NumLiteralExpr &>(expr);
 
-    mlir::RankedTensorType type  = mlir::RankedTensorType::get({1}, builder.getIntegerType(32)); // int32 1x1 tensor
+    mlir::RankedTensorType type  = mlir::RankedTensorType::get({1, 1}, builder.getIntegerType(32)); // int32 1x1 tensor
     mlir::DenseElementsAttr attr = mlir::DenseElementsAttr::get(type, {1});
     mlir::tosa::ConstOp const_op = builder.create<mlir::tosa::ConstOp>(builder.getUnknownLoc(), type, attr);
 
@@ -132,7 +171,6 @@ lower_numerical_literal_expr(mlir::OpBuilder &builder, std::vector<EmitError> &e
 
 bool
 lower_call_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const ExprBase &expr, EmittedOp &out_op) {
-
     // TODO: Make this shi arity agnostic, or atl take 2
     EmittedOp op1;
     EmittedOp op2;
@@ -141,10 +179,13 @@ lower_call_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const 
 
     const CallExpr &call_expr = static_cast<const CallExpr &>(expr);
 
+    auto sm1 = call_expr.arguments[0];
+    auto sm2 = call_expr.arguments[1];
+
     if (!lower_expr(builder, errors, call_expr.arguments[0], op1)) {
         return false;
     }
-    if (!lower_expr(builder, errors, call_expr.arguments[0], op2)) {
+    if (!lower_expr(builder, errors, call_expr.arguments[1], op2)) {
         return false;
     }
 

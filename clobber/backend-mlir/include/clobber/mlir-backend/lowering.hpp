@@ -14,8 +14,14 @@ namespace Lowering {
  */
 mlir::ModuleOp lower_to_spirv(mlir::MLIRContext &, const mlir::ModuleOp &, std::vector<EmitError> &);
 
+namespace LLVM {
 /* @brief
  */
-mlir::ModuleOp lower_to_llvm(mlir::MLIRContext &, const mlir::ModuleOp &, std::vector<EmitError> &);
-}; // namespace Lowering
+mlir::ModuleOp lower(mlir::MLIRContext &, const mlir::ModuleOp &, std::vector<EmitError> &);
+
+/* @brief
+ */
+void run(const mlir::ModuleOp &, std::vector<EmitError> &);
+}; // namespace LLVM
+} // namespace Lowering
 #endif // LOWERING_HPP

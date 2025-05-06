@@ -31,6 +31,10 @@ target_link_libraries(clobber_mlir_backend_tests PRIVATE
     clobber_mlir_backend
 )
 
+if (MSVC)
+  target_compile_options(clobber_mlir_backend_tests PRIVATE /MP)
+endif()
+
 include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_mlir_backend_tests)
 

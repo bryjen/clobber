@@ -1,6 +1,9 @@
 {
     "editor.lineNumbers": "relative",
     "editor.formatOnSave": true,
+    "cmake.configureArgs": [
+        "-DLLVM_CONFIG=Debug"
+    ],
     "cmake.ctestArgs": [
         "-V"
     ],

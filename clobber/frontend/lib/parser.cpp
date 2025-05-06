@@ -53,8 +53,8 @@ try_stoi(const std::string &str) {
 }
 
 Option<ExprBase>
-try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<Token> &tokens,
-                               std::vector<ParserError> &parser_errors, size_t &idx) {
+try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
+                               size_t &idx) {
     NumLiteralExpr nle;
     Token current_token;
     std::string num_as_str;
@@ -73,12 +73,14 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
 
     idx++;
     nle.value = stoi_results.value();
+
+    nle.expr_type = ExprType::NumericLiteralExpr;
     return std::make_optional(nle);
 }
 
 Option<ExprBase>
-try_parse_call_expr(const std::string &source_text, const std::vector<Token> &tokens,
-                    std::vector<ParserError> &parser_errors, size_t &idx) {
+try_parse_call_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
+                    size_t &idx) {
     CallExpr ce;
     Token operator_token;
     Option<Token> current_token;
@@ -98,12 +100,13 @@ try_parse_call_expr(const std::string &source_text, const std::vector<Token> &to
 
     ce.operator_token = operator_token;
     ce.arguments      = arg_exprs;
+
+    ce.expr_type = ExprType::CallExpr;
     return std::make_optional(ce);
 }
 
 Option<ExprBase>
-try_parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
-          size_t &idx) {
+try_parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors, size_t &idx) {
     Token current_token;
     Option<Token> token_opt;
     ParseDelegate parse_fn;
@@ -132,8 +135,7 @@ try_parse(const std::string &source_text, const std::vector<Token> &tokens, std:
 }
 
 CompilationUnit
-clobber::parse(const std::string &source_text, const std::vector<Token> &tokens,
-               std::vector<ParserError> &out_parser_errors) {
+clobber::parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &out_parser_errors) {
     CompilationUnit cu;
     size_t current_idx;
     size_t tokens_len;

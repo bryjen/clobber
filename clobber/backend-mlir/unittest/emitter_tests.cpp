@@ -27,34 +27,28 @@
 
 // clang-format off
 const std::array<std::string, 3> test_source_contents = {
-//1.
+R"(1)",
+
+R"((+ 1 2))",
+
 R"((+ 1 2)
 (* 3 4))",
-
-//2.
-R"(
-(let [x 10
-      y 5]
-  (+ x y))
-)",
-
-//3.
-R"(
-(fn [x] (* x x))
-((fn [x] (* x x)) 5)
-)"
 };
 // clang-format on
 
 class EmitterTests : public ::testing::TestWithParam<int> {};
 
-TEST_P(EmitterTests, SanityCheck) {
-    testTosaMLIR();
-    // mlir_test();
+TEST(EmitterTests, sanity_check_1) {
+    test_tosa_mlir_1();
     EXPECT_TRUE(true);
 }
 
-TEST_P(EmitterTests, TOSA_Emitter_Tests) {
+TEST(EmitterTests, sanity_check_2) {
+    test_tosa_mlir_2();
+    EXPECT_TRUE(true);
+}
+
+TEST_P(EmitterTests, tosa_emitter_tests) {
     // SetConsoleOutputCP(CP_UTF8);
 
     int idx;
@@ -80,6 +74,10 @@ TEST_P(EmitterTests, TOSA_Emitter_Tests) {
     TosaEmitter::init_context(context);
     module_op = TosaEmitter::lower_ast_to_tosa(context, cu, emit_errors);
 
+    std::cout << std::format("Source:\n```\n{}\n```", source_text) << "\n";
+    std::cout << std::format("Parse Errors: {}", parse_errors.size()) << "\n";
+    std::cout << std::endl;
+
     if (mlir::failed(mlir::verify(module_op))) {
         llvm::errs() << "TOSA MLIR verification failed\n";
         module_op.dump();
@@ -91,4 +89,10 @@ TEST_P(EmitterTests, TOSA_Emitter_Tests) {
     EXPECT_TRUE(true);
 }
 
-INSTANTIATE_TEST_SUITE_P(TOSA_Emitter_Tests, EmitterTests, ::testing::Values(0));
+// clang-format off
+INSTANTIATE_TEST_SUITE_P(emitter_tests, EmitterTests, 
+    ::testing::Values(
+//        0,
+        1
+    ));
+// clang-format on
