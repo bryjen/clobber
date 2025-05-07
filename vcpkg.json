@@ -2,6 +2,7 @@
     "name": "clobber",
     "version-string": "0.1.0",
     "dependencies": [
-        "gtest"
+        "gtest",
+        "cli11"
     ]
 }

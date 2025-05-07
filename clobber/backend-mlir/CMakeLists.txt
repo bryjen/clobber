@@ -24,7 +24,8 @@ message(STATUS "[LLVM_MLIR_LIB_DIR]:     ${LLVM_MLIR_LIB_DIR}")
 
 # load and link all .lib files
 file(GLOB MLIR_LIBS "${LLVM_MLIR_LIB_DIR}/*.lib")
-message(STATUS ${MLIR_LIBS})
+# message(STATUS ${MLIR_LIBS})
+
 target_link_libraries(clobber_mlir_backend PRIVATE 
     # llvm/mlir 
     ${MLIR_LIBS}
