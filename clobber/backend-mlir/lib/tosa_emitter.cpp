@@ -9,6 +9,7 @@
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #pragma warning(pop)
 
+#include <functional>
 #include <optional>
 
 #include "clobber/ast.hpp"
@@ -109,16 +110,30 @@ TosaEmitter::init_context(mlir::MLIRContext &context) {
     context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
 }
 
+/* @brief Returns a list of readonly views from the expressions, which are unique ptrs.
+ */
+std::vector<std::reference_wrapper<const ExprBase>>
+get_expr_views(const CompilationUnit &clobber_cu) {
+    std::vector<std::reference_wrapper<const ExprBase>> expr_views;
+
+    for (const auto &expr : clobber_cu.exprs) {
+        expr_views.push_back(std::cref(*expr));
+    }
+
+    return expr_views;
+}
+
 mlir::ModuleOp
 TosaEmitter::lower_ast_to_tosa(mlir::MLIRContext &context, const CompilationUnit &clobber_cu, std::vector<EmitError> &emit_errors) {
     mlir::func::FuncOp entry_point_fn;
 
     mlir::OpBuilder builder(&context);
     mlir::ModuleOp module = mlir::ModuleOp::create(builder.getUnknownLoc());
-
     init_entry_fn(builder, entry_point_fn);
 
-    for (const ExprBase &expr : clobber_cu.exprs) {
+    auto exprs = get_expr_views(clobber_cu);
+
+    for (const ExprBase &expr : exprs) {
         EmittedOp op;
 
         switch (expr.expr_type) {
@@ -177,15 +192,15 @@ lower_call_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const 
     mlir::Value val1;
     mlir::Value val2;
 
-    const CallExpr &call_expr = static_cast<const CallExpr &>(expr);
+    auto *call_expr_ptr = dynamic_cast<const CallExpr *>(&expr);
 
-    auto sm1 = call_expr.arguments[0];
-    auto sm2 = call_expr.arguments[1];
+    const ExprBase &sm1 = std::cref(*call_expr_ptr->arguments[0]);
+    const ExprBase &sm2 = std::cref(*call_expr_ptr->arguments[1]);
 
-    if (!lower_expr(builder, errors, call_expr.arguments[0], op1)) {
+    if (!lower_expr(builder, errors, sm1, op1)) {
         return false;
     }
-    if (!lower_expr(builder, errors, call_expr.arguments[1], op2)) {
+    if (!lower_expr(builder, errors, sm2, op2)) {
         return false;
     }
 

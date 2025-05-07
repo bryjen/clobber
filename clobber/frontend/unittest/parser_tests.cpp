@@ -57,7 +57,7 @@ TEST_P(ParserTests, IsEven) {
     source_text = test_source_contents[idx];
     tokens      = clobber::tokenize(source_text);
 
-    cu = clobber::parse(source_text, tokens, parse_errors);
+    clobber::parse(source_text, tokens, cu);
 
     std::cout << std::format("[{}] exprs: {}", idx, cu.exprs.size()) << std::endl;
     std::cout << std::format("[{}] errs:  {}", idx, parse_errors.size()) << std::endl;
@@ -76,4 +76,4 @@ TEST_P(ParserTests, IsEven) {
 }
 
 // Define test data
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));

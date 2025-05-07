@@ -23,16 +23,13 @@ protected:
 };
 
 namespace clobber {
-/*
- * \brief
+/* @brief
  */
 std::vector<Token> tokenize(const std::string &);
 
-/*
- * \brief
+/* @brief
  */
-CompilationUnit parse(const std::string &source_text, const std::vector<Token> &tokens,
-                      std::vector<ParserError> &out_parser_errors);
-} // namespace clobber
+void parse(const std::string &source_text, const std::vector<Token> &tokens, CompilationUnit &out_compilation_unit);
+}; // namespace clobber
 
 #endif // PARSER_HPP

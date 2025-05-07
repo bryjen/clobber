@@ -1,3 +1,4 @@
+#include <memory>
 #include <optional>
 #include <unordered_map>
 
@@ -10,11 +11,11 @@
 template <typename T> 
 using Option = std::optional<T>;
 
-using ParseDelegate = Option<ExprBase> (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+using ParseDelegate = ExprBase* (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
 
-Option<ExprBase> try_parse(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
-Option<ExprBase> try_parse_numeric_literal_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
-Option<ExprBase> try_parse_call_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse_numeric_literal_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse_call_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
 // clang-format on
 
 void
@@ -52,10 +53,11 @@ try_stoi(const std::string &str) {
     return opt;
 }
 
-Option<ExprBase>
+ExprBase *
 try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
                                size_t &idx) {
-    NumLiteralExpr nle;
+    NumLiteralExpr *nle;
+
     Token current_token;
     std::string num_as_str;
     Option<int> stoi_results;
@@ -68,20 +70,22 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
         ParserError err = err::InternalErr(current_token.start, current_token.length);
         parser_errors.push_back(err);
         recover(idx);
-        return std::nullopt;
+        return nullptr;
     }
 
-    idx++;
-    nle.value = stoi_results.value();
+    nle            = new NumLiteralExpr();
+    nle->value     = stoi_results.value();
+    nle->expr_type = ExprType::NumericLiteralExpr;
 
-    nle.expr_type = ExprType::NumericLiteralExpr;
-    return std::make_optional(nle);
+    idx++;
+    return nle;
 }
 
-Option<ExprBase>
+ExprBase *
 try_parse_call_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
                     size_t &idx) {
-    CallExpr ce;
+    CallExpr *ce;
+
     Token operator_token;
     Option<Token> current_token;
     std::vector<ExprBase> arg_exprs;
@@ -89,35 +93,34 @@ try_parse_call_expr(const std::string &source_text, const std::vector<Token> &to
     operator_token = tokens[++idx];
     current_token  = try_get_token(tokens, ++idx);
 
+    ce                 = new CallExpr();
+    ce->arguments      = std::vector<std::unique_ptr<ExprBase>>{};
+    ce->operator_token = operator_token;
+    ce->expr_type      = ExprType::CallExpr;
+
     while (current_token && current_token.value().token_type != TokenType::CloseParen) {
-        Option<ExprBase> arg_expr_opt = try_parse(source_text, tokens, parser_errors, idx);
-        if (arg_expr_opt) {
-            arg_exprs.push_back(arg_expr_opt.value());
+        ExprBase *arg_expr = try_parse(source_text, tokens, parser_errors, idx);
+        if (arg_expr) {
+            ce->arguments.push_back(std::unique_ptr<ExprBase>(arg_expr));
         }
 
         current_token = try_get_token(tokens, idx);
     }
 
-    ce.operator_token = operator_token;
-    ce.arguments      = arg_exprs;
-
-    ce.expr_type = ExprType::CallExpr;
-    return std::make_optional(ce);
+    idx++;
+    return ce;
 }
 
-Option<ExprBase>
+ExprBase *
 try_parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors, size_t &idx) {
     Token current_token;
     Option<Token> token_opt;
     ParseDelegate parse_fn;
     Option<ParseDelegate> parse_fn_opt;
-    Option<ExprBase> expr_opt;
-
-    expr_opt = std::nullopt;
 
     token_opt = try_get_token(tokens, idx);
     if (!token_opt) {
-        return expr_opt;
+        return nullptr;
     }
     current_token = token_opt.value();
 
@@ -126,35 +129,32 @@ try_parse(const std::string &source_text, const std::vector<Token> &tokens, std:
         ParserError err = err::InternalErr(current_token.start, current_token.length);
         parser_errors.push_back(err);
         recover(idx);
-        return expr_opt;
+        return nullptr;
     }
     parse_fn = parse_fn_opt.value();
 
-    expr_opt = parse_fn(source_text, tokens, parser_errors, idx);
-    return expr_opt;
+    return parse_fn(source_text, tokens, parser_errors, idx);
 }
 
-CompilationUnit
-clobber::parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &out_parser_errors) {
+void
+clobber::parse(const std::string &source_text, const std::vector<Token> &tokens, CompilationUnit &out_compilation_unit) {
     CompilationUnit cu;
     size_t current_idx;
     size_t tokens_len;
-    std::vector<ExprBase> exprs;
+
+    out_compilation_unit.parse_errors = std::vector<ParserError>{};
+    out_compilation_unit.exprs        = std::vector<std::unique_ptr<ExprBase>>{};
 
     current_idx = 0;
     tokens_len  = tokens.size();
-    out_parser_errors.clear();
 
     while (current_idx < tokens_len) {
         // 'current_idx' passed by reference, implicitly modified
-        Option<ExprBase> parsed_expr_opt = try_parse(source_text, tokens, out_parser_errors, current_idx);
-        if (parsed_expr_opt) {
-            exprs.push_back(parsed_expr_opt.value());
+        ExprBase *parsed_expr = try_parse(source_text, tokens, out_compilation_unit.parse_errors, current_idx);
+        if (parsed_expr) {
+            out_compilation_unit.exprs.push_back(std::unique_ptr<ExprBase>(parsed_expr));
         }
 
         current_idx++;
     }
-
-    cu.exprs = exprs;
-    return cu;
 }

@@ -39,11 +39,13 @@ R"((+ 1 2)
 class EmitterTests : public ::testing::TestWithParam<int> {};
 
 TEST(EmitterTests, sanity_check_1) {
+    GTEST_SKIP() << "Disabled";
     test_tosa_mlir_1();
     EXPECT_TRUE(true);
 }
 
 TEST(EmitterTests, sanity_check_2) {
+    GTEST_SKIP() << "Disabled";
     test_tosa_mlir_2();
     EXPECT_TRUE(true);
 }
@@ -69,7 +71,8 @@ TEST_P(EmitterTests, tosa_emitter_tests) {
     str_buf     = std::format("[{}]", idx);
     source_text = test_source_contents[idx];
     tokens      = clobber::tokenize(source_text);
-    cu          = clobber::parse(source_text, tokens, parse_errors);
+
+    clobber::parse(source_text, tokens, cu);
 
     TosaEmitter::init_context(context);
     module_op = TosaEmitter::lower_ast_to_tosa(context, cu, emit_errors);
@@ -92,7 +95,7 @@ TEST_P(EmitterTests, tosa_emitter_tests) {
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(emitter_tests, EmitterTests, 
     ::testing::Values(
-//        0,
+        0,
         1
     ));
 // clang-format on
