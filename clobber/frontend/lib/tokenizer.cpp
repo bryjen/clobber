@@ -15,25 +15,30 @@ bool is_alphanumeric(char);
 bool is_space(char);
 char try_get_char(const std::string &, int);
 
-/* \return Returns the number of characters that fulfills the predicate starting from 'start_idx' inclusive. */
+/* @return Returns the number of characters that fulfills the predicate starting from 'start_idx' inclusive. */
 int read_char_sequence(bool (*)(char), const std::string &, int);
 
-/* \return Returns the number of space characters starting from 'start_idx' inclusive. */
+/* @return Returns the number of space characters starting from 'start_idx' inclusive. */
 int consume_space_characters(const std::string &, int);
 
-/* \return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
+/* @return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
 int try_parse_symbol(const std::string &, int, ClobberTokenType &);
+
+// TODO: Extract this into a common library with the other one in 'parser.hpp'
+Option<int>
+_try_stoi(const std::string &str) {
+    Option<int> opt = std::nullopt;
+    try {
+        opt = std::make_optional(std::stoi(str));
+    } catch (...) {
+        // ignored
+    }
+    return opt;
+}
 
 std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
     std::vector<ClobberToken> tokens;
-
-    /*
-    // simulating a leak, test CRT debuggin
-    for (int i = 0; i < 5; i++) {
-        int *leak = new int(42);
-    }
-    */
 
     int current_idx = 0;
     int st_len      = (int)source_text.length();
@@ -43,9 +48,12 @@ clobber::tokenize(const std::string &source_text) {
         int start_idx      = 0; // token start EXCLUDING spaces
         int spaces_len     = 0; // length of space characters starting from the full start idx
         int token_len      = 0; // length of the actual token characters from the start idx
+
         ClobberTokenType token_type;
-        std::any value;
         ClobberToken token;
+
+        std::any value;
+        std::string value_str; // string representation of the value
 
         spaces_len     = consume_space_characters(source_text, current_idx);
         full_start_idx = current_idx;
@@ -57,15 +65,24 @@ clobber::tokenize(const std::string &source_text) {
             break;
         } else if (is_numeric(peek_char)) {
             // tokenize as number
-            token_len  = read_char_sequence(is_numeric, source_text, current_idx);
-            token_type = ClobberTokenType::NumericLiteralToken;
+            token_len                 = read_char_sequence(is_numeric, source_text, current_idx);
+            token_type                = ClobberTokenType::NumericLiteralToken;
+            value_str                 = source_text.substr(start_idx, token_len);
+            Option<int> int_value_opt = _try_stoi(value_str);
+            if (int_value_opt) {
+                value = int_value_opt.value();
+            } else {
+                // TODO: Throw an error here
+            }
         } else if (isalpha(peek_char)) {
             // tokenize as identifier or string literal
             token_len  = read_char_sequence(is_alphanumeric, source_text, current_idx);
             token_type = ClobberTokenType::IdentifierToken;
+            value      = source_text.substr(start_idx, token_len);
         } else {
             // tokenize as symbol
             token_len = try_parse_symbol(source_text, current_idx, token_type);
+            value     = source_text.substr(start_idx, token_len);
         }
 
         current_idx += token_len;
@@ -79,6 +96,16 @@ clobber::tokenize(const std::string &source_text) {
 
         tokens.push_back(token);
     }
+
+    ClobberToken eof_token{};
+    eof_token.full_start  = st_len;
+    eof_token.start       = st_len;
+    eof_token.full_length = 0;
+    eof_token.length      = 0;
+    eof_token.token_type  = ClobberTokenType::EofToken;
+    eof_token.value       = std::string{std::char_traits<char>::eof()};
+
+    tokens.push_back(eof_token);
 
     return tokens;
 }
@@ -142,7 +169,7 @@ try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenTy
 
         { '+', ClobberTokenType::PlusToken },
         { '-', ClobberTokenType::MinusToken },
-        { '*', ClobberTokenType::MinusToken },
+        { '*', ClobberTokenType::AsteriskToken },
         { '/', ClobberTokenType::SlashToken },
         { '\\', ClobberTokenType::BackslashToken },
         { '=', ClobberTokenType::EqualsToken },

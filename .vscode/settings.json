@@ -3,7 +3,7 @@
     "editor.formatOnSave": true,
     "cmake.configureArgs": [
         "-DLLVM_CONFIG=Debug",
-        "-DCLOBBER_USE_CRT=ON"
+        "-DCLOBBER_USE_CRT=OFF"
     ],
     "cmake.ctestArgs": [
         "-V"
