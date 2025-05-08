@@ -1,15 +1,6 @@
 #ifndef CLOBBER_DEBUG_HPP
 #define CLOBBER_DEBUG_HPP
 
-// (mostly) compiler agnostic warning macro
-#if defined(_MSC_VER)
-#define WARN(msg) __pragma(message(msg))
-#elif defined(__GNUC__) || defined(__clang__)
-#define WARN(msg) #warning msg
-#else
-#error Unknown compiler, could not initialize warning macro
-#endif
-
 // flag to enable windows CRT
 #if !defined(NDEBUG) && defined(CLOBBER_USE_CRT) && defined(_WIN32)
 #define CRT_ENABLED
@@ -21,9 +12,9 @@
 #define NOMINMAX
 #include <windows.h>
 #define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-// #include <cstdlib>
 #include <crtdbg.h>
+#include <stdlib.h>
+
 #endif
 
 // CRT definition to allow tracking of all allocations via replacement of the 'new' keyword

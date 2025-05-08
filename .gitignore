@@ -62,3 +62,4 @@ out/
 # ignore lsp helper file
 compile_commands.json
 build/
+logs/
