@@ -1,16 +1,19 @@
-
-#include "helpers/helpers.hpp"
 #include <array>
-#include <clobber/ast.hpp>
-#include <clobber/parser.hpp>
 #include <format>
 #include <fstream>
-#include <gtest/gtest.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 #include <windows.h>
+
+#include <gtest/gtest.h>
+
+#include <clobber/common/debug.hpp> // common debug header
+
+#include "helpers/helpers.hpp"
+#include <clobber/ast.hpp>
+#include <clobber/parser.hpp>
 
 #define CONSOLE_LOG
 
@@ -39,7 +42,7 @@ R"(
 
 class ParserTests : public ::testing::TestWithParam<int> {};
 
-#ifdef DISABLE_PARSER_TESTS
+#ifdef CLOBBER_TESTS_DISABLE_PARSER_TESTS
 TEST_P(ParserTests, DISABLED_ParserTests) {
 #else
 TEST_P(ParserTests, ParserTests) {

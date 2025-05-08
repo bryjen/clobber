@@ -8,28 +8,32 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
-// <windows.h> is transitively included via spdlog, can cause naming conflicts
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <clobber/ast.hpp>
-#include <clobber/parser.hpp>
-
+#include <gtest/gtest.h>
 #include <magic_enum/magic_enum.hpp>
 
+#include <clobber/common/debug.hpp> // common debug header
+
 #include "helpers/syntax_factory.hpp"
+#include <clobber/ast.hpp>
+#include <clobber/parser.hpp>
 
 using path = std::filesystem::path;
 using namespace SyntaxFactory;
 
+std::string
+get_executable_directory() {
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+    std::filesystem::path exe_path(buffer);
+    return exe_path.parent_path().string();
+}
+
 void
 init_logger(const std::string &logger_name, const std::string &out_log_path) {
-
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>(out_log_path, true);
 
@@ -154,6 +158,7 @@ reconstruct_source_text_from_tokens(const std::string &source_text, const std::v
 void
 print_tokens(const std::string &source_text, const std::vector<ClobberToken> &expected_tokens,
              const std::vector<ClobberToken> &actual_tokens, bool use_alignment = false) {
+#ifndef CRT_ENABLED
     spdlog::info(std::format("[Expected; n={}]", expected_tokens.size()));
     spdlog::info("---------------------------------------------------------");
     for (size_t i = 0; i < expected_tokens.size(); i++) {
@@ -171,6 +176,7 @@ print_tokens(const std::string &source_text, const std::vector<ClobberToken> &ex
     }
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
     spdlog::info(std::format("Reconstructed text:\n```\n{}\n```\n", reconstructed));
+#endif
 }
 
 ::testing::AssertionResult
@@ -216,6 +222,12 @@ is_roundtrippable(const std::string &source_text, const std::vector<ClobberToken
 }
 
 TEST_P(TokenizerTests, IsEven) {
+#ifdef CRT_ENABLED
+    INIT_CRT_DEBUG();
+    ::testing::GTEST_FLAG(output) = "none";
+#endif
+    // int *leak = new int(42);
+
     int test_case_idx;
     std::string file_path;
     std::string source_text;
@@ -227,8 +239,6 @@ TEST_P(TokenizerTests, IsEven) {
     source_text     = read_all_text(file_path);
     expected_tokens = expected_cases[0];
 
-    // spdlog::info(std::format("Source text:\n```\n{}\n```\n", source_text));
-
     actual_tokens = clobber::tokenize(source_text);
 
     print_tokens(source_text, expected_tokens, actual_tokens);
@@ -236,8 +246,13 @@ TEST_P(TokenizerTests, IsEven) {
     ASSERT_TRUE(are_num_tokens_equal(expected_tokens, actual_tokens));
     EXPECT_TRUE(are_tokens_equal(expected_tokens, actual_tokens));
     EXPECT_TRUE(is_roundtrippable(source_text, actual_tokens));
+
+#ifdef CRT_ENABLED
+    if (_CrtDumpMemoryLeaks()) {
+        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+    }
+#endif
 }
 
-// Define test data
 // INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0, 1, 2));
 INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0));

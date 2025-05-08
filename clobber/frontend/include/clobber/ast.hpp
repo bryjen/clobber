@@ -1,6 +1,8 @@
 #ifndef AST_HPP
 #define AST_HPP
 
+#include <clobber/common/debug.hpp> // common debug header
+
 #include <any>
 #include <memory>
 #include <string>

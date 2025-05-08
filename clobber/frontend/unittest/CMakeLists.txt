@@ -27,15 +27,14 @@ target_link_libraries(clobber_tests PRIVATE
     GTest::gtest GTest::gtest_main     
     spdlog::spdlog_header_only
     magic_enum::magic_enum
-    clobber
+    clobber clobber_common
 )
 
 include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 target_compile_definitions(clobber_tests PRIVATE
-    DISABLE_PARSER_TESTS
-
+    CLOBBER_TESTS_DISABLE_PARSER_TESTS
 )
 
 # copy test files into output executable directory

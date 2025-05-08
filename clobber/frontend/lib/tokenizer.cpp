@@ -28,6 +28,13 @@ std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
     std::vector<ClobberToken> tokens;
 
+    /*
+    // simulating a leak, test CRT debuggin
+    for (int i = 0; i < 5; i++) {
+        int *leak = new int(42);
+    }
+    */
+
     int current_idx = 0;
     int st_len      = (int)source_text.length();
 

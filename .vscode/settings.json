@@ -2,7 +2,8 @@
     "editor.lineNumbers": "relative",
     "editor.formatOnSave": true,
     "cmake.configureArgs": [
-        "-DLLVM_CONFIG=Debug"
+        "-DLLVM_CONFIG=Debug",
+        "-DCLOBBER_USE_CRT=ON"
     ],
     "cmake.ctestArgs": [
         "-V"

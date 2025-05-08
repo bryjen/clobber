@@ -14,5 +14,10 @@ target_include_directories(clobber
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
+target_link_libraries(clobber
+    PUBLIC clobber_common
+)
+
+
 enable_testing()
 add_subdirectory(unittest)

@@ -1,6 +1,8 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+#include <clobber/common/debug.hpp> // common debug header
+
 #include <string>
 #include <vector>
 
