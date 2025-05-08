@@ -10,44 +10,60 @@ struct ParserError; // clobber/parser.hpp
 
 /* @brief Represents the type of a token.
  */
-enum class TokenType {
-    OpenParen,
-    CloseParen,
+enum class ClobberTokenType {
+    OpenParenToken,
+    CloseParenToken,
+    OpenBracketToken,
+    CloseBracketToken,
+    OpenBraceToken,
+    CloseBraceToken,
+
     PlusToken,
+    MinusToken,
+    AsteriskToken,
+    SlashToken,     // '/'
+    BackslashToken, // '\'
     EqualsToken,
-    BadToken,
+    LessThanToken,    // '<'
+    GreaterThanToken, // '>'
 
     IdentifierToken,
     NumericLiteralToken,
+
+    BadToken,
+    EofToken,
 };
 
 /* @brief Represents a token.
  */
-struct Token final {
+struct ClobberToken final {
     int start;
     int length;
     int full_start;  // includes trivia
     int full_length; // includes trivia
 
-    TokenType token_type;
+    ClobberTokenType token_type;
     std::any value;
 
 public:
     std::string ExtractText(const std::string &);
     std::string ExtractFullText(const std::string &);
+
+    static bool AreEquivalent(const ClobberToken &, const ClobberToken &);
 };
 
 /* @brief Enum representing the expression type.
  */
-enum class ExprType {
+enum class ClobberExprType {
     CallExpr,
     NumericLiteralExpr,
+    IdentifierExpr,
 };
 
 /* @brief Represents a clobber expression. Base class for all expression types.
  */
 struct ExprBase {
-    ExprType expr_type;
+    ClobberExprType expr_type;
     virtual ~ExprBase() = default;
 };
 
@@ -55,13 +71,21 @@ struct ExprBase {
  */
 struct NumLiteralExpr final : ExprBase {
     int value;
+    ClobberToken token;
 };
 
 /* @brief Represents a call expression.
  */
 struct CallExpr final : ExprBase {
-    Token operator_token;
+    ClobberToken operator_token;
     std::vector<std::unique_ptr<ExprBase>> arguments;
+};
+
+/* @brief Represents an identifier.
+ */
+struct IdentifierExpr final : ExprBase {
+    std::string name;
+    ClobberToken token;
 };
 
 /* @brief Represents a clobber compilation unit. Usually contains all the contents of a source file.

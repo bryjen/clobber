@@ -1,6 +1,6 @@
 #include <memory>
 #include <optional>
-#include <unordered_map>
+#include <unordered_set>
 
 #include "clobber/ast.hpp"
 #include "clobber/parser.hpp"
@@ -11,11 +11,12 @@
 template <typename T> 
 using Option = std::optional<T>;
 
-using ParseDelegate = ExprBase* (*)(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+using ParseDelegate = ExprBase* (*)(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
 
-ExprBase* try_parse(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
-ExprBase* try_parse_numeric_literal_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
-ExprBase* try_parse_call_expr(const std::string &, const std::vector<Token> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse_numeric_literal_expr(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse_call_expr(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
+ExprBase* try_parse_identifier(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
 // clang-format on
 
 void
@@ -23,23 +24,10 @@ recover(size_t &idx) {
     idx = idx + 1;
 }
 
-Option<Token>
-try_get_token(const std::vector<Token> &tokens, size_t idx) {
+Option<ClobberToken>
+try_get_token(const std::vector<ClobberToken> &tokens, size_t idx) {
     size_t tokens_len = tokens.size();
     return (idx >= 0 && idx < tokens_len) ? std::make_optional(tokens[idx]) : std::nullopt;
-}
-
-Option<ParseDelegate>
-try_get_parse_fun(TokenType token_type) {
-    // clang-format off
-    static std::unordered_map<TokenType, ParseDelegate> parse_functions = {
-        { TokenType::NumericLiteralToken, try_parse_numeric_literal_expr },
-        { TokenType::OpenParen, try_parse_call_expr },
-    };
-    // clang-format on
-
-    auto it = parse_functions.find(token_type);
-    return (it != parse_functions.end()) ? std::make_optional(it->second) : std::nullopt;
 }
 
 Option<int>
@@ -53,12 +41,31 @@ try_stoi(const std::string &str) {
     return opt;
 }
 
+Option<ParseDelegate>
+try_get_parse_fun(ClobberTokenType token_type) {
+    const std::unordered_set<ClobberTokenType> valid_token_types = {ClobberTokenType::NumericLiteralToken};
+    auto is_reserved_symbol_identifier = [&valid_token_types](ClobberTokenType tt) { return valid_token_types.contains(tt); };
+
+    if (token_type == ClobberTokenType::NumericLiteralToken) {
+        return std::make_optional(try_parse_numeric_literal_expr);
+
+    } else if (token_type == ClobberTokenType::OpenParenToken) {
+        return std::make_optional(try_parse_call_expr);
+
+    } else if (token_type == ClobberTokenType::IdentifierToken || is_reserved_symbol_identifier(token_type)) {
+        return std::make_optional(try_parse_identifier);
+
+    } else {
+        return std::nullopt;
+    }
+}
+
 ExprBase *
-try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
-                               size_t &idx) {
+try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens,
+                               std::vector<ParserError> &parser_errors, size_t &idx) {
     NumLiteralExpr *nle;
 
-    Token current_token;
+    ClobberToken current_token;
     std::string num_as_str;
     Option<int> stoi_results;
 
@@ -75,19 +82,25 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
 
     nle            = new NumLiteralExpr();
     nle->value     = stoi_results.value();
-    nle->expr_type = ExprType::NumericLiteralExpr;
+    nle->expr_type = ClobberExprType::NumericLiteralExpr;
 
     idx++;
     return nle;
 }
 
 ExprBase *
-try_parse_call_expr(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors,
+try_parse_identifier(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                     size_t &idx) {
+    return nullptr;
+}
+
+ExprBase *
+try_parse_call_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
                     size_t &idx) {
     CallExpr *ce;
 
-    Token operator_token;
-    Option<Token> current_token;
+    ClobberToken operator_token;
+    Option<ClobberToken> current_token;
     std::vector<ExprBase> arg_exprs;
 
     operator_token = tokens[++idx];
@@ -96,9 +109,9 @@ try_parse_call_expr(const std::string &source_text, const std::vector<Token> &to
     ce                 = new CallExpr();
     ce->arguments      = std::vector<std::unique_ptr<ExprBase>>{};
     ce->operator_token = operator_token;
-    ce->expr_type      = ExprType::CallExpr;
+    ce->expr_type      = ClobberExprType::CallExpr;
 
-    while (current_token && current_token.value().token_type != TokenType::CloseParen) {
+    while (current_token && current_token.value().token_type != ClobberTokenType::CloseParenToken) {
         ExprBase *arg_expr = try_parse(source_text, tokens, parser_errors, idx);
         if (arg_expr) {
             ce->arguments.push_back(std::unique_ptr<ExprBase>(arg_expr));
@@ -112,9 +125,9 @@ try_parse_call_expr(const std::string &source_text, const std::vector<Token> &to
 }
 
 ExprBase *
-try_parse(const std::string &source_text, const std::vector<Token> &tokens, std::vector<ParserError> &parser_errors, size_t &idx) {
-    Token current_token;
-    Option<Token> token_opt;
+try_parse(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors, size_t &idx) {
+    ClobberToken current_token;
+    Option<ClobberToken> token_opt;
     ParseDelegate parse_fn;
     Option<ParseDelegate> parse_fn_opt;
 
@@ -137,7 +150,7 @@ try_parse(const std::string &source_text, const std::vector<Token> &tokens, std:
 }
 
 void
-clobber::parse(const std::string &source_text, const std::vector<Token> &tokens, CompilationUnit &out_compilation_unit) {
+clobber::parse(const std::string &source_text, const std::vector<ClobberToken> &tokens, CompilationUnit &out_compilation_unit) {
     CompilationUnit cu;
     size_t current_idx;
     size_t tokens_len;

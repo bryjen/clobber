@@ -92,6 +92,10 @@
         "shared_mutex": "cpp",
         "codecvt": "cpp",
         "filesystem": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "bitset": "cpp",
+        "coroutine": "cpp",
+        "expected": "cpp",
+        "source_location": "cpp"
     }
 }

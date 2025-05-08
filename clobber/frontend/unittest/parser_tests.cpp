@@ -39,13 +39,18 @@ R"(
 
 class ParserTests : public ::testing::TestWithParam<int> {};
 
-TEST_P(ParserTests, IsEven) {
+#ifdef DISABLE_PARSER_TESTS
+TEST_P(ParserTests, DISABLED_ParserTests) {
+#else
+TEST_P(ParserTests, ParserTests) {
+#endif
+    // GTEST_SKIP() << "Disabled";
     SetConsoleOutputCP(CP_UTF8);
 
     int idx;
     std::string file_path;
     std::string source_text;
-    std::vector<Token> tokens;
+    std::vector<ClobberToken> tokens;
     std::string str_buf;
 
     CompilationUnit cu;

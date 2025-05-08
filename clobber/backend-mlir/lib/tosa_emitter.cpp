@@ -137,11 +137,11 @@ TosaEmitter::lower_ast_to_tosa(mlir::MLIRContext &context, const CompilationUnit
         EmittedOp op;
 
         switch (expr.expr_type) {
-        case ExprType::NumericLiteralExpr: {
+        case ClobberExprType::NumericLiteralExpr: {
             auto something1 = lower_numerical_literal_expr(builder, emit_errors, expr, op);
             break;
         }
-        case ExprType::CallExpr: {
+        case ClobberExprType::CallExpr: {
             auto something2 = lower_call_expr(builder, emit_errors, expr, op);
             break;
         }
@@ -207,7 +207,7 @@ lower_call_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const 
     val1 = op1.op->getResult(0);
     val2 = op2.op->getResult(0);
 
-    mlir::RankedTensorType type = mlir::RankedTensorType::get({1}, builder.getIntegerType(32)); // int32 1x1 tensor
+    mlir::RankedTensorType type = mlir::RankedTensorType::get({1, 1}, builder.getIntegerType(32)); // int32 1x1 tensor
     mlir::tosa::AddOp addOp     = builder.create<mlir::tosa::AddOp>(builder.getUnknownLoc(), type, val1, val2);
     return addOp;
 }
@@ -217,9 +217,9 @@ lower_expr(mlir::OpBuilder &builder, std::vector<EmitError> &errors, const ExprB
     LoweringDelegate callback;
 
     // clang-format off
-    static std::unordered_map<ExprType, LoweringDelegate> lowering_fns = {
-        { ExprType::NumericLiteralExpr, lower_numerical_literal_expr },
-        { ExprType::CallExpr, lower_call_expr },
+    static std::unordered_map<ClobberExprType, LoweringDelegate> lowering_fns = {
+        { ClobberExprType::NumericLiteralExpr, lower_numerical_literal_expr },
+        { ClobberExprType::CallExpr, lower_call_expr },
     };
     // clang-format on
 

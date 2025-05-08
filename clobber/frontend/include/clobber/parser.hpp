@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-struct Token;           // ast.hpp
+struct ClobberToken;    // ast.hpp
 struct CompilationUnit; // ast.hpp
 
 struct ParserError {
@@ -25,11 +25,11 @@ protected:
 namespace clobber {
 /* @brief
  */
-std::vector<Token> tokenize(const std::string &);
+std::vector<ClobberToken> tokenize(const std::string &);
 
 /* @brief
  */
-void parse(const std::string &source_text, const std::vector<Token> &tokens, CompilationUnit &out_compilation_unit);
+void parse(const std::string &source_text, const std::vector<ClobberToken> &tokens, CompilationUnit &out_compilation_unit);
 }; // namespace clobber
 
 #endif // PARSER_HPP

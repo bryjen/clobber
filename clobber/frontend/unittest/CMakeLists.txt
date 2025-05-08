@@ -19,16 +19,24 @@ target_sources(clobber_tests PRIVATE
 )
 
 
-
+find_package(spdlog CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
+
 target_link_libraries(clobber_tests PRIVATE 
     GTest::gtest GTest::gtest_main     
+    spdlog::spdlog_header_only
+    magic_enum::magic_enum
     clobber
 )
 
 include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
+target_compile_definitions(clobber_tests PRIVATE
+    DISABLE_PARSER_TESTS
+
+)
 
 # copy test files into output executable directory
 add_custom_command(

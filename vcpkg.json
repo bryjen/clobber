@@ -3,6 +3,8 @@
     "version-string": "0.1.0",
     "dependencies": [
         "gtest",
-        "cli11"
+        "cli11",
+        "spdlog",
+        "magic-enum"
     ]
 }

@@ -36,27 +36,27 @@ R"((+ 1 2)
 };
 // clang-format on
 
-class EmitterTests : public ::testing::TestWithParam<int> {};
+class TokenizerTests : public ::testing::TestWithParam<int> {};
 
-TEST(EmitterTests, sanity_check_1) {
+TEST(TokenizerTests, sanity_check_1) {
     GTEST_SKIP() << "Disabled";
     test_tosa_mlir_1();
     EXPECT_TRUE(true);
 }
 
-TEST(EmitterTests, sanity_check_2) {
+TEST(TokenizerTests, sanity_check_2) {
     GTEST_SKIP() << "Disabled";
     test_tosa_mlir_2();
     EXPECT_TRUE(true);
 }
 
-TEST_P(EmitterTests, tosa_emitter_tests) {
+TEST_P(TokenizerTests, tosa_emitter_tests) {
     // SetConsoleOutputCP(CP_UTF8);
 
     int idx;
     std::string file_path;
     std::string source_text;
-    std::vector<Token> tokens;
+    std::vector<ClobberToken> tokens;
     std::string str_buf;
 
     CompilationUnit cu;
@@ -93,7 +93,7 @@ TEST_P(EmitterTests, tosa_emitter_tests) {
 }
 
 // clang-format off
-INSTANTIATE_TEST_SUITE_P(emitter_tests, EmitterTests, 
+INSTANTIATE_TEST_SUITE_P(emitter_tests, TokenizerTests, 
     ::testing::Values(
         0,
         1

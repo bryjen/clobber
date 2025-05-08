@@ -1,5 +1,5 @@
-#include "clobber/parser.hpp"
 #include "clobber/ast.hpp"
+#include "clobber/parser.hpp"
 #include <any>
 #include <optional>
 #include <unordered_map>
@@ -22,11 +22,11 @@ int read_char_sequence(bool (*)(char), const std::string &, int);
 int consume_space_characters(const std::string &, int);
 
 /* \return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
-int try_parse_symbol(const std::string &, int, TokenType &);
+int try_parse_symbol(const std::string &, int, ClobberTokenType &);
 
-std::vector<Token>
+std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
-    std::vector<Token> tokens;
+    std::vector<ClobberToken> tokens;
 
     int current_idx = 0;
     int st_len      = (int)source_text.length();
@@ -36,9 +36,9 @@ clobber::tokenize(const std::string &source_text) {
         int start_idx      = 0; // token start EXCLUDING spaces
         int spaces_len     = 0; // length of space characters starting from the full start idx
         int token_len      = 0; // length of the actual token characters from the start idx
-        TokenType token_type;
+        ClobberTokenType token_type;
         std::any value;
-        Token token;
+        ClobberToken token;
 
         spaces_len     = consume_space_characters(source_text, current_idx);
         full_start_idx = current_idx;
@@ -51,11 +51,11 @@ clobber::tokenize(const std::string &source_text) {
         } else if (is_numeric(peek_char)) {
             // tokenize as number
             token_len  = read_char_sequence(is_numeric, source_text, current_idx);
-            token_type = TokenType::NumericLiteralToken;
+            token_type = ClobberTokenType::NumericLiteralToken;
         } else if (isalpha(peek_char)) {
             // tokenize as identifier or string literal
             token_len  = read_char_sequence(is_alphanumeric, source_text, current_idx);
-            token_type = TokenType::IdentifierToken;
+            token_type = ClobberTokenType::IdentifierToken;
         } else {
             // tokenize as symbol
             token_len = try_parse_symbol(source_text, current_idx, token_type);
@@ -119,21 +119,32 @@ consume_space_characters(const std::string &source_text, int start_idx) {
 }
 
 int
-try_parse_symbol(const std::string &source_text, int start_index, TokenType &out_token_type) {
+try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenType &out_token_type) {
     char fst_char = try_get_char(source_text, start_index);
 
     // we don't need to parse two character operators for now
 
     // clang-format off
-    std::unordered_map<char, TokenType> token_map = {
-        { '(', TokenType::OpenParen },
-        { ')', TokenType::CloseParen },
-        { '+', TokenType::PlusToken },
-        { '=', TokenType::EqualsToken },
+    std::unordered_map<char, ClobberTokenType> token_map = {
+        { '(', ClobberTokenType::OpenParenToken },
+        { ')', ClobberTokenType::CloseParenToken },
+        { '[', ClobberTokenType::OpenBracketToken },
+        { ']', ClobberTokenType::CloseBracketToken },
+        { '{', ClobberTokenType::OpenBraceToken },
+        { '}', ClobberTokenType::CloseBraceToken },
+
+        { '+', ClobberTokenType::PlusToken },
+        { '-', ClobberTokenType::MinusToken },
+        { '*', ClobberTokenType::MinusToken },
+        { '/', ClobberTokenType::SlashToken },
+        { '\\', ClobberTokenType::BackslashToken },
+        { '=', ClobberTokenType::EqualsToken },
+        { '<', ClobberTokenType::LessThanToken },
+        { '>', ClobberTokenType::GreaterThanToken },
     };
     // clang-format on
 
     auto it        = token_map.find(fst_char);
-    out_token_type = (it != token_map.end()) ? it->second : TokenType::BadToken;
+    out_token_type = (it != token_map.end()) ? it->second : ClobberTokenType::BadToken;
     return 1;
 }
