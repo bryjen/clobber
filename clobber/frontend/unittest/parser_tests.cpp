@@ -1,87 +1,92 @@
-#include <array>
-#include <format>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <windows.h>
+#include <filesystem>
 
-#include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
-#include <clobber/common/debug.hpp> // common debug header
-
+#include "helpers/expr_tostring.hpp"
 #include "helpers/helpers.hpp"
+#include "helpers/syntax_factory.hpp"
+
 #include <clobber/ast.hpp>
+#include <clobber/common/utils.hpp>
 #include <clobber/parser.hpp>
 
-#define CONSOLE_LOG
+using namespace ParserTestsHelpers;
 
-// clang-format off
-const std::array<std::string, 3> test_source_contents = {
-//1.
-R"(
-(+ 1 2)
-(* 3 4)
-)",
+class ParserTests : public ::testing::TestWithParam<int> {
+protected:
+    void
+    SetUp() override {
+        auto *info             = ::testing::UnitTest::GetInstance()->current_test_info();
+        std::string suite_name = info->test_suite_name();
+        std::string test_name  = info->name();
 
-//2.
-R"(
-(let [x 10
-      y 5]
-  (+ x y))
-)",
+        std::replace(suite_name.begin(), suite_name.end(), '/', '_');
+        std::replace(test_name.begin(), test_name.end(), '/', '_');
 
-//3.
-R"(
-(fn [x] (* x x))
-((fn [x] (* x x)) 5)
-)"
+        const std::string output_file_path = std::format("./logs/{}_{}_{}.txt", suite_name, test_name, GetParam());
+        const std::string logger_name      = std::format("logger_{}", GetParam());
+        Logging::init_logger(logger_name, output_file_path);
+    }
+
+    void
+    TearDown() override {
+        const std::string logger_name = std::format("logger_{}", GetParam());
+        Logging::dispose_logger(logger_name);
+    }
 };
-// clang-format on
-
-class ParserTests : public ::testing::TestWithParam<int> {};
 
 #ifdef CLOBBER_TESTS_DISABLE_PARSER_TESTS
 TEST_P(ParserTests, DISABLED_ParserTests) {
 #else
 TEST_P(ParserTests, ParserTests) {
 #endif
-    // GTEST_SKIP() << "Disabled";
-    SetConsoleOutputCP(CP_UTF8);
-
-    int idx;
+#ifdef CRT_ENABLED
+    INIT_CRT_DEBUG();
+    ::testing::GTEST_FLAG(output) = "none";
+#endif
+    int test_case_idx;
     std::string file_path;
     std::string source_text;
     std::vector<ClobberToken> tokens;
-    std::string str_buf;
 
     CompilationUnit cu;
-    std::vector<ParserError> parse_errors;
 
-    idx = GetParam();
-
-    str_buf     = std::format("[{}]", idx);
-    source_text = test_source_contents[idx];
-    tokens      = clobber::tokenize(source_text);
-
+    test_case_idx = GetParam();
+    file_path     = std::format("./test_files/{}.clj", test_case_idx);
+    source_text   = read_all_text(file_path);
+    tokens        = clobber::tokenize(source_text);
     clobber::parse(source_text, tokens, cu);
 
-    std::cout << std::format("[{}] exprs: {}", idx, cu.exprs.size()) << std::endl;
-    std::cout << std::format("[{}] errs:  {}", idx, parse_errors.size()) << std::endl;
-
-    if (parse_errors.size() > 0) {
+    if (cu.parse_errors.size() > 0) {
         std::string file                  = "C:/USER/Documents/clobber_proj/main.clj";
-        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, parse_errors);
+        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, cu.parse_errors);
         for (size_t i = 0; i < err_msgs.size(); i++) {
             std::cout << err_msgs[i] << "\n";
         }
 
         std::cout << std::endl;
+        EXPECT_TRUE(false);
+        return;
     }
+
+    std::vector<std::string> expr_strs;
+    std::vector<std::reference_wrapper<const ExprBase>> expr_views = ptr_utils::get_expr_views(cu.exprs);
+    for (const auto &expr_base : expr_views) {
+        expr_strs.push_back(expr2str::expr_base(source_text, expr_base.get()));
+    }
+
+    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+    spdlog::info("");
+    spdlog::info(std::format("reconstructed:\n```\n{}\n```", str_utils::join("", expr_strs)));
+
+#ifdef CRT_ENABLED
+    if (_CrtDumpMemoryLeaks()) {
+        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+    }
+#endif
 
     EXPECT_TRUE(true);
 }
 
 // Define test data
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));

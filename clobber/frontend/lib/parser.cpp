@@ -2,6 +2,8 @@
 #include <optional>
 #include <unordered_set>
 
+#include <clobber/common/utils.hpp>
+
 #include "clobber/ast.hpp"
 #include "clobber/parser.hpp"
 
@@ -28,17 +30,6 @@ Option<ClobberToken>
 try_get_token(const std::vector<ClobberToken> &tokens, size_t idx) {
     size_t tokens_len = tokens.size();
     return (idx >= 0 && idx < tokens_len) ? std::make_optional(tokens[idx]) : std::nullopt;
-}
-
-Option<int>
-try_stoi(const std::string &str) {
-    Option<int> opt = std::nullopt;
-    try {
-        opt = std::make_optional(std::stoi(str));
-    } catch (...) {
-        // ignored
-    }
-    return opt;
 }
 
 Option<ParseDelegate>
@@ -71,7 +62,7 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
 
     current_token = tokens[idx]; // no bounds check, current token exists, asserted by caller
     num_as_str    = current_token.ExtractText(source_text);
-    stoi_results  = try_stoi(num_as_str);
+    stoi_results  = str_utils::try_stoi(num_as_str);
 
     if (!stoi_results) {
         ParserError err = err::InternalErr(current_token.start, current_token.length);
@@ -81,6 +72,7 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
     }
 
     nle            = new NumLiteralExpr();
+    nle->token     = current_token;
     nle->value     = stoi_results.value();
     nle->expr_type = ClobberExprType::NumericLiteralExpr;
 
@@ -91,25 +83,24 @@ try_parse_numeric_literal_expr(const std::string &source_text, const std::vector
 ExprBase *
 try_parse_identifier(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
                      size_t &idx) {
-    return nullptr;
+
+    throw 0;
 }
 
 ExprBase *
 try_parse_call_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
                     size_t &idx) {
     CallExpr *ce;
-
-    ClobberToken operator_token;
     Option<ClobberToken> current_token;
     std::vector<ExprBase> arg_exprs;
 
-    operator_token = tokens[++idx];
-    current_token  = try_get_token(tokens, ++idx);
+    ce            = new CallExpr();
+    ce->arguments = std::vector<std::unique_ptr<ExprBase>>{};
+    ce->expr_type = ClobberExprType::CallExpr;
 
-    ce                 = new CallExpr();
-    ce->arguments      = std::vector<std::unique_ptr<ExprBase>>{};
-    ce->operator_token = operator_token;
-    ce->expr_type      = ClobberExprType::CallExpr;
+    ce->open_paren_token = tokens[idx++];
+    ce->operator_token   = tokens[idx++];
+    current_token        = try_get_token(tokens, idx);
 
     while (current_token && current_token.value().token_type != ClobberTokenType::CloseParenToken) {
         ExprBase *arg_expr = try_parse(source_text, tokens, parser_errors, idx);
@@ -118,6 +109,10 @@ try_parse_call_expr(const std::string &source_text, const std::vector<ClobberTok
         }
 
         current_token = try_get_token(tokens, idx);
+    }
+
+    if (current_token && current_token.value().token_type == ClobberTokenType::CloseParenToken) {
+        ce->close_paren_token = current_token.value();
     }
 
     idx++;
@@ -162,12 +157,14 @@ clobber::parse(const std::string &source_text, const std::vector<ClobberToken> &
     tokens_len  = tokens.size();
 
     while (current_idx < tokens_len) {
+        if (tokens[current_idx].token_type == ClobberTokenType::EofToken) {
+            break;
+        }
+
         // 'current_idx' passed by reference, implicitly modified
         ExprBase *parsed_expr = try_parse(source_text, tokens, out_compilation_unit.parse_errors, current_idx);
         if (parsed_expr) {
             out_compilation_unit.exprs.push_back(std::unique_ptr<ExprBase>(parsed_expr));
         }
-
-        current_idx++;
     }
 }

@@ -7,18 +7,14 @@
 
 #include <gtest/gtest.h>
 
-struct ClobberToken; // clobber/ast.hpp
-struct ParserError;  // clobber/parser.hpp
+struct ClobberToken;    // clobber/ast.hpp
+struct CompilationUnit; // clobber/ast.hpp
+struct ParserError;     // clobber/parser.hpp
 
 /* @brief
  * @remark to remove?
  */
 template <typename T> bool assert_vectors_same_size(const std::vector<T> &, const std::vector<T> &, std::string *);
-
-/* @brief
- * @remark to remove?
- */
-std::vector<std::string> get_error_msgs(const std::string &, const std::string &, const std::vector<ParserError> &);
 
 std::string get_executable_directory();
 std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
@@ -33,10 +29,17 @@ void init_logger(const std::string &logger_name, const std::string &out_log_path
 void dispose_logger(const std::string &logger_name);
 }; // namespace Logging
 
-namespace TokenizerAssertions {
+namespace TokenizerTestsHelpers {
 ::testing::AssertionResult are_num_tokens_equal(const std::vector<ClobberToken> &, const std::vector<ClobberToken> &);
 ::testing::AssertionResult are_tokens_equal(const std::vector<ClobberToken> &, const std::vector<ClobberToken> &);
 ::testing::AssertionResult is_roundtrippable(const std::string &, const std::vector<ClobberToken> &);
-}; // namespace TokenizerAssertions
+}; // namespace TokenizerTestsHelpers
+
+namespace ParserTestsHelpers {
+/* @brief Converts a list of parse errors equivalent to a list of pretty formatted error messages. */
+std::vector<std::string> get_error_msgs(const std::string &, const std::string &, const std::vector<ParserError> &);
+
+::testing::AssertionResult are_compilation_units_equivalent(const CompilationUnit &, const CompilationUnit &);
+} // namespace ParserTestsHelpers
 
 #endif // HELPERS_HPP

@@ -79,7 +79,9 @@ struct NumLiteralExpr final : ExprBase {
 /* @brief Represents a call expression.
  */
 struct CallExpr final : ExprBase {
+    ClobberToken open_paren_token;
     ClobberToken operator_token;
+    ClobberToken close_paren_token;
     std::vector<std::unique_ptr<ExprBase>> arguments;
 };
 

@@ -13,6 +13,7 @@ include_directories(
 
 target_sources(clobber_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/helpers.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/expr_tostring.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/tokenizer_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/parser_tests.cpp
@@ -34,7 +35,8 @@ include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 target_compile_definitions(clobber_tests PRIVATE
-    CLOBBER_TESTS_DISABLE_PARSER_TESTS
+    # CLOBBER_TESTS_DISABLE_PARSER_TESTS
+    CLOBBER_TESTS_DISABLE_TOKENIZER_TESTS
 )
 
 # copy test files into output executable directory

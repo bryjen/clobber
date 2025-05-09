@@ -23,9 +23,11 @@
 #define malloc(size) _malloc_dbg(size, _NORMAL_BLOCK, __FILE__, __LINE__)
 #define calloc(count, size) _calloc_dbg(count, size, _NORMAL_BLOCK, __FILE__, __LINE__)
 
+// for reference:
+//        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CRTDBG_CHECK_ALWAYS_DF);
 #define INIT_CRT_DEBUG()                                                                                                                   \
     do {                                                                                                                                   \
-        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CRTDBG_CHECK_ALWAYS_DF);                                            \
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);                                                                      \
         _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);                                                                                   \
         _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);                                                                                 \
         _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);                                                                                  \

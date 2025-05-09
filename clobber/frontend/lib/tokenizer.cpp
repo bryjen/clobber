@@ -1,9 +1,12 @@
-#include "clobber/ast.hpp"
-#include "clobber/parser.hpp"
 #include <any>
 #include <optional>
 #include <unordered_map>
 #include <vector>
+
+#include <clobber/common/utils.hpp>
+
+#include "clobber/ast.hpp"
+#include "clobber/parser.hpp"
 
 template <typename T> using Option = std::optional<T>;
 const char eof_char                = std::char_traits<char>::eof();
@@ -23,18 +26,6 @@ int consume_space_characters(const std::string &, int);
 
 /* @return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
 int try_parse_symbol(const std::string &, int, ClobberTokenType &);
-
-// TODO: Extract this into a common library with the other one in 'parser.hpp'
-Option<int>
-_try_stoi(const std::string &str) {
-    Option<int> opt = std::nullopt;
-    try {
-        opt = std::make_optional(std::stoi(str));
-    } catch (...) {
-        // ignored
-    }
-    return opt;
-}
 
 std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
@@ -68,7 +59,7 @@ clobber::tokenize(const std::string &source_text) {
             token_len                 = read_char_sequence(is_numeric, source_text, current_idx);
             token_type                = ClobberTokenType::NumericLiteralToken;
             value_str                 = source_text.substr(start_idx, token_len);
-            Option<int> int_value_opt = _try_stoi(value_str);
+            Option<int> int_value_opt = str_utils::try_stoi(value_str);
             if (int_value_opt) {
                 value = int_value_opt.value();
             } else {

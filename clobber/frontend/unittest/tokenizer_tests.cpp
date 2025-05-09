@@ -1,16 +1,15 @@
 #include <filesystem>
-
-#include <clobber/common/debug.hpp> // common debug header
-
-#include <clobber/ast.hpp>
-#include <clobber/parser.hpp>
+#include <spdlog/spdlog.h>
 
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
 
+#include <clobber/ast.hpp>
+#include <clobber/parser.hpp>
+
 using path = std::filesystem::path;
 using namespace SyntaxFactory;
-using namespace TokenizerAssertions;
+using namespace TokenizerTestsHelpers;
 
 // clang-format off
 std::vector<std::vector<ClobberToken>> expected_cases = {
@@ -145,13 +144,15 @@ protected:
     }
 };
 
+#ifdef CLOBBER_TESTS_DISABLE_TOKENIZER_TESTS
+TEST_P(TokenizerTests, DISABLED_IsEven) {
+#else
 TEST_P(TokenizerTests, IsEven) {
+#endif
 #ifdef CRT_ENABLED
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    // int *leak = new int(42);
-
     int test_case_idx;
     std::string file_path;
     std::string source_text;

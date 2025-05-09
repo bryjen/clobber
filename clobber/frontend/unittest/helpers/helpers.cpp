@@ -1,4 +1,3 @@
-#include "helpers.hpp"
 #include <array>
 #include <filesystem>
 #include <fmt/core.h>
@@ -13,8 +12,9 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <gtest/gtest.h>
 #include <magic_enum/magic_enum.hpp>
+
+#include "helpers.hpp"
 
 #include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
@@ -31,19 +31,6 @@ assert_vectors_same_size(const std::vector<T> &actual, const std::vector<T> &exp
 
     *out_err_msg = std::format("Mismatched actual & expected lengths, expected {} but got {}.", expected_len, actual_len);
     return false;
-}
-
-std::vector<std::string>
-get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<ParserError> &parse_errors) {
-    std::vector<std::string> errs;
-
-    size_t i;
-    for (i = 0; i < parse_errors.size(); i++) {
-        ParserError parse_err = parse_errors[i];
-        errs.push_back(parse_err.GetFormattedErrorMsg(file, source_text));
-    }
-
-    return errs;
 }
 
 std::string
@@ -138,7 +125,7 @@ Logging::dispose_logger(const std::string &logger_name) {
 }
 
 ::testing::AssertionResult
-TokenizerAssertions::are_num_tokens_equal(const std::vector<ClobberToken> &expected, const std::vector<ClobberToken> &actual) {
+TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<ClobberToken> &expected, const std::vector<ClobberToken> &actual) {
     size_t actual_num_tokens   = actual.size();
     size_t expected_num_tokens = expected.size();
     if (actual_num_tokens == expected_num_tokens) {
@@ -149,7 +136,7 @@ TokenizerAssertions::are_num_tokens_equal(const std::vector<ClobberToken> &expec
 }
 
 ::testing::AssertionResult
-TokenizerAssertions::are_tokens_equal(const std::vector<ClobberToken> &expected_tokens, const std::vector<ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::are_tokens_equal(const std::vector<ClobberToken> &expected_tokens, const std::vector<ClobberToken> &actual_tokens) {
     // we're assumed to have equal number of tokens, asserted by "assert_equal_number_tokens"
     size_t num_tokens;
 
@@ -170,11 +157,29 @@ TokenizerAssertions::are_tokens_equal(const std::vector<ClobberToken> &expected_
 }
 
 ::testing::AssertionResult
-TokenizerAssertions::is_roundtrippable(const std::string &source_text, const std::vector<ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const std::vector<ClobberToken> &actual_tokens) {
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
     if (source_text == reconstructed) {
         return ::testing::AssertionSuccess();
     } else {
         return ::testing::AssertionFailure() << "Actual tokens don't reconstruct the original text.";
     }
+}
+
+::testing::AssertionResult
+are_compilation_units_equivalent(const CompilationUnit &, const CompilationUnit &) {
+    throw 0;
+}
+
+std::vector<std::string>
+ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<ParserError> &parse_errors) {
+    std::vector<std::string> errs;
+
+    size_t i;
+    for (i = 0; i < parse_errors.size(); i++) {
+        ParserError parse_err = parse_errors[i];
+        errs.push_back(parse_err.GetFormattedErrorMsg(file, source_text));
+    }
+
+    return errs;
 }
