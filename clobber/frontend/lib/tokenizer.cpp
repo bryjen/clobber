@@ -27,6 +27,8 @@ int consume_space_characters(const std::string &, int);
 /* @return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
 int try_parse_symbol(const std::string &, int, ClobberTokenType &);
 
+Option<ClobberTokenType> get_type_if_keyword_str(const std::string &value);
+
 std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
     std::vector<ClobberToken> tokens;
@@ -67,9 +69,15 @@ clobber::tokenize(const std::string &source_text) {
             }
         } else if (isalpha(peek_char)) {
             // tokenize as identifier or string literal
-            token_len  = read_char_sequence(is_alphanumeric, source_text, current_idx);
-            token_type = ClobberTokenType::IdentifierToken;
-            value      = source_text.substr(start_idx, token_len);
+            std::string value_str;
+            Option<ClobberTokenType> token_type_opt;
+
+            token_len = read_char_sequence(is_alphanumeric, source_text, current_idx);
+            value_str = source_text.substr(start_idx, token_len);
+            value     = value_str;
+
+            token_type_opt = get_type_if_keyword_str(value_str);
+            token_type     = token_type_opt ? token_type_opt.value() : ClobberTokenType::IdentifierToken;
         } else {
             // tokenize as symbol
             token_len = try_parse_symbol(source_text, current_idx, token_type);
@@ -172,4 +180,16 @@ try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenTy
     auto it        = token_map.find(fst_char);
     out_token_type = (it != token_map.end()) ? it->second : ClobberTokenType::BadToken;
     return 1;
+}
+
+Option<ClobberTokenType>
+get_type_if_keyword_str(const std::string &value) {
+    if (value == "let") {
+        return std::make_optional(ClobberTokenType::LetKeywordToken);
+
+    } else if (value == "fn") {
+        return std::make_optional(ClobberTokenType::FnKeywordToken);
+    }
+
+    return std::nullopt;
 }

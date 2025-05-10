@@ -30,6 +30,8 @@ DEFINE_TOKEN_FUNC(LessThan, "<")
 DEFINE_TOKEN_FUNC(GreaterThan, ">")
 DEFINE_TOKEN_FUNC(Eof, std::string{std::char_traits<char>::eof()})
 
+DEFINE_TOKEN_FUNC(LetKeyword, "let")
+
 inline ClobberToken
 Identifier(std::string name) {
     ClobberToken token{};

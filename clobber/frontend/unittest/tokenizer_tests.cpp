@@ -28,7 +28,8 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
     },
     { 
         OpenParen(),
-        Identifier("let"),
+        // Identifier("let"),
+        LetKeyword(),
         OpenBracket(),
         Identifier("x"),
         NumericLiteral(10),

@@ -32,6 +32,9 @@ enum class ClobberTokenType {
     IdentifierToken,
     NumericLiteralToken,
 
+    LetKeywordToken,
+    FnKeywordToken,
+
     BadToken,
     EofToken,
 };
@@ -60,6 +63,10 @@ enum class ClobberExprType {
     CallExpr,
     NumericLiteralExpr,
     IdentifierExpr,
+    ParameterVectorExpr,
+    BindingVectorExpr,
+    LetExpr,
+    FnExpr,
 };
 
 /* @brief Represents a clobber expression. Base class for all expression types.
@@ -90,6 +97,44 @@ struct CallExpr final : ExprBase {
 struct IdentifierExpr final : ExprBase {
     std::string name;
     ClobberToken token;
+};
+
+/* @brief Represents a variable binding list. Ex. `[x 1 y 2]`
+ */
+struct BindingVectorExpr final : ExprBase {
+    ClobberToken open_bracket_token;
+    std::vector<std::unique_ptr<IdentifierExpr>> identifiers;
+    std::vector<std::unique_ptr<ExprBase>> exprs;
+    ClobberToken close_bracket_token;
+    size_t num_bindings;
+};
+
+/* @brief Represents a parameter vector list. Ex. `[x y]`
+ */
+struct ParameterVectorExpr final : ExprBase {
+    ClobberToken open_bracket_token;
+    std::vector<std::unique_ptr<IdentifierExpr>> identifiers;
+    ClobberToken close_bracket_token;
+};
+
+/* @brief Represents a `let` expression. Ex. `(let [x 1 y 2] (x))`
+ */
+struct LetExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken let_keyword;
+    std::unique_ptr<BindingVectorExpr> binding_vector_expr;
+    std::vector<std::unique_ptr<ExprBase>> body_exprs;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Represents a `fn` expression. Ex. `(fn [x y] (+ x y))`
+ */
+struct FnExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken fn_keyword;
+    std::unique_ptr<ParameterVectorExpr> parameter_vector_expr;
+    std::vector<std::unique_ptr<ExprBase>> body_exprs;
+    ClobberToken close_paren_token;
 };
 
 /* @brief Represents a clobber compilation unit. Usually contains all the contents of a source file.

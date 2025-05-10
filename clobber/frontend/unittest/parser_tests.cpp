@@ -54,7 +54,10 @@ TEST_P(ParserTests, ParserTests) {
     test_case_idx = GetParam();
     file_path     = std::format("./test_files/{}.clj", test_case_idx);
     source_text   = read_all_text(file_path);
-    tokens        = clobber::tokenize(source_text);
+
+    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+
+    tokens = clobber::tokenize(source_text);
     clobber::parse(source_text, tokens, cu);
 
     if (cu.parse_errors.size() > 0) {
@@ -75,7 +78,6 @@ TEST_P(ParserTests, ParserTests) {
         expr_strs.push_back(expr2str::expr_base(source_text, expr_base.get()));
     }
 
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
     spdlog::info("");
     spdlog::info(std::format("reconstructed:\n```\n{}\n```", str_utils::join("", expr_strs)));
 
@@ -89,4 +91,6 @@ TEST_P(ParserTests, ParserTests) {
 }
 
 // Define test data
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(1));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(2));
