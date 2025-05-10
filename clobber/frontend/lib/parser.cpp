@@ -23,6 +23,13 @@ PARSE_DELEGATE_FN(try_parse_identifier)
 PARSE_DELEGATE_FN(try_parse_call_expr_or_special_form)
 PARSE_DELEGATE_FN(try_parse_let_expr)
 PARSE_DELEGATE_FN(try_parse_fn_expr)
+PARSE_DELEGATE_FN(try_parse_def_expr)
+PARSE_DELEGATE_FN(try_parse_do_expr)
+
+// accel specific syntax
+PARSE_DELEGATE_FN(try_parse_accel_expr)
+PARSE_DELEGATE_FN(try_parse_matmul_expr)
+PARSE_DELEGATE_FN(try_parse_relu_expr)
 
 Option<ClobberToken>
 try_get_token(const std::vector<ClobberToken> &tokens, size_t idx) {
@@ -108,32 +115,6 @@ try_parse_identifier(const std::string &source_text, const std::vector<ClobberTo
     return iden_expr;
 }
 
-ExprBase *
-try_parse_call_expr_or_special_form(const std::string &source_text, const std::vector<ClobberToken> &tokens,
-                                    std::vector<ParserError> &parser_errors, size_t &idx) {
-    // assuming the current token is an open paren token, we peek forward to see if its a keyword
-    ParseDelegate parse_fn;
-    Option<ClobberToken> token = try_get_token(tokens, idx + 1);
-
-    if (token) {
-        const ClobberTokenType token_type = token.value().token_type;
-        switch (token_type) {
-        case ClobberTokenType::LetKeywordToken:
-            parse_fn = try_parse_let_expr;
-            break;
-        case ClobberTokenType::FnKeywordToken:
-            parse_fn = try_parse_fn_expr;
-            break;
-        default:
-            // if the token does not match a valid keyword, then we just treat it as a function call
-            parse_fn = try_parse_call_expr;
-            break;
-        }
-    }
-
-    return parse_fn(source_text, tokens, parser_errors, idx);
-}
-
 BindingVectorExpr *
 try_parse_binding_vector_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens,
                               std::vector<ParserError> &parser_errors, size_t &idx) {
@@ -194,6 +175,47 @@ try_parse_parameter_vector_expr(const std::string &source_text, const std::vecto
 }
 
 ExprBase *
+try_parse_call_expr_or_special_form(const std::string &source_text, const std::vector<ClobberToken> &tokens,
+                                    std::vector<ParserError> &parser_errors, size_t &idx) {
+    // assuming the current token is an open paren token, we peek forward to see if its a keyword
+    ParseDelegate parse_fn;
+    Option<ClobberToken> token = try_get_token(tokens, idx + 1);
+
+    if (token) {
+        const ClobberTokenType token_type = token.value().token_type;
+        switch (token_type) {
+        case ClobberTokenType::LetKeywordToken:
+            parse_fn = try_parse_let_expr;
+            break;
+        case ClobberTokenType::FnKeywordToken:
+            parse_fn = try_parse_fn_expr;
+            break;
+        case ClobberTokenType::DefKeywordToken:
+            parse_fn = try_parse_def_expr;
+            break;
+        case ClobberTokenType::DoKeywordToken:
+            parse_fn = try_parse_do_expr;
+            break;
+        case ClobberTokenType::AccelKeywordToken:
+            parse_fn = try_parse_accel_expr;
+            break;
+        case ClobberTokenType::TosaMatmulKeywordToken:
+            parse_fn = try_parse_matmul_expr;
+            break;
+        case ClobberTokenType::TosaReluKeywordToken:
+            parse_fn = try_parse_relu_expr;
+            break;
+        default:
+            // if the token does not match a valid keyword, then we just treat it as a function call
+            parse_fn = try_parse_call_expr;
+            break;
+        }
+    }
+
+    return parse_fn(source_text, tokens, parser_errors, idx);
+}
+
+ExprBase *
 try_parse_let_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
                    size_t &idx) {
     LetExpr *let_expr = new LetExpr();
@@ -202,7 +224,7 @@ try_parse_let_expr(const std::string &source_text, const std::vector<ClobberToke
 
     let_expr->expr_type        = ClobberExprType::LetExpr;
     let_expr->open_paren_token = tokens[idx++];
-    let_expr->let_keyword      = tokens[idx++]; // asserted by caller
+    let_expr->let_token        = tokens[idx++]; // asserted by caller
 
     binding_vector_expr           = try_parse_binding_vector_expr(source_text, tokens, parser_errors, idx);
     let_expr->binding_vector_expr = std::unique_ptr<BindingVectorExpr>(binding_vector_expr);
@@ -230,7 +252,7 @@ try_parse_fn_expr(const std::string &source_text, const std::vector<ClobberToken
 
     fn_expr->expr_type        = ClobberExprType::FnExpr;
     fn_expr->open_paren_token = tokens[idx++];
-    fn_expr->fn_keyword       = tokens[idx++]; // asserted by caller
+    fn_expr->fn_token         = tokens[idx++]; // asserted by caller
 
     parameter_vector_expr          = try_parse_parameter_vector_expr(source_text, tokens, parser_errors, idx);
     fn_expr->parameter_vector_expr = std::unique_ptr<ParameterVectorExpr>(parameter_vector_expr);
@@ -247,6 +269,127 @@ try_parse_fn_expr(const std::string &source_text, const std::vector<ClobberToken
 
     fn_expr->close_paren_token = tokens[idx++];
     return fn_expr;
+}
+
+ExprBase *
+try_parse_def_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                   size_t &idx) {
+    DefExpr *def_expr = new DefExpr();
+    Option<ClobberToken> current_token;
+
+    def_expr->expr_type        = ClobberExprType::DefExpr;
+    def_expr->open_paren_token = tokens[idx++];
+    def_expr->def_token        = tokens[idx++]; // asserted by caller
+
+    ExprBase *ident_expr_base = try_parse_identifier(source_text, tokens, parser_errors, idx);
+    if (ident_expr_base) {
+        IdentifierExpr *ident_expr = dynamic_cast<IdentifierExpr *>(ident_expr_base);
+        def_expr->identifier       = std::unique_ptr<IdentifierExpr>(ident_expr);
+    }
+
+    ExprBase *value_expr = try_parse(source_text, tokens, parser_errors, idx);
+    if (value_expr) {
+        def_expr->value = std::unique_ptr<ExprBase>(value_expr);
+    }
+
+    def_expr->close_paren_token = tokens[idx++];
+    return def_expr;
+}
+
+ExprBase *
+try_parse_do_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                  size_t &idx) {
+    DoExpr *do_expr = new DoExpr();
+    Option<ClobberToken> current_token;
+
+    do_expr->expr_type        = ClobberExprType::DoExpr;
+    do_expr->open_paren_token = tokens[idx++];
+    do_expr->do_token         = tokens[idx++]; // asserted by caller
+
+    current_token = try_get_token(tokens, idx);
+    while (current_token && current_token.value().token_type != ClobberTokenType::CloseParenToken) {
+        ExprBase *expr = try_parse(source_text, tokens, parser_errors, idx);
+        if (expr) {
+            do_expr->body_exprs.push_back(std::unique_ptr<ExprBase>(expr));
+        }
+
+        current_token = try_get_token(tokens, idx);
+    }
+
+    do_expr->close_paren_token = tokens[idx++];
+    return do_expr;
+}
+
+ExprBase *
+try_parse_accel_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                     size_t &idx) {
+    AccelExpr *accel_expr = new AccelExpr();
+    Option<ClobberToken> current_token;
+
+    accel_expr->expr_type        = ClobberExprType::AccelExpr;
+    accel_expr->open_paren_token = tokens[idx++];
+    accel_expr->accel_token      = tokens[idx++]; // asserted by caller
+
+    BindingVectorExpr *binding_vector_expr = try_parse_binding_vector_expr(source_text, tokens, parser_errors, idx);
+    if (binding_vector_expr) {
+        accel_expr->binding_vector_expr = std::unique_ptr<BindingVectorExpr>(binding_vector_expr);
+    }
+
+    current_token = try_get_token(tokens, idx);
+    while (current_token && current_token.value().token_type != ClobberTokenType::CloseParenToken) {
+        ExprBase *expr = try_parse(source_text, tokens, parser_errors, idx);
+        if (expr) {
+            accel_expr->body_exprs.push_back(std::unique_ptr<ExprBase>(expr));
+        }
+
+        current_token = try_get_token(tokens, idx);
+    }
+
+    accel_expr->close_paren_token = tokens[idx++];
+    return accel_expr;
+}
+
+ExprBase *
+try_parse_matmul_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                      size_t &idx) {
+    MatMulExpr *matmul_expr = new MatMulExpr();
+    Option<ClobberToken> current_token;
+
+    matmul_expr->expr_type        = ClobberExprType::MatMulExpr;
+    matmul_expr->open_paren_token = tokens[idx++];
+    matmul_expr->mat_mul_token    = tokens[idx++]; // asserted by caller
+
+    ExprBase *fst_operand = try_parse(source_text, tokens, parser_errors, idx);
+    if (fst_operand) {
+        matmul_expr->fst_operand = std::unique_ptr<ExprBase>(fst_operand);
+    }
+
+    ExprBase *snd_operand = try_parse(source_text, tokens, parser_errors, idx);
+    if (snd_operand) {
+        matmul_expr->snd_operand = std::unique_ptr<ExprBase>(snd_operand);
+    }
+
+    matmul_expr->close_paren_token = tokens[idx++];
+    return matmul_expr;
+}
+
+ExprBase *
+try_parse_relu_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens, std::vector<ParserError> &parser_errors,
+                    size_t &idx) {
+    RelUExpr *relu_expr = new RelUExpr();
+    Option<ClobberToken> current_token;
+
+    relu_expr->expr_type        = ClobberExprType::RelUExpr;
+    relu_expr->open_paren_token = tokens[idx++];
+    relu_expr->relu_token       = tokens[idx++]; // asserted by caller
+
+    ExprBase *operand = try_parse(source_text, tokens, parser_errors, idx);
+    if (operand) {
+        relu_expr->operand = std::unique_ptr<ExprBase>(operand);
+    }
+
+    relu_expr->close_paren_token = tokens[idx++];
+    return relu_expr;
 }
 
 ExprBase *

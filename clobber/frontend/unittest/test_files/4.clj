@@ -1,9 +1,4 @@
-(defn square [x]
-  (* x x))
-
-(defn sum-of-squares [a b]
-  (+ (square a) (square b)))
-
-(let [x 3
-      y 4]
-  (println "Result:" (sum-of-squares x y)))
+(do
+  (def x 10)
+  (def y 5)
+  (+ x y))

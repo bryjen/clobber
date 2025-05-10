@@ -4,14 +4,22 @@
 #ifndef EXPR_TOSTRING_HPP
 #define EXPR_TOSTRING_HPP
 
-struct ExprBase;            // clobber/ast.hpp
-struct NumLiteralExpr;      // clobber/ast.hpp
-struct CallExpr;            // clobber/ast.hpp
-struct IdentifierExpr;      // clobber/ast.hpp
-struct BindingVectorExpr;   // clobber/ast.hpp
-struct LetExpr;             // clobber/ast.hpp
-struct ParameterVectorExpr; // clobber/ast.hpp
-struct FnExpr;              // clobber/ast.hpp
+// clobber/ast.hpp
+struct ExprBase;
+struct NumLiteralExpr;
+struct CallExpr;
+struct IdentifierExpr;
+struct BindingVectorExpr;
+struct LetExpr;
+struct ParameterVectorExpr;
+struct FnExpr;
+struct DefExpr;
+struct DoExpr;
+struct DoExpr;
+
+struct AccelExpr;
+struct MatMulExpr;
+struct RelUExpr;
 
 #include <string>
 
@@ -24,6 +32,12 @@ std::string binding_vector_expr(const std::string &source_text, const BindingVec
 std::string let_expr(const std::string &source_text, const LetExpr &expr);
 std::string parameter_vector_expr(const std::string &source_text, const ParameterVectorExpr &expr);
 std::string fn_expr(const std::string &source_text, const FnExpr &expr);
+std::string def_expr(const std::string &source_text, const DefExpr &expr);
+std::string do_expr(const std::string &source_text, const DoExpr &expr);
+
+std::string accel_expr(const std::string &source_text, const AccelExpr &expr);
+std::string mat_mul_expr(const std::string &source_text, const MatMulExpr &expr);
+std::string relu_expr(const std::string &source_text, const RelUExpr &expr);
 }; // namespace ExprToString
 
 std::string tree_visualization(const std::string &source_text, const ExprBase &expr);

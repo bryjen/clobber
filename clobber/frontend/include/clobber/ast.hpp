@@ -34,6 +34,32 @@ enum class ClobberTokenType {
 
     LetKeywordToken,
     FnKeywordToken,
+    DefKeywordToken,
+    DoKeywordToken,
+
+    // hardware acceleration tokens
+    AccelKeywordToken, // `accel`
+
+    TosaReshapeKeywordToken,   // `tosa-reshape`
+    TosaTransposeKeywordToken, // `tosa-transpose`
+    TosaTileKeywordToken,      // `tosa-tile`
+    TosaSliceKeywordToken,     // `tosa-slice`
+    TosaConcatKeywordToken,    // `tosa-concat`
+    TosaIdentityKeywordToken,  // `tosa-identity`
+    TosaCastKeywordToken,      // `tosa-cast`
+
+    TosaConv2dKeywordToken,          // `tosa-conv2d`
+    TosaDepthwiseConv2dKeywordToken, // `tosa-depthwise-conv2d`
+    TosaMatmulKeywordToken,          // `tosa-matmul`
+    TosaFullyConnectedKeywordToken,  // `tosa-fully-connected`
+    TosaAvgPool2dKeywordToken,       // `tosa-avgpool2d`
+    TosaMaxPool2dKeywordToken,       // `tosa-maxpool2d`
+    TosaPadKeywordToken,             // `tosa-pad`
+
+    TosaReluKeywordToken,    // `tosa-relu`
+    TosaSigmoidKeywordToken, // `tosa-sigmoid`
+    TosaTanhKeywordToken,    // `tosa-tanh`
+    TosaSoftmaxKeywordToken, // `tosa-softmax`
 
     BadToken,
     EofToken,
@@ -65,8 +91,15 @@ enum class ClobberExprType {
     IdentifierExpr,
     ParameterVectorExpr,
     BindingVectorExpr,
+
     LetExpr,
     FnExpr,
+    DefExpr,
+    DoExpr,
+
+    AccelExpr,
+    MatMulExpr,
+    RelUExpr,
 };
 
 /* @brief Represents a clobber expression. Base class for all expression types.
@@ -81,15 +114,6 @@ struct ExprBase {
 struct NumLiteralExpr final : ExprBase {
     int value;
     ClobberToken token;
-};
-
-/* @brief Represents a call expression.
- */
-struct CallExpr final : ExprBase {
-    ClobberToken open_paren_token;
-    ClobberToken operator_token;
-    ClobberToken close_paren_token;
-    std::vector<std::unique_ptr<ExprBase>> arguments;
 };
 
 /* @brief Represents an identifier.
@@ -121,7 +145,7 @@ struct ParameterVectorExpr final : ExprBase {
  */
 struct LetExpr final : ExprBase {
     ClobberToken open_paren_token;
-    ClobberToken let_keyword;
+    ClobberToken let_token;
     std::unique_ptr<BindingVectorExpr> binding_vector_expr;
     std::vector<std::unique_ptr<ExprBase>> body_exprs;
     ClobberToken close_paren_token;
@@ -131,9 +155,79 @@ struct LetExpr final : ExprBase {
  */
 struct FnExpr final : ExprBase {
     ClobberToken open_paren_token;
-    ClobberToken fn_keyword;
+    ClobberToken fn_token;
     std::unique_ptr<ParameterVectorExpr> parameter_vector_expr;
     std::vector<std::unique_ptr<ExprBase>> body_exprs;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Represents a `def` expression. Ex. `(def x 2)`
+ */
+struct DefExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken def_token;
+    std::unique_ptr<IdentifierExpr> identifier;
+    std::unique_ptr<ExprBase> value;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Represents a `def` expression. Ex. `(do (def x 2)(+ x 2))`
+ */
+struct DoExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken do_token;
+    std::vector<std::unique_ptr<ExprBase>> body_exprs;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Enum class representing the type of operation/function being called in a `CallExpr`.
+ */
+enum class CallExprOperatorExprType {
+    IdentifierExpr,
+    AnonymousFunctionExpr,
+};
+
+/* @brief Represents a call expression.
+ */
+struct CallExpr final : ExprBase {
+    CallExprOperatorExprType operator_expr_type;
+
+    ClobberToken open_paren_token;
+    ClobberToken operator_token;
+    ClobberToken close_paren_token;
+    std::vector<std::unique_ptr<ExprBase>> arguments;
+};
+
+// --- Accel specific AST nodes
+// We don't define a separate AST for hardware accelerated syntax for ease on the parser side. This check is instead offloaded during
+// semantic analysis.
+
+/* @brief Represents a hardware accelerated code block.
+ */
+struct AccelExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken accel_token;
+    std::unique_ptr<BindingVectorExpr> binding_vector_expr;
+    std::vector<std::unique_ptr<ExprBase>> body_exprs;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Represents a matrix multiply expression.
+ */
+struct MatMulExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken mat_mul_token;
+    std::unique_ptr<ExprBase> fst_operand;
+    std::unique_ptr<ExprBase> snd_operand;
+    ClobberToken close_paren_token;
+};
+
+/* @brief Represents a RelU expression.
+ */
+struct RelUExpr final : ExprBase {
+    ClobberToken open_paren_token;
+    ClobberToken relu_token;
+    std::unique_ptr<ExprBase> operand;
     ClobberToken close_paren_token;
 };
 

@@ -90,7 +90,6 @@ TEST_P(ParserTests, ParserTests) {
     EXPECT_TRUE(true);
 }
 
-// Define test data
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(1));
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(2));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(5));
