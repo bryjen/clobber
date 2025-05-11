@@ -3,6 +3,7 @@
 
 #include <clobber/common/debug.hpp> // common debug header
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,7 @@ std::vector<ClobberToken> tokenize(const std::string &);
 
 /* @brief
  */
-void parse(const std::string &source_text, const std::vector<ClobberToken> &tokens, CompilationUnit &out_compilation_unit);
+std::unique_ptr<CompilationUnit> parse(const std::string &source_text, const std::vector<ClobberToken> &tokens);
 }; // namespace clobber
 
 #endif // PARSER_HPP

@@ -102,11 +102,22 @@ enum class ClobberExprType {
     RelUExpr,
 };
 
+// TODO:
+// binding and parameterized vectors are not expressions, they do not have the same properties as expressions (Ex. they don't have a return
+// type).
+
 /* @brief Represents a clobber expression. Base class for all expression types.
  */
 struct ExprBase {
+    // used for hashing down the line
+    size_t id = nextId++;
+
     ClobberExprType expr_type;
+
     virtual ~ExprBase() = default;
+
+private:
+    static inline size_t nextId = 0;
 };
 
 /* @brief Represents a numerical literal expression.
@@ -234,6 +245,7 @@ struct RelUExpr final : ExprBase {
 /* @brief Represents a clobber compilation unit. Usually contains all the contents of a source file.
  */
 struct CompilationUnit {
+    const std::string &source_text;
     std::vector<std::unique_ptr<ExprBase>> exprs;
     std::vector<ParserError> parse_errors;
 };

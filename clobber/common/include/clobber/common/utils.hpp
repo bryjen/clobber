@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#define NOT_IMPLEMENTED() throw 69420;
+
 namespace PointerUtils {
 
 template <typename T>

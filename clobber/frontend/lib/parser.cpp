@@ -1,4 +1,3 @@
-#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -441,14 +440,17 @@ try_parse(const std::string &source_text, const std::vector<ClobberToken> &token
     return parse_fn(source_text, tokens, parser_errors, idx);
 }
 
-void
-clobber::parse(const std::string &source_text, const std::vector<ClobberToken> &tokens, CompilationUnit &out_compilation_unit) {
-    CompilationUnit cu;
+std::unique_ptr<CompilationUnit>
+clobber::parse(const std::string &source_text, const std::vector<ClobberToken> &tokens) {
+    // clang-format off
+    std::unique_ptr<CompilationUnit> cu = std::make_unique<CompilationUnit>(CompilationUnit{
+        source_text,
+        {},
+        {}
+    });
+    // clang-format on
     size_t current_idx;
     size_t tokens_len;
-
-    out_compilation_unit.parse_errors = std::vector<ParserError>{};
-    out_compilation_unit.exprs        = std::vector<std::unique_ptr<ExprBase>>{};
 
     current_idx = 0;
     tokens_len  = tokens.size();
@@ -459,9 +461,11 @@ clobber::parse(const std::string &source_text, const std::vector<ClobberToken> &
         }
 
         // 'current_idx' passed by reference, implicitly modified
-        ExprBase *parsed_expr = try_parse(source_text, tokens, out_compilation_unit.parse_errors, current_idx);
+        ExprBase *parsed_expr = try_parse(source_text, tokens, cu->parse_errors, current_idx);
         if (parsed_expr) {
-            out_compilation_unit.exprs.push_back(std::unique_ptr<ExprBase>(parsed_expr));
+            cu->exprs.push_back(std::unique_ptr<ExprBase>(parsed_expr));
         }
     }
+
+    return cu;
 }

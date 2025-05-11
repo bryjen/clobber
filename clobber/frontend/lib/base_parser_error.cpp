@@ -1,8 +1,10 @@
 #include <algorithm>
-#include <clobber/parser.hpp>
 #include <format>
 #include <sstream>
 #include <string>
+
+#include "clobber/parser.hpp"
+#include "clobber/semantics.hpp"
 
 constexpr int padding = 1;
 
@@ -52,8 +54,8 @@ spaces(size_t count) {
 }
 
 std::string
-base_format(const std::string &file, const std::string &source_text, int span_start, int span_length,
-            const std::string &general_error_msg, const std::string &error_msg) {
+base_format(const std::string &file, const std::string &source_text, int span_start, int span_length, const std::string &general_error_msg,
+            const std::string &error_msg) {
     size_t line;
     size_t col;
     size_t margin;
@@ -93,5 +95,39 @@ ParserError::ParserError(int span_start, int span_len, const std::string &genera
 
 std::string
 ParserError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
+    return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
+}
+
+// TODO: remake this file and shi
+
+SemanticWarning::SemanticWarning() {}
+
+SemanticWarning::~SemanticWarning() {}
+
+SemanticWarning::SemanticWarning(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+    this->span_start      = span_start;
+    this->span_len        = span_len;
+    this->general_err_msg = general_err_msg;
+    this->err_msg         = err_msg;
+}
+
+std::string
+SemanticWarning::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
+    return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
+}
+
+SemanticError::SemanticError() {}
+
+SemanticError::~SemanticError() {}
+
+SemanticError::SemanticError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+    this->span_start      = span_start;
+    this->span_len        = span_len;
+    this->general_err_msg = general_err_msg;
+    this->err_msg         = err_msg;
+}
+
+std::string
+SemanticError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
     return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
 }

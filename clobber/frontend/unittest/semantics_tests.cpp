@@ -1,3 +1,4 @@
+
 #include <filesystem>
 
 #include <spdlog/spdlog.h>
@@ -6,13 +7,15 @@
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
 
-#include <clobber/ast.hpp>
 #include <clobber/common/utils.hpp>
+
+#include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
+#include <clobber/semantics.hpp>
 
 using namespace ParserTestsHelpers;
 
-class ParserTests : public ::testing::TestWithParam<int> {
+class SemanticsTests : public ::testing::TestWithParam<int> {
 protected:
     void
     SetUp() override {
@@ -35,10 +38,10 @@ protected:
     }
 };
 
-#ifdef CLOBBER_TESTS_DISABLE_PARSER_TESTS
-TEST_P(ParserTests, DISABLED_ParserTests) {
+#ifdef CLOBBER_TESTS_DISABLE_SEMANTICS_TESTS
+TEST_P(SemanticsTests, DISABLED_SemanticsTests) {
 #else
-TEST_P(ParserTests, ParserTests) {
+TEST_P(SemanticsTests, SemanticsTests) {
 #endif
 #ifdef CRT_ENABLED
     INIT_CRT_DEBUG();
@@ -49,7 +52,8 @@ TEST_P(ParserTests, ParserTests) {
     std::string source_text;
     std::vector<ClobberToken> tokens;
 
-    std::unique_ptr<CompilationUnit> cu;
+    std::unique_ptr<CompilationUnit> compilation_unit;
+    std::unique_ptr<SemanticModel> semantic_model;
 
     test_case_idx = GetParam();
     file_path     = std::format("./test_files/{}.clj", test_case_idx);
@@ -57,33 +61,9 @@ TEST_P(ParserTests, ParserTests) {
 
     spdlog::info(std::format("source:\n```\n{}\n```", source_text));
 
-    tokens = clobber::tokenize(source_text);
-    cu     = clobber::parse(source_text, tokens);
-
-    if (cu->parse_errors.size() > 0) {
-        std::string file                  = "C:/USER/Documents/clobber_proj/main.clj";
-        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, cu->parse_errors);
-        for (size_t i = 0; i < err_msgs.size(); i++) {
-            std::cout << err_msgs[i] << "\n";
-        }
-
-        std::cout << std::endl;
-        EXPECT_TRUE(false);
-        return;
-    }
-
-    std::vector<std::string> expr_strs;
-    std::vector<std::reference_wrapper<const ExprBase>> expr_views = ptr_utils::get_expr_views(cu->exprs);
-    for (const auto &expr_base : expr_views) {
-        expr_strs.push_back(expr2str::expr_base(source_text, expr_base.get()));
-    }
-
-    spdlog::info("");
-    spdlog::info(std::format("reconstructed:\n```\n{}\n```", str_utils::join("", expr_strs)));
-
-    for (const auto &expr_base : expr_views) {
-        spdlog::info(expr_base.get().id);
-    }
+    tokens           = clobber::tokenize(source_text);
+    compilation_unit = clobber::parse(source_text, tokens);
+    semantic_model   = clobber::get_semantic_model(source_text, std::move(compilation_unit));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
@@ -96,4 +76,4 @@ TEST_P(ParserTests, ParserTests) {
 
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(5));
+INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0));
