@@ -186,75 +186,35 @@ try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenTy
 
 Option<ClobberTokenType>
 get_type_if_keyword_str(const std::string &value) {
-    if (value == "let") {
-        return std::make_optional(ClobberTokenType::LetKeywordToken);
 
-    } else if (value == "fn") {
-        return std::make_optional(ClobberTokenType::FnKeywordToken);
+    // clang-format off
+    const std::unordered_map<std::string, ClobberTokenType> keyword_tokentype_map {
+        {"let", ClobberTokenType::LetKeywordToken },
+        {"fn", ClobberTokenType::FnKeywordToken },
+        {"def", ClobberTokenType::DefKeywordToken },
+        {"do", ClobberTokenType::DoKeywordToken },
+        {"accel", ClobberTokenType::AccelKeywordToken },
+        {"tosa-reshape", ClobberTokenType::TosaReshapeKeywordToken },
+        {"tosa-transpose", ClobberTokenType::TosaTransposeKeywordToken },
+        {"tosa-tile", ClobberTokenType::TosaTileKeywordToken },
+        {"tosa-slice", ClobberTokenType::TosaSliceKeywordToken },
+        {"tosa-concat", ClobberTokenType::TosaConcatKeywordToken },
+        {"tosa-identity", ClobberTokenType::TosaIdentityKeywordToken },
+        {"tosa-cast", ClobberTokenType::TosaCastKeywordToken },
+        {"tosa-conv2d", ClobberTokenType::TosaConv2dKeywordToken },
+        {"tosa-depthwise-conv2d", ClobberTokenType::TosaDepthwiseConv2dKeywordToken },
+        {"tosa-matmul", ClobberTokenType::TosaMatmulKeywordToken },
+        {"tosa-fully-connected", ClobberTokenType::TosaFullyConnectedKeywordToken },
+        {"tosa-avgpool2d", ClobberTokenType::TosaAvgPool2dKeywordToken },
+        {"tosa-maxpool2d", ClobberTokenType::TosaMaxPool2dKeywordToken },
+        {"tosa-pad", ClobberTokenType::TosaPadKeywordToken },
+        {"tosa-relu", ClobberTokenType::TosaReluKeywordToken },
+        {"tosa-sigmoid", ClobberTokenType::TosaSigmoidKeywordToken },
+        {"tosa-tanh", ClobberTokenType::TosaTanhKeywordToken },
+        {"tosa-softmax", ClobberTokenType::TosaSoftmaxKeywordToken },
+    };
+    // clang-format on
 
-    } else if (value == "def") {
-        return std::make_optional(ClobberTokenType::DefKeywordToken);
-
-    } else if (value == "do") {
-        return std::make_optional(ClobberTokenType::DoKeywordToken);
-
-    } else if (value == "accel") {
-        return std::make_optional(ClobberTokenType::AccelKeywordToken);
-
-    } else if (value == "tosa-reshape") {
-        return std::make_optional(ClobberTokenType::TosaReshapeKeywordToken);
-
-    } else if (value == "tosa-transpose") {
-        return std::make_optional(ClobberTokenType::TosaTransposeKeywordToken);
-
-    } else if (value == "tosa-tile") {
-        return std::make_optional(ClobberTokenType::TosaTileKeywordToken);
-
-    } else if (value == "tosa-slice") {
-        return std::make_optional(ClobberTokenType::TosaSliceKeywordToken);
-
-    } else if (value == "tosa-concat") {
-        return std::make_optional(ClobberTokenType::TosaConcatKeywordToken);
-
-    } else if (value == "tosa-identity") {
-        return std::make_optional(ClobberTokenType::TosaIdentityKeywordToken);
-
-    } else if (value == "tosa-cast") {
-        return std::make_optional(ClobberTokenType::TosaCastKeywordToken);
-
-    } else if (value == "tosa-conv2d") {
-        return std::make_optional(ClobberTokenType::TosaConv2dKeywordToken);
-
-    } else if (value == "tosa-depthwise-conv2d") {
-        return std::make_optional(ClobberTokenType::TosaDepthwiseConv2dKeywordToken);
-
-    } else if (value == "tosa-matmul") {
-        return std::make_optional(ClobberTokenType::TosaMatmulKeywordToken);
-
-    } else if (value == "tosa-fully-connected") {
-        return std::make_optional(ClobberTokenType::TosaFullyConnectedKeywordToken);
-
-    } else if (value == "tosa-avgpool2d") {
-        return std::make_optional(ClobberTokenType::TosaAvgPool2dKeywordToken);
-
-    } else if (value == "tosa-maxpool2d") {
-        return std::make_optional(ClobberTokenType::TosaMaxPool2dKeywordToken);
-
-    } else if (value == "tosa-pad") {
-        return std::make_optional(ClobberTokenType::TosaPadKeywordToken);
-
-    } else if (value == "tosa-relu") {
-        return std::make_optional(ClobberTokenType::TosaReluKeywordToken);
-
-    } else if (value == "tosa-sigmoid") {
-        return std::make_optional(ClobberTokenType::TosaSigmoidKeywordToken);
-
-    } else if (value == "tosa-tanh") {
-        return std::make_optional(ClobberTokenType::TosaTanhKeywordToken);
-
-    } else if (value == "tosa-softmax") {
-        return std::make_optional(ClobberTokenType::TosaSoftmaxKeywordToken);
-    }
-
-    return std::nullopt;
+    auto it = keyword_tokentype_map.find(value);
+    return it != keyword_tokentype_map.end() ? std::make_optional(it->second) : std::nullopt;
 }

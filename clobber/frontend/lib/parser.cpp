@@ -1,5 +1,6 @@
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <clobber/common/utils.hpp>
@@ -10,6 +11,11 @@
 #include "clobber/internal/parser_error_factory.hpp"
 
 template <typename T> using Option = std::optional<T>;
+
+// We deal with raw pointers because we need to perform post processing on returned expr types.
+// For example, we need to cast 'ExprBase' to some subtype to fit the properties of the expr that we're trying to parse.
+// Dealing with raw pointers makes this infinitely easier - as long as the caller always wraps it in a unique ptr, which isn't that hard to
+// assert.
 using ParseDelegate = ExprBase *(*)(const std::string &, const std::vector<ClobberToken> &, std::vector<ParserError> &, size_t &);
 
 // macro to help defining forward declarations
@@ -177,39 +183,25 @@ try_parse_parameter_vector_expr(const std::string &source_text, const std::vecto
 ExprBase *
 try_parse_call_expr_or_special_form(const std::string &source_text, const std::vector<ClobberToken> &tokens,
                                     std::vector<ParserError> &parser_errors, size_t &idx) {
+    // clang-format off
+    const std::unordered_map<ClobberTokenType, ParseDelegate> special_form_parse_fns = {
+        {ClobberTokenType::LetKeywordToken, try_parse_let_expr},
+        {ClobberTokenType::FnKeywordToken, try_parse_fn_expr},
+        {ClobberTokenType::DefKeywordToken, try_parse_def_expr},
+        {ClobberTokenType::DoKeywordToken, try_parse_do_expr},
+        {ClobberTokenType::AccelKeywordToken, try_parse_accel_expr},
+        {ClobberTokenType::TosaMatmulKeywordToken, try_parse_matmul_expr},
+        {ClobberTokenType::TosaReluKeywordToken, try_parse_relu_expr},
+    };
+    // clang-format on
+
     // assuming the current token is an open paren token, we peek forward to see if its a keyword
     ParseDelegate parse_fn;
     Option<ClobberToken> token = try_get_token(tokens, idx + 1);
-
     if (token) {
         const ClobberTokenType token_type = token.value().token_type;
-        switch (token_type) {
-        case ClobberTokenType::LetKeywordToken:
-            parse_fn = try_parse_let_expr;
-            break;
-        case ClobberTokenType::FnKeywordToken:
-            parse_fn = try_parse_fn_expr;
-            break;
-        case ClobberTokenType::DefKeywordToken:
-            parse_fn = try_parse_def_expr;
-            break;
-        case ClobberTokenType::DoKeywordToken:
-            parse_fn = try_parse_do_expr;
-            break;
-        case ClobberTokenType::AccelKeywordToken:
-            parse_fn = try_parse_accel_expr;
-            break;
-        case ClobberTokenType::TosaMatmulKeywordToken:
-            parse_fn = try_parse_matmul_expr;
-            break;
-        case ClobberTokenType::TosaReluKeywordToken:
-            parse_fn = try_parse_relu_expr;
-            break;
-        default:
-            // if the token does not match a valid keyword, then we just treat it as a function call
-            parse_fn = try_parse_call_expr;
-            break;
-        }
+        auto it                           = special_form_parse_fns.find(token_type);
+        parse_fn                          = it != special_form_parse_fns.end() ? it->second : try_parse_call_expr;
     }
 
     return parse_fn(source_text, tokens, parser_errors, idx);
