@@ -1,5 +1,4 @@
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -37,5 +36,3 @@ std::optional<double> try_stod(const std::string &str);
 
 namespace ptr_utils = PointerUtils;
 namespace str_utils = StringUtils;
-
-#endif // UTILS_HPP

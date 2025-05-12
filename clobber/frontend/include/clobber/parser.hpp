@@ -1,5 +1,4 @@
-#ifndef PARSER_HPP
-#define PARSER_HPP
+#pragma once
 
 #include <clobber/common/debug.hpp> // common debug header
 
@@ -34,5 +33,3 @@ std::vector<ClobberToken> tokenize(const std::string &);
  */
 std::unique_ptr<CompilationUnit> parse(const std::string &source_text, const std::vector<ClobberToken> &tokens);
 }; // namespace clobber
-
-#endif // PARSER_HPP

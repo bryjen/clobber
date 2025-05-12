@@ -1,5 +1,4 @@
-#ifndef HELPERS_HPP
-#define HELPERS_HPP
+#pragma once
 
 #include <any>
 #include <string>
@@ -46,5 +45,3 @@ std::vector<std::string> get_error_msgs(const std::string &, const std::string &
 namespace SemanticTestsHelpers {
 std::vector<std::string> get_expr_inferred_type_strs(const SemanticModel &);
 } // namespace SemanticTestsHelpers
-
-#endif // HELPERS_HPP

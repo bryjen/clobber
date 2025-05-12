@@ -1,5 +1,4 @@
-#ifndef AST_HPP
-#define AST_HPP
+#pragma once
 
 #include <clobber/common/debug.hpp> // common debug header
 
@@ -269,5 +268,3 @@ struct CompilationUnit {
     std::vector<std::unique_ptr<ExprBase>> exprs;
     std::vector<ParserError> parse_errors;
 };
-
-#endif // AST_HPP

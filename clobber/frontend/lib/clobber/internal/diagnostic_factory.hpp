@@ -1,5 +1,4 @@
-#ifndef DIAGNOSTIC_FACTORY_HPP
-#define DIAGNOSTIC_FACTORY_HPP
+#pragma once
 
 struct SemanticWarning; // clobber/semantics.hpp
 struct SemanticError;   // clobber/semantics.hpp
@@ -24,5 +23,3 @@ SemanticError mismatched_arity_error(int span_start, int span_len, size_t expect
 } // namespace errors
 }; // namespace semantics
 }; // namespace diagnostics
-
-#endif DIAGNOSTIC_FACTORY_HPP

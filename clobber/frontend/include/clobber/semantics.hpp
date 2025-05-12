@@ -1,5 +1,4 @@
-#ifndef SEMANTICS_HPP
-#define SEMANTICS_HPP
+#pragma once
 
 #include <memory>
 #include <string>
@@ -76,5 +75,3 @@ namespace clobber {
 /* @brief */
 std::unique_ptr<SemanticModel> get_semantic_model(const std::string &source_text, std::unique_ptr<CompilationUnit> &&compilation_unit);
 }; // namespace clobber
-
-#endif SEMANTICS_HPP

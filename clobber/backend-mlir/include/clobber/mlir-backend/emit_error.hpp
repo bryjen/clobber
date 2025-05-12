@@ -1,5 +1,4 @@
-#ifndef EMIT_ERROR_HPP
-#define EMIT_ERROR_HPP
+#pragma once
 
 #include <string>
 
@@ -17,5 +16,3 @@ protected:
     std::string general_err_msg;
     std::string err_msg;
 };
-
-#endif // EMIT_ERROR_HPP

@@ -1,5 +1,4 @@
-#ifndef PARSER_ERROR_HPP
-#define PARSER_ERROR_HPP
+#pragma once
 
 struct ParserError; // clobber/parser.hpp
 
@@ -9,5 +8,3 @@ ParserError InternalErr(int error_code, int span_start, int span_len);
 }; // namespace ParserErrorFactory
 
 namespace err = ParserErrorFactory; // alias for convenience
-
-#endif // PARSER_ERROR_HPP

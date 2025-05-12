@@ -1,5 +1,4 @@
-#ifndef CLOBBER_DEBUG_HPP
-#define CLOBBER_DEBUG_HPP
+#pragma once
 
 // flag to enable windows CRT
 #if !defined(NDEBUG) && defined(CLOBBER_USE_CRT) && defined(_WIN32)
@@ -36,5 +35,3 @@
         _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDOUT);                                                                               \
     } while (0)
 #endif
-
-#endif // CLOBBER_DEBUG_HPP

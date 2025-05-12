@@ -1,5 +1,4 @@
-#ifndef SYNTAX_FACTORY_HPP
-#define SYNTAX_FACTORY_HPP
+#pragma once
 
 #include "clobber/ast.hpp"
 
@@ -91,5 +90,3 @@ BadToken() {
 }
 
 }; // namespace SyntaxFactory
-
-#endif // SYNTAX_FACTORY_HPP

@@ -1,5 +1,4 @@
-#ifndef LOWERING_HPP
-#define LOWERING_HPP
+#pragma once
 
 #pragma warning(push)
 #pragma warning(disable : 4267 4244 4996)
@@ -24,4 +23,3 @@ mlir::ModuleOp lower(mlir::MLIRContext &, const mlir::ModuleOp &, std::vector<Em
 void run(const mlir::ModuleOp &, std::vector<EmitError> &);
 }; // namespace LLVM
 } // namespace Lowering
-#endif // LOWERING_HPP

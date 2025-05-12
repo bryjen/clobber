@@ -1,8 +1,7 @@
 // header containing functionality for pretty-printing AST nodes in clobber.
 // not in main library to reduce compilation times (?); maybe measure if theres a noticeable performance difference.
 
-#ifndef EXPR_TOSTRING_HPP
-#define EXPR_TOSTRING_HPP
+#pragma once
 
 // clobber/ast.hpp
 struct ExprBase;
@@ -48,5 +47,3 @@ std::string relu_expr(const std::string &source_text, const RelUExpr &expr);
 std::string tree_visualization(const std::string &source_text, const ExprBase &expr);
 
 namespace expr2str = ExprToString; // provide flatcase alias for usage consistency in the consumer
-
-#endif // EXPR_TOSTRING_HPP

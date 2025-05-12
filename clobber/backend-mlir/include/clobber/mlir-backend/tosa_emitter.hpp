@@ -1,5 +1,4 @@
-#ifndef TOSA_EMITTER_HPP
-#define TOSA_EMITTER_HPP
+#pragma once
 
 #pragma warning(push)
 #pragma warning(disable : 4267 4244 4996)
@@ -25,5 +24,3 @@ void init_context(mlir::MLIRContext &context);
  */
 mlir::ModuleOp lower_ast_to_tosa(mlir::MLIRContext &, const CompilationUnit &, std::vector<EmitError> &);
 }; // namespace TosaEmitter
-
-#endif // TOSA_EMITTER_HPP
