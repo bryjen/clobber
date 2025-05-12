@@ -249,6 +249,6 @@ ExprToString::iden_expr(const std::string &source_text, const IdentifierExpr &id
 }
 
 std::string
-tree_visualization(const std::string &source_text, const ExprBase &expr) {
+tree_visualization(const std::string &, const ExprBase &) {
     throw 0;
 }

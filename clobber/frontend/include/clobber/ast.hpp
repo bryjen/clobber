@@ -66,10 +66,10 @@ enum class ClobberTokenType {
 /* @brief Represents a token.
  */
 struct ClobberToken final {
-    int start;
-    int length;
-    int full_start;  // includes trivia
-    int full_length; // includes trivia
+    size_t start;
+    size_t length;
+    size_t full_start;  // includes trivia
+    size_t full_length; // includes trivia
 
     ClobberTokenType token_type;
     std::any value;

@@ -19,16 +19,16 @@ bool number_pred(char);
 bool identifier_pred(char);
 bool string_pred(char);
 
-char try_get_char(const std::string &, int);
+char try_get_char(const std::string &, size_t);
 
 /* @return Returns the number of characters that fulfills the predicate starting from 'start_idx' inclusive. */
-int read_char_sequence(bool (*)(char), const std::string &, int);
+size_t read_char_sequence(bool (*)(char), const std::string &, size_t);
 
 /* @return Returns the number of space characters starting from 'start_idx' inclusive. */
-int consume_space_characters(const std::string &, int);
+size_t consume_space_characters(const std::string &, size_t);
 
 /* @return Returns the number of characters taken by the symbol, token type is set as an out parameter. */
-int try_parse_symbol(const std::string &, int, ClobberTokenType &);
+size_t try_parse_symbol(const std::string &, size_t, ClobberTokenType &);
 
 Option<ClobberTokenType> get_type_if_keyword_str(const std::string &value);
 
@@ -36,14 +36,14 @@ std::vector<ClobberToken>
 clobber::tokenize(const std::string &source_text) {
     std::vector<ClobberToken> tokens;
 
-    int current_idx = 0;
-    int st_len      = (int)source_text.length();
+    size_t current_idx = 0;
+    size_t st_len      = source_text.length();
 
     while (current_idx < st_len) {
-        int full_start_idx = 0; // token start including spaces
-        int start_idx      = 0; // token start EXCLUDING spaces
-        int spaces_len     = 0; // length of space characters starting from the full start idx
-        int token_len      = 0; // length of the actual token characters from the start idx
+        size_t full_start_idx = 0; // token start including spaces
+        size_t start_idx      = 0; // token start EXCLUDING spaces
+        size_t spaces_len     = 0; // length of space characters starting from the full start idx
+        size_t token_len      = 0; // length of the actual token characters from the start idx
 
         ClobberTokenType token_type;
         ClobberToken token;
@@ -66,7 +66,6 @@ clobber::tokenize(const std::string &source_text) {
             value      = source_text.substr(start_idx, token_len);
         } else if (isalpha(peek_char)) {
             // tokenize as identifier
-            std::string value_str;
             Option<ClobberTokenType> token_type_opt;
 
             token_len = read_char_sequence(identifier_pred, source_text, current_idx);
@@ -77,8 +76,6 @@ clobber::tokenize(const std::string &source_text) {
             token_type     = token_type_opt ? token_type_opt.value() : ClobberTokenType::IdentifierToken;
         } else if (peek_char == '"') {
             // tokenize as string
-            std::string value_str;
-            Option<ClobberTokenType> token_type_opt;
 
             token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the double quot for now
             token_len += 2;                                                            // +1 to include the ending double quot
@@ -89,8 +86,6 @@ clobber::tokenize(const std::string &source_text) {
         } else if (peek_char == '\'') {
             // tokenize as char
             // the char token can contain more than one char, but this is intended to be asserted in further stages in the pipeline
-            std::string value_str;
-            Option<ClobberTokenType> token_type_opt;
 
             token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the quot for now
             token_len += 2;                                                            // +1 to include the quot
@@ -173,14 +168,14 @@ string_pred(char c) {
 }
 
 char
-try_get_char(const std::string &source_text, int idx) {
+try_get_char(const std::string &source_text, size_t idx) {
     size_t total_chars = source_text.size();
     return (idx >= 0 && idx < total_chars) ? source_text[idx] : eof_char;
 }
 
-int
-read_char_sequence(bool (*predicate)(char), const std::string &source_text, int start_idx) {
-    int current_idx = start_idx;
+size_t
+read_char_sequence(bool (*predicate)(char), const std::string &source_text, size_t start_idx) {
+    size_t current_idx = start_idx;
 
     while (predicate(source_text[current_idx])) {
         current_idx++;
@@ -189,13 +184,13 @@ read_char_sequence(bool (*predicate)(char), const std::string &source_text, int 
     return current_idx - start_idx;
 }
 
-int
-consume_space_characters(const std::string &source_text, int start_idx) {
+size_t
+consume_space_characters(const std::string &source_text, size_t start_idx) {
     return read_char_sequence(is_space, source_text, start_idx);
 }
 
-int
-try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenType &out_token_type) {
+size_t
+try_parse_symbol(const std::string &source_text, size_t start_index, ClobberTokenType &out_token_type) {
     char fst_char = try_get_char(source_text, start_index);
 
     // we don't need to parse two character operators for now
@@ -227,7 +222,6 @@ try_parse_symbol(const std::string &source_text, int start_index, ClobberTokenTy
 
 Option<ClobberTokenType>
 get_type_if_keyword_str(const std::string &value) {
-
     // clang-format off
     const std::unordered_map<std::string, ClobberTokenType> keyword_tokentype_map {
         {"let", ClobberTokenType::LetKeywordToken },

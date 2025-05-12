@@ -188,8 +188,6 @@ type_infer_num_literal_expr(SemanticContext &context, const ExprBase &expr) {
         return nullptr;
     }
 
-    auto test = str_utils::try_stod("0.01");
-
     Type type_desc{};
     if (str_utils::try_stoi(value_string).has_value()) { // try parse as an int
         type_desc.kind = Type::Int;
@@ -284,12 +282,12 @@ type_infer_let_expr(SemanticContext &context, const ExprBase &expr) {
 }
 
 std::shared_ptr<Type>
-type_infer_fn_expr(SemanticContext &context, const ExprBase &expr) {
+type_infer_fn_expr(SemanticContext &, const ExprBase &) {
     NOT_IMPLEMENTED();
 }
 
 std::shared_ptr<Type>
-type_infer_def_expr(SemanticContext &context, const ExprBase &expr) {
+type_infer_def_expr(SemanticContext &, const ExprBase &) {
     NOT_IMPLEMENTED();
 }
 
@@ -389,7 +387,7 @@ type_infer_expr_base(SemanticContext &context, const ExprBase &expr) {
 }
 
 std::unique_ptr<SemanticModel>
-clobber::get_semantic_model(const std::string &source_text, std::unique_ptr<CompilationUnit> &&compilation_unit) {
+clobber::get_semantic_model(std::unique_ptr<CompilationUnit> &&compilation_unit) {
     SymbolTable symbol_table{};
     TypePool type_pool{};
     std::unique_ptr<TypeMap> type_map = std::make_unique<TypeMap>();

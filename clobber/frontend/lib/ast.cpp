@@ -33,7 +33,7 @@ ClobberToken::AreEquivalent(const ClobberToken &token1, const ClobberToken &toke
         }
     }
 
-    constexpr float double_tolerance = 1e-9;
+    constexpr double double_tolerance = 1e-9;
     if (token1.value.type() == typeid(double) && token2.value.type() == typeid(double)) {
         if (std::abs(std::any_cast<double>(token1.value) - std::any_cast<double>(token2.value)) < double_tolerance) {
             return true;

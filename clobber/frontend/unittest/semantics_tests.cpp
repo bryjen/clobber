@@ -13,7 +13,7 @@
 
 using namespace SemanticTestsHelpers;
 
-class SemanticsTests : public ::testing::TestWithParam<int> {
+class SemanticsTests : public ::testing::TestWithParam<size_t> {
 protected:
     void
     SetUp() override {
@@ -45,7 +45,7 @@ TEST_P(SemanticsTests, SemanticsTests) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    int test_case_idx;
+    size_t test_case_idx;
     std::string file_path;
     std::string source_text;
     std::vector<ClobberToken> tokens;
@@ -63,7 +63,7 @@ TEST_P(SemanticsTests, SemanticsTests) {
 
     tokens           = clobber::tokenize(source_text);
     compilation_unit = clobber::parse(source_text, tokens);
-    semantic_model   = clobber::get_semantic_model(source_text, std::move(compilation_unit));
+    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit));
 
     inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
     spdlog::info(str_utils::join("\n", inferred_type_strs));

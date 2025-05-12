@@ -13,7 +13,7 @@ std::string read_all_text(const std::string &);
 std::string clobber_token_tostring(const ClobberToken &token, bool use_alignment = false);
 std::string reconstruct_source_text_from_tokens(const std::string &, const std::vector<ClobberToken> &);
 
-void print_tokens(const std::string &, const std::vector<ClobberToken> &, const std::vector<ClobberToken> &, bool use_alignment = false);
+void print_tokens(const std::string &, const std::vector<ClobberToken> &, const std::vector<ClobberToken> &);
 
 namespace Logging {
 void init_logger(const std::string &logger_name, const std::string &out_log_path);

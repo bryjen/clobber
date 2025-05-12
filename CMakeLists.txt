@@ -5,6 +5,38 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# global build options (propagated to sub-projects)
+if (CLOBBER_STRICT)
+    message(STATUS "[root] strict (pedantic) build enabled")
+    if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(STATUS "[root] strictest possible warning configuration for clang (+ clang-cl) set")
+        add_compile_options(
+            /W4                         # high MSVC warning level
+            /WX                         # warnings as errors
+            /permissive-                # strict standard conformance (MSVC)
+            /Zc:__cplusplus             # use real c++ standard value
+            /clang:-Wall                # enable Clang warnings
+            /clang:-Wextra              # more Clang warnings
+            /clang:-Wpedantic           # iso conformance warnings
+            /clang:-Wconversion         # implicit conversions
+            /clang:-Wsign-conversion    # signed/unsigned conversions
+            /clang:-Wshadow             # variable shadowing
+            /clang:-Wnull-dereference   # null pointer use
+            /clang:-Wdouble-promotion   # float to double silently
+            /clang:-Wunused-parameter   # unused function args
+        )
+    elseif(MSVC)
+        message(STATUS "[root] strictest possible warning configuration for MSVC (cl) set")
+        target_compile_options(your_target PRIVATE
+            /W4
+            /WX
+            /permissive-
+            /Zc:__cplusplus
+        )
+    endif()
+    # TODO: maybe add support for GCC?
+endif()
+
 
 # Project is tested to work on woa64>
 # The project might not compile properly on any other platform/architecture combination.

@@ -54,7 +54,7 @@ reconstruct_source_text_from_tokens(const std::string &source_text, const std::v
 
 void
 print_tokens(const std::string &source_text, const std::vector<ClobberToken> &expected_tokens,
-             const std::vector<ClobberToken> &actual_tokens, bool use_alignment) {
+             const std::vector<ClobberToken> &actual_tokens) {
 #ifndef CRT_ENABLED
     spdlog::info(std::format("[Expected; n={}]", expected_tokens.size()));
     spdlog::info("---------------------------------------------------------");
@@ -236,17 +236,17 @@ let_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr
 }
 
 std::vector<std::string>
-fn_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+fn_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
     throw 0;
 }
 
 std::vector<std::string>
-def_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+def_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
     throw 0;
 }
 
 std::vector<std::string>
-do_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+do_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
     throw 0;
 }
 

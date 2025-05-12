@@ -44,7 +44,7 @@ add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 target_compile_definitions(clobber_tests PRIVATE
     ENABLE_TOKENIZER_TESTS
-    # ENABLE_PARSER_TESTS
+    ENABLE_PARSER_TESTS
     ENABLE_SEMANTICS_TESTS
 )
 

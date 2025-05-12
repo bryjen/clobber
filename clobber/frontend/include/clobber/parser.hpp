@@ -10,14 +10,14 @@ struct CompilationUnit; // ast.hpp
 struct ParserError {
 public:
     ParserError();
-    ParserError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg);
+    ParserError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg);
     ~ParserError();
 
     std::string GetFormattedErrorMsg(const std::string &file, const std::string &source_text);
 
 protected:
-    int span_start;
-    int span_len;
+    size_t span_start;
+    size_t span_len;
     std::string general_err_msg;
     std::string err_msg;
 };

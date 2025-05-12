@@ -6,7 +6,7 @@
 constexpr int padding = 1;
 
 void
-get_line_and_col(const std::string &source_text, int idx, size_t &out_line, size_t &out_col) {
+get_line_and_col(const std::string &source_text, size_t idx, size_t &out_line, size_t &out_col) {
     std::istringstream stream(source_text);
     std::string line;
     size_t remaining_chars = idx;
@@ -51,8 +51,8 @@ spaces(size_t count) {
 }
 
 std::string
-base_format(const std::string &file, const std::string &source_text, int span_start, int span_length, const std::string &general_error_msg,
-            const std::string &error_msg) {
+base_format(const std::string &file, const std::string &source_text, size_t span_start, size_t span_length,
+            const std::string &general_error_msg, const std::string &error_msg) {
     size_t line;
     size_t col;
     size_t margin;
@@ -83,7 +83,7 @@ ParserError::ParserError() {}
 
 ParserError::~ParserError() {}
 
-ParserError::ParserError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+ParserError::ParserError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;
@@ -101,7 +101,7 @@ SemanticWarning::SemanticWarning() {}
 
 SemanticWarning::~SemanticWarning() {}
 
-SemanticWarning::SemanticWarning(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+SemanticWarning::SemanticWarning(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;
@@ -117,7 +117,7 @@ SemanticError::SemanticError() {}
 
 SemanticError::~SemanticError() {}
 
-SemanticError::SemanticError(int span_start, int span_len, const std::string &general_err_msg, const std::string &err_msg) {
+SemanticError::SemanticError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;

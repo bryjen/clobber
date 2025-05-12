@@ -10,7 +10,7 @@
 
 using namespace ParserTestsHelpers;
 
-class ParserTests : public ::testing::TestWithParam<int> {
+class ParserTests : public ::testing::TestWithParam<size_t> {
 protected:
     void
     SetUp() override {
@@ -42,7 +42,7 @@ TEST_P(ParserTests, ParserTests) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    int test_case_idx;
+    size_t test_case_idx;
     std::string file_path;
     std::string source_text;
     std::vector<ClobberToken> tokens;

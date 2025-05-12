@@ -36,8 +36,10 @@ type_tostring(const Type &type) {
     }
     case Type::Func: {
         std::vector<std::string> type_strs;
+        /*
         for (const auto &type_param : type.params) {
         }
+        */
         repr = std::format("({})", str_utils::join(" -> ", type_strs));
         break;
     }

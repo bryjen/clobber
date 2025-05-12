@@ -137,7 +137,7 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
 };
 // clang-format on
 
-class TokenizerTests : public ::testing::TestWithParam<int> {
+class TokenizerTests : public ::testing::TestWithParam<size_t> {
 protected:
     void
     SetUp() override {
@@ -169,7 +169,7 @@ TEST_P(TokenizerTests, IsEven) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    int test_case_idx;
+    size_t test_case_idx;
     std::string file_path;
     std::string source_text;
     std::vector<ClobberToken> actual_tokens;

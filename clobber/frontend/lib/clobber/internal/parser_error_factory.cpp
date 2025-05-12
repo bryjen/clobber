@@ -9,12 +9,12 @@ const std::string default_err_msg         = "An unexpected error occurred.";
 } // namespace InternalErr
 
 ParserError
-ParserErrorFactory::InternalErr(int span_start, int span_len) {
+ParserErrorFactory::InternalErr(size_t span_start, size_t span_len) {
     return ParserError(span_start, span_len, InternalErr::default_general_err_msg, InternalErr::default_err_msg);
 }
 
 ParserError
-ParserErrorFactory::InternalErr(int err_code, int span_start, int span_len) {
+ParserErrorFactory::InternalErr(int err_code, size_t span_start, size_t span_len) {
     std::string general_err_msg = std::format("{} ({})", InternalErr::default_general_err_msg, err_code);
     return ParserError(span_start, span_len, general_err_msg, InternalErr::default_err_msg);
 }
