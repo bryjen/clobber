@@ -11,6 +11,10 @@ add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/diagnostic_factory.cpp
 )
 
+target_precompile_headers(clobber PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/clobber/pch.hpp"
+)
+
 target_include_directories(clobber 
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib

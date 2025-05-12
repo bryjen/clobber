@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "pch.hpp"
+
 // clobber/ast.hpp
 struct ExprBase;
 struct NumLiteralExpr;
@@ -20,8 +22,6 @@ struct CharLiteralExpr;
 struct AccelExpr;
 struct MatMulExpr;
 struct RelUExpr;
-
-#include <string>
 
 namespace ExprToString {
 std::string expr_base(const std::string &source_text, const ExprBase &expr);

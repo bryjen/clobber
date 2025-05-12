@@ -1,18 +1,5 @@
-#include <array>
-#include <filesystem>
-#include <fmt/core.h>
-#include <format>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
 
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
-
-#include <magic_enum/magic_enum.hpp>
+#include "pch.hpp"
 
 #include "expr_tostring.hpp"
 #include "helpers.hpp"

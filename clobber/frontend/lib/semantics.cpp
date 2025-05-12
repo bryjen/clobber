@@ -1,7 +1,4 @@
-#include <functional>
-#include <optional>
-#include <unordered_map>
-#include <unordered_set>
+#include "clobber/pch.hpp"
 
 #include "clobber/internal/diagnostic_factory.hpp"
 

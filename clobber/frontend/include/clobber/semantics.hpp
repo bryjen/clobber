@@ -1,9 +1,8 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <clobber/common/debug.hpp> // common debug header
+
+#include "pch.hpp"
 
 struct ExprBase;
 struct CompilationUnit;

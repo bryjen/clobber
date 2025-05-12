@@ -1,7 +1,4 @@
-#include <algorithm>
-#include <format>
-#include <sstream>
-#include <string>
+#include "clobber/pch.hpp"
 
 #include "clobber/parser.hpp"
 #include "clobber/semantics.hpp"

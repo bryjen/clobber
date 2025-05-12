@@ -7,6 +7,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(clobber_tests)
 
+target_precompile_headers(clobber_tests PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/helpers/pch.hpp"
+)
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers
 )

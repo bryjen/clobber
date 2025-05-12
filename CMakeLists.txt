@@ -29,3 +29,13 @@ add_subdirectory(clobber/common)
 add_subdirectory(clobber/backend-mlir)
 
 add_subdirectory(clobber-cli)
+
+# global compiler flags (shoutout chatgpt)
+# enable /MP (parallel compile)
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
+
+# ennable /Bt+ (profile per-file compile times)
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/Bt+>)
+
+# enable /debug:fastlink (faster linking in Debug)
+add_link_options($<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:/debug:fastlink>)

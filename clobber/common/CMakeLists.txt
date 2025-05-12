@@ -4,6 +4,10 @@ add_library(clobber_common
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/utils.cpp
 )
 
+target_precompile_headers(clobber_common PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/clobber/common/pch.hpp"
+)
+
 target_include_directories(clobber_common
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

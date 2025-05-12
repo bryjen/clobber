@@ -2,9 +2,7 @@
 
 #include <clobber/common/debug.hpp> // common debug header
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "pch.hpp"
 
 struct ClobberToken;    // ast.hpp
 struct CompilationUnit; // ast.hpp
