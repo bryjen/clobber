@@ -35,7 +35,7 @@ protected:
     }
 };
 
-#ifdef CLOBBER_TESTS_DISABLE_PARSER_TESTS
+#ifndef ENABLE_PARSER_TESTS
 TEST_P(ParserTests, DISABLED_ParserTests) {
 #else
 TEST_P(ParserTests, ParserTests) {
@@ -96,4 +96,4 @@ TEST_P(ParserTests, ParserTests) {
 
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(5));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));

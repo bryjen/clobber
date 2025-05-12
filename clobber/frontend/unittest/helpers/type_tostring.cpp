@@ -14,16 +14,24 @@ type_tostring(const Type &type) {
         repr = "int";
         break;
     }
-    case Type::Bool: {
-        repr = "bool";
+    case Type::Float: {
+        repr = "float";
+        break;
+    }
+    case Type::Double: {
+        repr = "double";
+        break;
+    }
+    case Type::String: {
+        repr = "string";
         break;
     }
     case Type::Char: {
-        repr = "char";
+        repr = "string";
         break;
     }
-    case Type::Float: {
-        repr = "float";
+    case Type::Bool: {
+        repr = "bool";
         break;
     }
     case Type::Func: {

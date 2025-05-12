@@ -35,6 +35,15 @@ ExprToString::expr_base(const std::string &source_text, const ExprBase &expr) {
         const NumLiteralExpr &num_lit_expr = static_cast<const NumLiteralExpr &>(expr);
         return expr2str::num_lit_expr(source_text, num_lit_expr);
     }
+    case ClobberExprType::StringLiteralExpr: {
+        const StringLiteralExpr &str_lit_expr = static_cast<const StringLiteralExpr &>(expr);
+        return expr2str::str_lit_expr(source_text, str_lit_expr);
+    }
+    case ClobberExprType::CharLiteralExpr: {
+        const CharLiteralExpr &str_lit_expr = static_cast<const CharLiteralExpr &>(expr);
+        return expr2str::char_lit_expr(source_text, str_lit_expr);
+    }
+
     case ClobberExprType::CallExpr: {
         const CallExpr &call_expr = static_cast<const CallExpr &>(expr);
         return expr2str::call_expr(source_text, call_expr);
@@ -91,6 +100,16 @@ ExprToString::expr_base(const std::string &source_text, const ExprBase &expr) {
 std::string
 token_tostring(const std::string &source_text, const ClobberToken &token) {
     return source_text.substr(token.full_start, token.full_length);
+}
+
+std::string
+ExprToString::str_lit_expr(const std::string &source_text, const StringLiteralExpr &sle) {
+    return token_tostring(source_text, sle.token);
+}
+
+std::string
+ExprToString::char_lit_expr(const std::string &source_text, const CharLiteralExpr &cle) {
+    return token_tostring(source_text, cle.token);
 }
 
 std::string

@@ -26,8 +26,28 @@ ClobberToken::AreEquivalent(const ClobberToken &token1, const ClobberToken &toke
         }
     }
 
+    constexpr float float_tolerance = 1e-5f;
+    if (token1.value.type() == typeid(float) && token2.value.type() == typeid(float)) {
+        if (std::abs(std::any_cast<float>(token1.value) - std::any_cast<float>(token2.value)) < float_tolerance) {
+            return true;
+        }
+    }
+
+    constexpr float double_tolerance = 1e-9;
+    if (token1.value.type() == typeid(double) && token2.value.type() == typeid(double)) {
+        if (std::abs(std::any_cast<double>(token1.value) - std::any_cast<double>(token2.value)) < double_tolerance) {
+            return true;
+        }
+    }
+
     if (token1.value.type() == typeid(std::string) && token2.value.type() == typeid(std::string)) {
         if (std::any_cast<std::string>(token1.value) == std::any_cast<std::string>(token2.value)) {
+            return true;
+        }
+    }
+
+    if (token1.value.type() == typeid(char) && token2.value.type() == typeid(char)) {
+        if (std::any_cast<char>(token1.value) == std::any_cast<char>(token2.value)) {
             return true;
         }
     }

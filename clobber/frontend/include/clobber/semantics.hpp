@@ -47,10 +47,12 @@ protected:
 
 struct Type {
     enum Kind {
+        String,
+        Char,
         Int,
         Float,
+        Double,
         Bool,
-        Char,
         Func,
     } kind;
     std::vector<std::shared_ptr<Type>> params;

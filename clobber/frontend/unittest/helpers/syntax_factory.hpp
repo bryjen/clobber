@@ -31,6 +31,25 @@ DEFINE_TOKEN_FUNC(GreaterThan, ">")
 DEFINE_TOKEN_FUNC(Eof, std::string{std::char_traits<char>::eof()})
 
 DEFINE_TOKEN_FUNC(LetKeyword, "let")
+DEFINE_TOKEN_FUNC(DefKeyword, "def")
+DEFINE_TOKEN_FUNC(FnKeyword, "fn")
+
+/* @brief Constructs a string literal token, inserts the double quotes into the value provided. */
+inline ClobberToken
+StringLiteralInsertDoubleQuot(std::string value) {
+    ClobberToken token{};
+    token.token_type = ClobberTokenType::StringLiteralToken;
+    token.value      = std::format("\"{}\"", value);
+    return token;
+}
+
+inline ClobberToken
+CharLiteral(char c) {
+    ClobberToken token{};
+    token.token_type = ClobberTokenType::CharLiteralToken;
+    token.value      = std::format("'{}'", c);
+    return token;
+}
 
 inline ClobberToken
 Identifier(std::string name) {
@@ -44,7 +63,23 @@ inline ClobberToken
 NumericLiteral(int value) {
     ClobberToken token{};
     token.token_type = ClobberTokenType::NumericLiteralToken;
-    token.value      = value;
+    token.value      = std::to_string(value);
+    return token;
+}
+
+inline ClobberToken
+NumericLiteral(float value, int decimal_places = 2) {
+    ClobberToken token{};
+    token.token_type = ClobberTokenType::NumericLiteralToken;
+    token.value      = std::format("{:.{}f}f", value, decimal_places);
+    return token;
+}
+
+inline ClobberToken
+NumericLiteral(double value, int decimal_places = 2, bool postfix_d = false) {
+    ClobberToken token{};
+    token.token_type = ClobberTokenType::NumericLiteralToken;
+    token.value      = postfix_d ? std::format("{:.{}f}d", value, decimal_places) : std::format("{:.{}f}", value, decimal_places);
     return token;
 }
 

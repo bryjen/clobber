@@ -16,9 +16,13 @@ bool is_alpha(char);
 bool is_numeric(char);
 bool is_alphanumeric(char);
 bool is_space(char);
-char try_get_char(const std::string &, int);
+bool is_symbol(char);
 
-constexpr bool (*identifier_pred)(char) = [](char c) -> bool { return (c == '-') || is_alphanumeric(c); };
+bool number_pred(char);
+bool identifier_pred(char);
+bool string_pred(char);
+
+char try_get_char(const std::string &, int);
 
 /* @return Returns the number of characters that fulfills the predicate starting from 'start_idx' inclusive. */
 int read_char_sequence(bool (*)(char), const std::string &, int);
@@ -60,17 +64,11 @@ clobber::tokenize(const std::string &source_text) {
             break;
         } else if (is_numeric(peek_char)) {
             // tokenize as number
-            token_len                 = read_char_sequence(is_numeric, source_text, current_idx);
-            token_type                = ClobberTokenType::NumericLiteralToken;
-            value_str                 = source_text.substr(start_idx, token_len);
-            Option<int> int_value_opt = str_utils::try_stoi(value_str);
-            if (int_value_opt) {
-                value = int_value_opt.value();
-            } else {
-                // TODO: Throw an error here
-            }
+            token_len  = read_char_sequence(number_pred, source_text, current_idx);
+            token_type = ClobberTokenType::NumericLiteralToken;
+            value      = source_text.substr(start_idx, token_len);
         } else if (isalpha(peek_char)) {
-            // tokenize as identifier or string literal
+            // tokenize as identifier
             std::string value_str;
             Option<ClobberTokenType> token_type_opt;
 
@@ -80,6 +78,29 @@ clobber::tokenize(const std::string &source_text) {
 
             token_type_opt = get_type_if_keyword_str(value_str);
             token_type     = token_type_opt ? token_type_opt.value() : ClobberTokenType::IdentifierToken;
+        } else if (peek_char == '"') {
+            // tokenize as string
+            std::string value_str;
+            Option<ClobberTokenType> token_type_opt;
+
+            token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the double quot for now
+            token_len += 2;                                                            // +1 to include the ending double quot
+            value_str = source_text.substr(start_idx, token_len);
+            value     = value_str;
+
+            token_type = ClobberTokenType::StringLiteralToken;
+        } else if (peek_char == '\'') {
+            // tokenize as char
+            // the char token can contain more than one char, but this is intended to be asserted in further stages in the pipeline
+            std::string value_str;
+            Option<ClobberTokenType> token_type_opt;
+
+            token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the quot for now
+            token_len += 2;                                                            // +1 to include the quot
+            value_str = source_text.substr(start_idx, token_len);
+            value     = value_str;
+
+            token_type = ClobberTokenType::CharLiteralToken;
         } else {
             // tokenize as symbol
             token_len = try_parse_symbol(source_text, current_idx, token_type);
@@ -118,7 +139,7 @@ is_alpha(char c) {
 
 bool
 is_numeric(char c) {
-    return c >= '0' && c <= '9';
+    return (c >= '0' && c <= '9');
 }
 
 bool
@@ -129,6 +150,29 @@ is_alphanumeric(char c) {
 bool
 is_space(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+bool
+is_symbol(char c) {
+    static constexpr std::string_view extras = "!$%&*+-,./:<=>?@^_~";
+    return std::isalnum(static_cast<unsigned char>(c)) || extras.find(c) != std::string_view::npos;
+}
+
+// supports both integer and floating point types
+// as well as optional floating point specifiers
+bool
+number_pred(char c) {
+    return (c == '.') || is_alphanumeric(c);
+}
+
+bool
+identifier_pred(char c) {
+    return (c == '-') || is_alphanumeric(c);
+}
+
+bool
+string_pred(char c) {
+    return is_symbol(c) || is_alphanumeric(c) || is_space(c);
 }
 
 char

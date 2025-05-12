@@ -20,15 +20,6 @@ StringUtils::spaces(size_t count) {
     return repeat(" ", count);
 }
 
-std::optional<int>
-StringUtils::try_stoi(const std::string &str) {
-    try {
-        return std::make_optional(std::stoi(str));
-    } catch (...) {
-        return std::nullopt;
-    }
-}
-
 std::string
 StringUtils::join(const std::string &delimiter, const std::vector<std::string> &lines) {
     std::ostringstream oss;
@@ -84,4 +75,29 @@ StringUtils::normalize_whitespace(const std::string &input) {
     }
 
     return result;
+}
+
+std::optional<int>
+StringUtils::try_stoi(const std::string &s) {
+    try {
+        size_t pos = 0;
+        int x      = std::stoi(s, &pos);
+        return pos == s.size() ? std::make_optional(x) : std::nullopt;
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+std::optional<float>
+StringUtils::try_stof(const std::string &s) {
+    char *end = nullptr;
+    float val = std::strtof(s.c_str(), &end);
+    return (end == s.c_str() + s.size()) ? std::optional<float>(val) : std::nullopt;
+}
+
+std::optional<double>
+StringUtils::try_stod(const std::string &s) {
+    char *end  = nullptr;
+    double val = std::strtod(s.c_str(), &end);
+    return (end == s.c_str() + s.size()) ? std::optional<double>(val) : std::nullopt;
 }

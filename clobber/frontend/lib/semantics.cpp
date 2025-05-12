@@ -18,7 +18,11 @@ using InferTypeDelegate = std::shared_ptr<Type> (*)(SemanticContext &, const Exp
 #define INFER_TYPE_DELEGATE_FN(FN_NAME) std::shared_ptr<Type> FN_NAME(SemanticContext &, const ExprBase &);
 
 INFER_TYPE_DELEGATE_FN(type_infer_expr_base)
+
 INFER_TYPE_DELEGATE_FN(type_infer_num_literal_expr)
+INFER_TYPE_DELEGATE_FN(type_infer_str_literal_expr)
+INFER_TYPE_DELEGATE_FN(type_infer_char_literal_expr)
+
 INFER_TYPE_DELEGATE_FN(type_infer_identifier_expr)
 INFER_TYPE_DELEGATE_FN(type_infer_let_expr)
 INFER_TYPE_DELEGATE_FN(type_infer_fn_expr)
@@ -118,44 +122,108 @@ void
 init_builtin_fns(TypePool &type_pool, SymbolTable &symbol_table) {
     Type type_desc;
 
+    // int
     type_desc      = Type{};
     type_desc.kind = Type::Int;
     type_desc.params.clear();
-
     std::shared_ptr<Type> int_type = type_pool.intern(type_desc);
 
-    type_desc        = Type{};
-    type_desc.kind   = Type::Func;
-    type_desc.params = {int_type, int_type, int_type}; // int -> int -> int (last type isreturn type w/ 2 arity)
+    // float
+    type_desc      = Type{};
+    type_desc.kind = Type::Float;
+    type_desc.params.clear();
+    std::shared_ptr<Type> float_type = type_pool.intern(type_desc);
 
-    std::shared_ptr<Type> basic_arithmetic_type = type_pool.intern(type_desc);
+    // double
+    type_desc      = Type{};
+    type_desc.kind = Type::Double;
+    type_desc.params.clear();
+    std::shared_ptr<Type> double_type = type_pool.intern(type_desc);
 
+    // str
+    type_desc      = Type{};
+    type_desc.kind = Type::String;
+    type_desc.params.clear();
+    std::shared_ptr<Type> string_type = type_pool.intern(type_desc);
+
+    // char
+    type_desc      = Type{};
+    type_desc.kind = Type::Char;
+    type_desc.params.clear();
+    std::shared_ptr<Type> char_type = type_pool.intern(type_desc);
+
+    // arithmetic with ints
+
+    std::vector<std::shared_ptr<Type>> arithmetic_type_descs{int_type, float_type, double_type};
     std::vector<std::string> builtin_fns{"+", "-", "*", "/"};
-    for (const auto &fn_name : builtin_fns) {
-        Symbol symbol{};
-        symbol.name = fn_name;
-        symbol.type = basic_arithmetic_type;
-        symbol_table.insert_symbol(symbol);
+    for (const auto &fn_param_ret_type_desc : arithmetic_type_descs) {
+        type_desc        = Type{};
+        type_desc.kind   = Type::Func;
+        type_desc.params = {fn_param_ret_type_desc, fn_param_ret_type_desc, fn_param_ret_type_desc};
+
+        std::shared_ptr<Type> basic_arithmetic_type = type_pool.intern(type_desc);
+
+        for (const auto &fn_name : builtin_fns) {
+            Symbol symbol{};
+            symbol.name = fn_name;
+            symbol.type = basic_arithmetic_type;
+            symbol_table.insert_symbol(symbol);
+        }
     }
 }
+
+// 'Could Not Infer Type' error; shorthand for less smelly code solely for the below function.
+#define CNIT_ERROR()                                                                                                                       \
+    SemanticError error = diagnostics::semantics::errors::could_not_infer_type_error(num_lit_expr.token.start, num_lit_expr.token.length); \
+    context.diagnostics.push_back(error);
 
 std::shared_ptr<Type>
 type_infer_num_literal_expr(SemanticContext &context, const ExprBase &expr) {
     const std::string source_text      = context.compilation_unit.source_text;
     const NumLiteralExpr &num_lit_expr = static_cast<const NumLiteralExpr &>(expr);
 
-    std::string value_string   = source_text.substr(num_lit_expr.token.start, num_lit_expr.token.length);
-    std::optional<int> int_opt = str_utils::try_stoi(value_string);
+    std::string value_string = source_text.substr(num_lit_expr.token.start, num_lit_expr.token.length);
+    std::string value_string_no_postfix =
+        (value_string.back() == 'd' || value_string.back() == 'f') ? value_string.substr(0, value_string.size() - 1) : value_string;
 
-    if (!int_opt) {
-        SemanticError error =
-            diagnostics::semantics::errors::could_not_infer_type_error(num_lit_expr.token.start, num_lit_expr.token.length);
-        context.diagnostics.push_back(error);
+    if (value_string.empty()) {
+        CNIT_ERROR();
         return nullptr;
     }
 
+    auto test = str_utils::try_stod("0.01");
+
     Type type_desc{};
-    type_desc.kind = Type::Int;
+    if (str_utils::try_stoi(value_string).has_value()) { // try parse as an int
+        type_desc.kind = Type::Int;
+    } else if (value_string.back() == 'f' && str_utils::try_stof(value_string_no_postfix).has_value()) {
+        type_desc.kind = Type::Float;
+    } else if (str_utils::try_stod(value_string_no_postfix).has_value()) {
+        type_desc.kind = Type::Double;
+    } else {
+        CNIT_ERROR();
+        return nullptr;
+    }
+
+    std::shared_ptr<Type> type = context.type_pool.intern(type_desc);
+    context.type_map.insert({expr.id, type});
+    return type;
+}
+
+std::shared_ptr<Type>
+type_infer_str_literal_expr(SemanticContext &context, const ExprBase &expr) {
+    Type type_desc{};
+    type_desc.kind = Type::String;
+
+    std::shared_ptr<Type> type = context.type_pool.intern(type_desc);
+    context.type_map.insert({expr.id, type});
+    return type;
+}
+
+std::shared_ptr<Type>
+type_infer_char_literal_expr(SemanticContext &context, const ExprBase &expr) {
+    Type type_desc{};
+    type_desc.kind = Type::Char;
 
     std::shared_ptr<Type> type = context.type_pool.intern(type_desc);
     context.type_map.insert({expr.id, type});
@@ -278,6 +346,7 @@ type_infer_call_expr(SemanticContext &context, const ExprBase &expr) {
         return nullptr;
     }
 
+    bool has_mismatched_argument = false;
     std::vector<std::shared_ptr<Type>> actual_types;
     auto arg_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
     for (size_t i = 0; i < arg_expr_views.size(); i++) {
@@ -286,12 +355,12 @@ type_infer_call_expr(SemanticContext &context, const ExprBase &expr) {
         std::shared_ptr<Type> arg_type      = type_infer_expr_base(context, arg_expr_view);
         if (arg_type != expected_type) {
             // TODO: YOU NEED TO IMPLEMENT A SPAN METHOD FOR AN EXPR: `expr.get_span()`
-            return nullptr;
+            has_mismatched_argument = true;
         }
     }
 
     // if above holds true -> argument types match function parameter types -> return the return type of the funcion
-    return expected_return_type;
+    return has_mismatched_argument ? nullptr : expected_return_type;
 }
 
 std::shared_ptr<Type>
@@ -299,6 +368,9 @@ type_infer_expr_base(SemanticContext &context, const ExprBase &expr) {
     // clang-format off
     const std::unordered_map<ClobberExprType, InferTypeDelegate> delegate_map = {
         { ClobberExprType::NumericLiteralExpr, type_infer_num_literal_expr },
+        { ClobberExprType::StringLiteralExpr, type_infer_str_literal_expr },
+        { ClobberExprType::CharLiteralExpr, type_infer_char_literal_expr },
+
         { ClobberExprType::IdentifierExpr, type_infer_identifier_expr },
         { ClobberExprType::LetExpr, type_infer_let_expr },
         { ClobberExprType::FnExpr, type_infer_fn_expr },

@@ -24,12 +24,15 @@ get_expr_views(const std::vector<std::unique_ptr<T>> &objs) {
 namespace StringUtils {
 std::string repeat(const std::string &s, size_t n);
 std::string spaces(size_t count);
-std::optional<int> try_stoi(const std::string &str);
 std::string join(const std::string &delimiter, const std::vector<std::string> &lines);
 
 std::string trim(const std::string &str);
 std::string remove_newlines(const std::string &str);
 std::string normalize_whitespace(const std::string &input);
+
+std::optional<int> try_stoi(const std::string &str);
+std::optional<float> try_stof(const std::string &str);
+std::optional<double> try_stod(const std::string &str);
 }; // namespace StringUtils
 
 namespace ptr_utils = PointerUtils;

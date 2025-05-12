@@ -31,6 +31,8 @@ enum class ClobberTokenType {
 
     IdentifierToken,
     NumericLiteralToken,
+    StringLiteralToken,
+    CharLiteralToken,
 
     LetKeywordToken,
     FnKeywordToken,
@@ -87,10 +89,13 @@ public:
  */
 enum class ClobberExprType {
     CallExpr,
-    NumericLiteralExpr,
     IdentifierExpr,
     ParameterVectorExpr,
     BindingVectorExpr,
+
+    NumericLiteralExpr,
+    StringLiteralExpr,
+    CharLiteralExpr,
 
     LetExpr,
     FnExpr,
@@ -123,7 +128,22 @@ private:
 /* @brief Represents a numerical literal expression.
  */
 struct NumLiteralExpr final : ExprBase {
-    int value;
+    ClobberToken token;
+};
+
+/* @brief Represents a string literal expression.
+ */
+struct StringLiteralExpr final : ExprBase {
+    std::string value;
+    ClobberToken token;
+};
+
+/* @brief Represents a char literal expression.
+ * @remarks In the tokenizer, '...' can contain multiple characters. Although this can be asserted in the parser, we delegate this
+ * responsibility to the semantic analyzer. The value does not contain the single quotes.
+ */
+struct CharLiteralExpr final : ExprBase {
+    std::string value;
     ClobberToken token;
 };
 

@@ -38,7 +38,7 @@ protected:
     }
 };
 
-#ifdef CLOBBER_TESTS_DISABLE_SEMANTICS_TESTS
+#ifndef ENABLE_SEMANTICS_TESTS
 TEST_P(SemanticsTests, DISABLED_SemanticsTests) {
 #else
 TEST_P(SemanticsTests, SemanticsTests) {

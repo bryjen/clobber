@@ -51,7 +51,9 @@ to_string_any(const std::any &a) {
         return std::any_cast<std::string>(a);
     if (a.type() == typeid(bool))
         return std::any_cast<bool>(a) ? "true" : "false";
-    // add more types as needed
+    if (a.type() == typeid(char))
+        return std::to_string(std::any_cast<char>(a));
+
     return "<unsupported>";
 }
 
@@ -210,6 +212,28 @@ num_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &
 }
 
 std::vector<std::string>
+str_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const StringLiteralExpr &sle = static_cast<const StringLiteralExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(sle.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", sle.id, type_str, normalize(expr2str::str_lit_expr(SRC_TXT, sle))));
+    return strs;
+}
+
+std::vector<std::string>
+char_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const CharLiteralExpr &cle = static_cast<const CharLiteralExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(cle.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", cle.id, type_str, normalize(expr2str::char_lit_expr(SRC_TXT, cle))));
+    return strs;
+}
+
+std::vector<std::string>
 ident_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
     std::vector<std::string> strs{};
     const IdentifierExpr &iden_expr = static_cast<const IdentifierExpr &>(expr);
@@ -278,6 +302,8 @@ get_expr_inferred_type_strs_core(const SemanticModel &semantic_model, const Expr
     // clang-format off
     const std::unordered_map<ClobberExprType, InferredTypeStrsDelegate> delegates = {
         {ClobberExprType::NumericLiteralExpr, num_lit_expr_inferred_strs},
+        {ClobberExprType::StringLiteralExpr, str_lit_expr_inferred_strs},
+        {ClobberExprType::CharLiteralExpr, char_lit_expr_inferred_strs},
         {ClobberExprType::IdentifierExpr, ident_expr_inferred_strs},
         {ClobberExprType::LetExpr, let_expr_inferred_strs},
         {ClobberExprType::CallExpr, call_expr_inferred_strs},

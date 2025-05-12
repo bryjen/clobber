@@ -15,7 +15,8 @@ struct ParameterVectorExpr;
 struct FnExpr;
 struct DefExpr;
 struct DoExpr;
-struct DoExpr;
+struct StringLiteralExpr;
+struct CharLiteralExpr;
 
 struct AccelExpr;
 struct MatMulExpr;
@@ -25,7 +26,11 @@ struct RelUExpr;
 
 namespace ExprToString {
 std::string expr_base(const std::string &source_text, const ExprBase &expr);
+
 std::string num_lit_expr(const std::string &source_text, const NumLiteralExpr &expr);
+std::string str_lit_expr(const std::string &source_text, const StringLiteralExpr &expr);
+std::string char_lit_expr(const std::string &source_text, const CharLiteralExpr &expr);
+
 std::string call_expr(const std::string &source_text, const CallExpr &expr);
 std::string iden_expr(const std::string &source_text, const IdentifierExpr &expr);
 std::string binding_vector_expr(const std::string &source_text, const BindingVectorExpr &expr);

@@ -23,13 +23,16 @@ using ParseDelegate = ExprBase *(*)(const std::string &, const std::vector<Clobb
 
 PARSE_DELEGATE_FN(try_parse)
 PARSE_DELEGATE_FN(try_parse_call_expr)
-PARSE_DELEGATE_FN(try_parse_numeric_literal_expr)
 PARSE_DELEGATE_FN(try_parse_identifier)
 PARSE_DELEGATE_FN(try_parse_call_expr_or_special_form)
 PARSE_DELEGATE_FN(try_parse_let_expr)
 PARSE_DELEGATE_FN(try_parse_fn_expr)
 PARSE_DELEGATE_FN(try_parse_def_expr)
 PARSE_DELEGATE_FN(try_parse_do_expr)
+
+PARSE_DELEGATE_FN(try_parse_numeric_literal_expr)
+PARSE_DELEGATE_FN(try_parse_string_literal_expr)
+PARSE_DELEGATE_FN(try_parse_char_literal_expr)
 
 // accel specific syntax
 PARSE_DELEGATE_FN(try_parse_accel_expr)
@@ -57,6 +60,7 @@ recover(const std::vector<ClobberToken> &tokens, size_t &idx) {
 
 Option<ParseDelegate>
 try_get_parse_fun(ClobberTokenType token_type) {
+    // keep using if-statements instead of a map/switch to support predicates over different token types
     const std::unordered_set<ClobberTokenType> valid_token_types = {ClobberTokenType::NumericLiteralToken};
     auto is_reserved_symbol_identifier = [&valid_token_types](ClobberTokenType tt) { return valid_token_types.contains(tt); };
 
@@ -64,11 +68,16 @@ try_get_parse_fun(ClobberTokenType token_type) {
         return std::make_optional(try_parse_numeric_literal_expr);
 
     } else if (token_type == ClobberTokenType::OpenParenToken) {
-        // return std::make_optional(try_parse_call_expr);
         return std::make_optional(try_parse_call_expr_or_special_form);
 
     } else if (token_type == ClobberTokenType::IdentifierToken || is_reserved_symbol_identifier(token_type)) {
         return std::make_optional(try_parse_identifier);
+
+    } else if (token_type == ClobberTokenType::StringLiteralToken) {
+        return std::make_optional(try_parse_string_literal_expr);
+
+    } else if (token_type == ClobberTokenType::CharLiteralToken) {
+        return std::make_optional(try_parse_char_literal_expr);
 
     } else {
         return std::nullopt;
@@ -79,29 +88,51 @@ ExprBase *
 try_parse_numeric_literal_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens,
                                std::vector<ParserError> &parser_errors, size_t &idx) {
     NumLiteralExpr *nle;
-
     ClobberToken current_token;
-    std::string num_as_str;
-    Option<int> stoi_results;
 
     current_token = tokens[idx]; // no bounds check, current token exists, asserted by caller
-    num_as_str    = current_token.ExtractText(source_text);
-    stoi_results  = str_utils::try_stoi(num_as_str);
-
-    if (!stoi_results) {
-        ParserError err = err::InternalErr(0, current_token.start, current_token.length);
-        parser_errors.push_back(err);
-        recover(tokens, idx);
-        return nullptr;
-    }
 
     nle            = new NumLiteralExpr();
     nle->token     = current_token;
-    nle->value     = stoi_results.value();
     nle->expr_type = ClobberExprType::NumericLiteralExpr;
 
     idx++;
     return nle;
+}
+
+ExprBase *
+try_parse_string_literal_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens,
+                              std::vector<ParserError> &parser_errors, size_t &idx) {
+    StringLiteralExpr *sle = new StringLiteralExpr();
+
+    std::string str = any_cast<std::string>(tokens[idx].value);
+    if (str.size() > 2) {
+        str = str.substr(1, str.size() - 2);
+    }
+
+    sle->value     = str;
+    sle->token     = tokens[idx]; // no bounds check, current token exists, asserted by caller
+    sle->expr_type = ClobberExprType::StringLiteralExpr;
+
+    idx++;
+    return sle;
+}
+
+ExprBase *
+try_parse_char_literal_expr(const std::string &source_text, const std::vector<ClobberToken> &tokens,
+                            std::vector<ParserError> &parser_errors, size_t &idx) {
+    CharLiteralExpr *cle = new CharLiteralExpr();
+
+    std::string str = any_cast<std::string>(tokens[idx].value);
+    if (str.size() > 2) {
+        str = str.substr(1, str.size() - 2);
+    }
+
+    cle->value     = str;
+    cle->token     = tokens[idx]; // no bounds check, current token exists, asserted by caller
+    cle->expr_type = ClobberExprType::CharLiteralExpr;
+    idx++;
+    return cle;
 }
 
 ExprBase *

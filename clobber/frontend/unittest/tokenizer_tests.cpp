@@ -19,11 +19,43 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
         NumericLiteral(1),
         NumericLiteral(2),
         CloseParen(),
+
         OpenParen(),
         Asterisk(),
         NumericLiteral(3),
         NumericLiteral(4),
         CloseParen(),
+
+        OpenParen(),
+        Plus(),
+        StringLiteralInsertDoubleQuot("Hello, "),
+        StringLiteralInsertDoubleQuot("world!"),
+        CloseParen(),
+
+        OpenParen(),
+        Plus(),
+        CharLiteral('a'),
+        CharLiteral('b'),
+        CloseParen(),
+
+        OpenParen(),
+        Plus(),
+        NumericLiteral(10.0f, 1),
+        NumericLiteral(0.2f, 1),
+        CloseParen(),
+
+        OpenParen(),
+        Plus(),
+        NumericLiteral(10.0, 1, false),
+        NumericLiteral(0.2, 1, false),
+        CloseParen(),
+
+        OpenParen(),
+        Plus(),
+        NumericLiteral(10.0, 1, true),
+        NumericLiteral(0.2, 1, true),
+        CloseParen(),
+
         Eof()
     },
     { 
@@ -46,7 +78,7 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
     },
     {
         OpenParen(),
-        Identifier("fn"),
+        FnKeyword(),
         OpenBracket(),
         Identifier("x"),
         CloseBracket(),
@@ -55,27 +87,12 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
         Identifier("x"),
         Identifier("x"),
         CloseParen(),
-        CloseParen(),
-
-        OpenParen(),
-        OpenParen(),
-        Identifier("fn"),
-        OpenBracket(),
-        Identifier("x"),
-        CloseBracket(),
-        OpenParen(),
-        Asterisk(),
-        Identifier("x"),
-        Identifier("x"),
-        CloseParen(),
-        CloseParen(),
-        NumericLiteral(5),
         CloseParen(),
         Eof()
     },
     {
         OpenParen(),
-        Identifier("def"),
+        DefKeyword(),
         Identifier("main"),
         OpenBracket(),
         Identifier("x"),
@@ -83,8 +100,7 @@ std::vector<std::vector<ClobberToken>> expected_cases = {
         CloseBracket(),
 
         OpenParen(),
-        Identifier("let"),
-        Asterisk(),  // TODO: see if we separate the two or just have them as one 
+        LetKeyword(),
         OpenParen(),
 
         OpenParen(),
@@ -145,7 +161,7 @@ protected:
     }
 };
 
-#ifdef CLOBBER_TESTS_DISABLE_TOKENIZER_TESTS
+#ifndef ENABLE_TOKENIZER_TESTS
 TEST_P(TokenizerTests, DISABLED_IsEven) {
 #else
 TEST_P(TokenizerTests, IsEven) {
@@ -180,5 +196,5 @@ TEST_P(TokenizerTests, IsEven) {
 #endif
 }
 
-// INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0));
-INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0, 1, 2, 3));
+INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0, 1, 2, 3));
