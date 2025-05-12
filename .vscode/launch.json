@@ -14,14 +14,13 @@
         },
         {
             "name": "DEBUG frontend (unit tests)",
-            "type": "cppvsdbg",
+            "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/clobber/frontend/unittest/Debug/clobber_tests.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "console": "integratedTerminal"
         },
     ]
 }

@@ -10,5 +10,17 @@
       "platform": "arm64",
       "toolset": "host=ARM64"
     }
+  },
+  {
+    "name": "[vcpkg; ARM64] Ninja",
+    "isTrusted": true,
+    "toolchainFile": "${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+    "compilers": {
+      "C": "clang-cl.exe",
+      "CXX": "clang-cl.exe"
+    },
+    "preferredGenerator": {
+      "name": "Ninja"
+    }
   }
 ]

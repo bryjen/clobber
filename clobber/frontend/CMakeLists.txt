@@ -24,6 +24,8 @@ target_link_libraries(clobber
     PUBLIC clobber_common
 )
 
+set_target_properties(clobber PROPERTIES UNITY_BUILD ON)
+
 
 enable_testing()
 add_subdirectory(unittest)

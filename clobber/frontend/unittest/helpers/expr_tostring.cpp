@@ -17,11 +17,6 @@ expr_type_tostring(ClobberExprType expr_type) {
     return std::string(magic_enum::enum_name(expr_type));
 }
 
-inline std::string
-normalize(const std::string &str) {
-    throw 0;
-}
-
 std::string
 ExprToString::expr_base(const std::string &source_text, const ExprBase &expr) {
     switch (expr.expr_type) {

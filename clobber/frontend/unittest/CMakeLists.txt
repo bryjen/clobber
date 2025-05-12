@@ -37,6 +37,8 @@ target_link_libraries(clobber_tests PRIVATE
     clobber clobber_common
 )
 
+set_target_properties(clobber_tests PROPERTIES UNITY_BUILD ON)
+
 include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 

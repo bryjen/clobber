@@ -7,11 +7,6 @@ struct CompilationUnit; // clobber/ast.hpp
 struct ParserError;     // clobber/parser.hpp
 struct SemanticModel;   // clobber/semantics.hpp
 
-/* @brief
- * @remark to remove?
- */
-template <typename T> bool assert_vectors_same_size(const std::vector<T> &, const std::vector<T> &, std::string *);
-
 std::string get_executable_directory();
 std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
 std::string read_all_text(const std::string &);
