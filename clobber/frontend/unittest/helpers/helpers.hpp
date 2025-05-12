@@ -10,6 +10,7 @@
 struct ClobberToken;    // clobber/ast.hpp
 struct CompilationUnit; // clobber/ast.hpp
 struct ParserError;     // clobber/parser.hpp
+struct SemanticModel;   // clobber/semantics.hpp
 
 /* @brief
  * @remark to remove?
@@ -41,5 +42,9 @@ std::vector<std::string> get_error_msgs(const std::string &, const std::string &
 
 ::testing::AssertionResult are_compilation_units_equivalent(const CompilationUnit &, const CompilationUnit &);
 } // namespace ParserTestsHelpers
+
+namespace SemanticTestsHelpers {
+std::vector<std::string> get_expr_inferred_type_strs(const SemanticModel &);
+} // namespace SemanticTestsHelpers
 
 #endif // HELPERS_HPP

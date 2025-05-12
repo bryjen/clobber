@@ -14,10 +14,14 @@
 
 #include <magic_enum/magic_enum.hpp>
 
+#include "expr_tostring.hpp"
 #include "helpers.hpp"
+#include "type_tostring.hpp"
 
 #include <clobber/ast.hpp>
+#include <clobber/common/utils.hpp>
 #include <clobber/parser.hpp>
+#include <clobber/semantics.hpp>
 
 template <typename T>
 bool
@@ -182,4 +186,115 @@ ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &s
     }
 
     return errs;
+}
+
+// source text shorthand for semantic models
+#define SRC_TXT semantic_model.compilation_unit.get()->source_text
+
+std::string
+normalize(const std::string &str) {
+    return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
+}
+
+std::vector<std::string> get_expr_inferred_type_strs_core(const SemanticModel &, const ExprBase &);
+
+std::vector<std::string>
+num_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const NumLiteralExpr &nle_expr = static_cast<const NumLiteralExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(nle_expr.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", nle_expr.id, type_str, normalize(expr2str::num_lit_expr(SRC_TXT, nle_expr))));
+    return strs;
+}
+
+std::vector<std::string>
+ident_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const IdentifierExpr &iden_expr = static_cast<const IdentifierExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(iden_expr.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", iden_expr.id, type_str, normalize(expr2str::iden_expr(SRC_TXT, iden_expr))));
+    return strs;
+}
+
+std::vector<std::string>
+let_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const LetExpr &let_expr = static_cast<const LetExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(let_expr.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", let_expr.id, type_str, normalize(expr2str::let_expr(SRC_TXT, let_expr))));
+
+    auto body_expr_views = ptr_utils::get_expr_views(let_expr.body_exprs);
+    for (const auto &body_expr_view : body_expr_views) {
+        auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, body_expr_view);
+        strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
+    }
+
+    return strs;
+}
+
+std::vector<std::string>
+fn_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    throw 0;
+}
+
+std::vector<std::string>
+def_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    throw 0;
+}
+
+std::vector<std::string>
+do_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    throw 0;
+}
+
+std::vector<std::string>
+call_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+    std::vector<std::string> strs{};
+    const CallExpr &call_expr = static_cast<const CallExpr &>(expr);
+
+    auto it              = semantic_model.type_map->find(call_expr.id);
+    std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+    strs.push_back(std::format("{}: {} `{}`", call_expr.id, type_str, normalize(expr2str::call_expr(SRC_TXT, call_expr))));
+
+    auto argument_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
+    for (const auto &argument_expr_view : argument_expr_views) {
+        auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, argument_expr_view);
+        strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
+    }
+
+    return strs;
+}
+
+std::vector<std::string>
+get_expr_inferred_type_strs_core(const SemanticModel &semantic_model, const ExprBase &expr) {
+    using InferredTypeStrsDelegate = std::vector<std::string> (*)(const SemanticModel &, const ExprBase &);
+
+    // clang-format off
+    const std::unordered_map<ClobberExprType, InferredTypeStrsDelegate> delegates = {
+        {ClobberExprType::NumericLiteralExpr, num_lit_expr_inferred_strs},
+        {ClobberExprType::IdentifierExpr, ident_expr_inferred_strs},
+        {ClobberExprType::LetExpr, let_expr_inferred_strs},
+        {ClobberExprType::CallExpr, call_expr_inferred_strs},
+    };
+    // clang-format on
+
+    auto it = delegates.find(expr.expr_type);
+    return it != delegates.end() ? it->second(semantic_model, expr) : std::vector<std::string>{};
+}
+
+std::vector<std::string>
+SemanticTestsHelpers::get_expr_inferred_type_strs(const SemanticModel &semantic_model) {
+    std::vector<std::string> strs;
+    auto expr_views = ptr_utils::get_expr_views(semantic_model.compilation_unit->exprs);
+    for (const auto &expr_view : expr_views) {
+        auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, expr_view);
+        strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
+    }
+    return strs;
 }

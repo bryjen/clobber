@@ -13,7 +13,7 @@
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
-using namespace ParserTestsHelpers;
+using namespace SemanticTestsHelpers;
 
 class SemanticsTests : public ::testing::TestWithParam<int> {
 protected:
@@ -55,6 +55,8 @@ TEST_P(SemanticsTests, SemanticsTests) {
     std::unique_ptr<CompilationUnit> compilation_unit;
     std::unique_ptr<SemanticModel> semantic_model;
 
+    std::vector<std::string> inferred_type_strs;
+
     test_case_idx = GetParam();
     file_path     = std::format("./test_files/{}.clj", test_case_idx);
     source_text   = read_all_text(file_path);
@@ -65,6 +67,9 @@ TEST_P(SemanticsTests, SemanticsTests) {
     compilation_unit = clobber::parse(source_text, tokens);
     semantic_model   = clobber::get_semantic_model(source_text, std::move(compilation_unit));
 
+    inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
+    spdlog::info(str_utils::join("\n", inferred_type_strs));
+
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
         spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
@@ -74,6 +79,5 @@ TEST_P(SemanticsTests, SemanticsTests) {
     EXPECT_TRUE(true);
 }
 
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));
-INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0));
+// INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0));
+INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0, 1));

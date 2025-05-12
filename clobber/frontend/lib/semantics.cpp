@@ -185,8 +185,18 @@ type_infer_let_expr(SemanticContext &context, const ExprBase &expr) {
 
     const BindingVectorExpr &binding_vector_expr = std::cref(*let_expr.binding_vector_expr);
     for (size_t i = 0; i < binding_vector_expr.num_bindings; i++) {
-        const IdentifierExpr identifier_expr = std::cref(*binding_vector_expr.identifiers[i]);
-        const ExprBase expr                  = std::cref(*binding_vector_expr.exprs[i]);
+        const IdentifierExpr &identifier_expr = std::cref(*binding_vector_expr.identifiers[i]);
+        const ExprBase &identifier_value_expr = std::cref(*binding_vector_expr.exprs[i]);
+
+        std::shared_ptr<Type> identifier_type = type_infer_expr_base(context, identifier_value_expr);
+        if (!identifier_type) {
+            return nullptr;
+        }
+
+        Symbol symbol{};
+        symbol.name = identifier_expr.name;
+        symbol.type = identifier_type;
+        context.symbol_table.insert_symbol(symbol);
     }
 
     std::shared_ptr<Type> last_type;
