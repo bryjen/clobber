@@ -11,6 +11,8 @@ struct EmitterContext {
     const SemanticModel &semantic_model;
     mlir::OpBuilder &builder;
     std::vector<EmitError> errors;
+
+    std::vector<mlir::Block *> scopes;
 };
 
 template <typename T> using Option = std::optional<T>;
@@ -69,6 +71,10 @@ emit_num_literal_expr(EmitterContext &emitter_context, const ExprBase &expr_base
         return nullptr;
     }
 
+    // sets insertion location to the start of the scope temporarily
+    mlir::OpBuilder::InsertionGuard _(builder);
+    builder.setInsertionPointToStart(emitter_context.scopes.back());
+
     mlir::arith::ConstantOp const_op;
     std::string value_str = source_text.substr(nle.token.start, nle.token.length);
     switch (it->second->kind) {
@@ -87,7 +93,7 @@ emit_num_literal_expr(EmitterContext &emitter_context, const ExprBase &expr_base
         try {
             mlir::FloatType f32 = builder.getF32Type();
             float value         = std::stof(value_str);
-            const_op            = builder.create<mlir::arith::ConstantOp>(builder.getUnknownLoc(), builder.getIntegerAttr(f32, value));
+            const_op            = builder.create<mlir::arith::ConstantOp>(builder.getUnknownLoc(), builder.getFloatAttr(f32, value));
             break;
         } catch (...) {
             // TODO: throw error here
@@ -98,7 +104,7 @@ emit_num_literal_expr(EmitterContext &emitter_context, const ExprBase &expr_base
         try {
             mlir::FloatType f64 = builder.getF64Type();
             double value        = std::stod(value_str);
-            const_op            = builder.create<mlir::arith::ConstantOp>(builder.getUnknownLoc(), builder.getIntegerAttr(f64, value));
+            const_op            = builder.create<mlir::arith::ConstantOp>(builder.getUnknownLoc(), builder.getFloatAttr(f64, value));
             break;
         } catch (...) {
             // TODO: throw error here
@@ -195,12 +201,51 @@ namespace fns {
     emit_add_expr(EmitterContext &emitter_context, const CallExpr &ce, const std::vector<mlir::Operation *> arguments) {
         mlir::OpBuilder &builder = emitter_context.builder;
 
-        // TODO: Add support for: type specific ops (separate for floats) and variadic arguments (folded chains + minimum len assertions)
+        if (arguments.size() < 2) {
+            return nullptr; // silently 'error' semantic analyzer should point this out
+        }
 
-        auto fst_arg            = arguments[0]->getResult(0);
-        auto snd_arg            = arguments[1]->getResult(0);
-        mlir::arith::AddIOp sum = builder.create<mlir::arith::AddIOp>(builder.getUnknownLoc(), fst_arg, snd_arg);
-        return sum;
+        // determining the type of add op to use
+        const TypeMap &type_map = std::cref(*emitter_context.semantic_model.type_map);
+        auto type_it            = type_map.find(ce.id);
+        Type type{};
+        if (type_it == type_map.end()) {
+            // TODO: Temporary, just to test that delegates work, ensure that the semantic analyzer can understand overloaded types
+            // TODO: throw error here
+            // return nullptr;
+            type.kind = Type::Kind::Float;
+        } else {
+            type = *type_it->second;
+        }
+
+        auto loc            = builder.getUnknownLoc();
+        using delegate_type = std::function<mlir::Operation *(mlir::OpResult &, mlir::OpResult &)>;
+        const std::unordered_map<Type::Kind, delegate_type> delegates{
+            {Type::Kind::Int,
+             [&builder, &loc](mlir::OpResult &fst, mlir::OpResult &snd) {
+                 return (mlir::Operation *)builder.create<mlir::arith::AddIOp>(loc, fst, snd);
+             }},
+            {Type::Kind::Float,
+             [&builder, &loc](mlir::OpResult &fst, mlir::OpResult &snd) {
+                 return (mlir::Operation *)builder.create<mlir::arith::AddFOp>(loc, fst, snd);
+             }},
+        };
+
+        auto delegate_it = delegates.find(type.kind);
+        if (delegate_it == delegates.end()) {
+            // TODO: throw error here
+            return nullptr;
+        }
+        delegate_type delegate = delegate_it->second;
+
+        // unfolding chains
+        mlir::Operation *last_operation = nullptr;
+        for (size_t i = 0; i < arguments.size() - 1; i++) {
+            auto fst_arg   = arguments[i]->getResult(0);
+            auto snd_arg   = arguments[i + 1]->getResult(0);
+            last_operation = delegate(fst_arg, snd_arg);
+        }
+        return last_operation;
     }
 
     mlir::Operation *
@@ -276,7 +321,6 @@ emit_call_expr(EmitterContext &emitter_context, const ExprBase &expr_base) {
 
 mlir::ModuleOp
 clobber::emit(mlir::MLIRContext &context, const SemanticModel &semantic_model) {
-
     mlir::OpBuilder builder(&context);
     mlir::ModuleOp module = mlir::ModuleOp::create(builder.getUnknownLoc());
 
@@ -289,7 +333,8 @@ clobber::emit(mlir::MLIRContext &context, const SemanticModel &semantic_model) {
     EmitterContext em_ctx{
         .semantic_model = semantic_model,
         .builder = builder,
-        .errors = {}
+        .errors = {},
+        .scopes = { &entry_point }
     };
     // clang-format on
 
@@ -304,37 +349,4 @@ clobber::emit(mlir::MLIRContext &context, const SemanticModel &semantic_model) {
     builder.create<mlir::func::ReturnOp>(builder.getUnknownLoc());
     module.push_back(entry_point_fn);
     return module;
-
-    // Sanity check block; just to test if the core mlir stuff works
-    /*
-    mlir::OpBuilder builder(&context);
-    mlir::Location loc = builder.getUnknownLoc();
-
-    // Create a new MLIR module
-    // mlir::OwningOpRef<mlir::ModuleOp> _module = mlir::ModuleOp::create(loc);
-    auto _module = mlir::ModuleOp::create(loc);
-
-    // Create function type: () -> i32
-    auto i32    = builder.getI32Type();
-    auto fnType = builder.getFunctionType({}, i32);
-
-    // Create @main function
-    auto func          = builder.create<mlir::func::FuncOp>(loc, "main", fnType);
-    mlir::Block *entry = func.addEntryBlock();
-    builder.setInsertionPointToStart(entry);
-
-    // Emit constants
-    auto c1 = builder.create<mlir::arith::ConstantOp>(loc, builder.getI32IntegerAttr(42));
-    auto c2 = builder.create<mlir::arith::ConstantOp>(loc, builder.getI32IntegerAttr(58));
-
-    // Add them
-    // auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2);
-    auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2).getResult();
-    builder.create<mlir::func::ReturnOp>(loc, sum);
-
-    // Add function to module
-    // _module->push_back(func);
-    _module.push_back(func);
-    return _module;
-    */
 }

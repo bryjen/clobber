@@ -38,13 +38,17 @@
 #include "clobber/mlir-backend/emitter.hpp"
 
 // clang-format off
-const std::array<std::string, 3> test_source_contents = {
+const std::vector<std::string> test_source_contents = {
 R"(1)",
 
 R"((+ 1 2))",
 
 R"((+ 1 2)
 (* 3 4))",
+
+R"((+ 1.0f 2.0f))",
+
+R"((+ 1 2 3 4))",
 };
 // clang-format on
 
@@ -151,6 +155,5 @@ TEST_P(EmitterTests, EmitterTestsCore) {
 #endif
 }
 
-// clang-format off
-INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(0, 1, 2));
-// clang-format on
+// INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(0, 1, 2, 3));
+INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(3));
