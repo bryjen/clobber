@@ -14,16 +14,28 @@
 #pragma warning(disable : 4267 4244 4996)
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/BuiltinOps.h>
+#include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Verifier.h>
+
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/LLVMIR/LLVMDialect.h>
+#include <mlir/Dialect/SPIRV/IR/SPIRVDialect.h>
+#include <mlir/Dialect/SPIRV/IR/SPIRVOps.h>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/Dialect/Tosa/IR/TosaOps.h>
 #pragma warning(pop)
+
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 #include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
+#include <clobber/semantics.hpp>
 
-#include "clobber/mlir-backend/emit_error.hpp"
-#include "clobber/mlir-backend/lowering.hpp"
-#include "clobber/mlir-backend/tosa_emitter.hpp"
+#include "clobber/mlir-backend/emitter.hpp"
 
 // clang-format off
 const std::array<std::string, 3> test_source_contents = {
@@ -36,66 +48,109 @@ R"((+ 1 2)
 };
 // clang-format on
 
-class TokenizerTests : public ::testing::TestWithParam<int> {};
-
-TEST(TokenizerTests, sanity_check_1) {
-    GTEST_SKIP() << "Disabled";
-    test_tosa_mlir_1();
-    EXPECT_TRUE(true);
-}
-
-TEST(TokenizerTests, sanity_check_2) {
-    GTEST_SKIP() << "Disabled";
-    test_tosa_mlir_2();
-    EXPECT_TRUE(true);
-}
-
-TEST_P(TokenizerTests, tosa_emitter_tests) {
-    // SetConsoleOutputCP(CP_UTF8);
-
-    int idx;
-    std::string file_path;
-    std::string source_text;
-    std::vector<ClobberToken> tokens;
-    std::string str_buf;
-
-    CompilationUnit cu;
-    std::vector<ParserError> parse_errors;
-
+TEST(SanityChecks, llvm_sanity_check_1) {
     mlir::MLIRContext context;
-    mlir::ModuleOp module_op;
-    std::vector<EmitError> emit_errors;
+    context.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect>();
 
-    idx = GetParam();
+    mlir::OpBuilder builder(&context);
+    mlir::Location loc = builder.getUnknownLoc();
 
-    str_buf     = std::format("[{}]", idx);
-    source_text = test_source_contents[idx];
-    tokens      = clobber::tokenize(source_text);
+    // Create a new MLIR module
+    auto module = mlir::ModuleOp::create(loc);
 
-    clobber::parse(source_text, tokens, cu);
+    // Create function type: () -> i32
+    auto i32    = builder.getI32Type();
+    auto fnType = builder.getFunctionType({}, i32);
 
-    TosaEmitter::init_context(context);
-    module_op = TosaEmitter::lower_ast_to_tosa(context, cu, emit_errors);
+    // Create @main function
+    auto func          = builder.create<mlir::func::FuncOp>(loc, "main", fnType);
+    mlir::Block *entry = func.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
 
-    std::cout << std::format("Source:\n```\n{}\n```", source_text) << "\n";
-    std::cout << std::format("Parse Errors: {}", parse_errors.size()) << "\n";
-    std::cout << std::endl;
+    // Emit constants
+    auto c1 = builder.create<mlir::arith::ConstantOp>(loc, builder.getI32IntegerAttr(42));
+    auto c2 = builder.create<mlir::arith::ConstantOp>(loc, builder.getI32IntegerAttr(58));
 
-    if (mlir::failed(mlir::verify(module_op))) {
-        llvm::errs() << "TOSA MLIR verification failed\n";
-        module_op.dump();
+    // Add them
+    // auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2);
+    auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2).getResult();
+    builder.create<mlir::func::ReturnOp>(loc, sum);
+
+    // Add function to module
+    module.push_back(func);
+
+    if (mlir::failed(mlir::verify(module))) {
+        llvm::errs() << "MLIR verification failed\n";
+        module.dump();
     } else {
-        llvm::outs() << "TOSA MLIR module:\n";
-        module_op.dump();
+        llvm::outs() << "MLIR module:\n";
+        module.dump();
     }
 
     EXPECT_TRUE(true);
 }
 
+class EmitterTests : public ::testing::TestWithParam<size_t> {};
+
+TEST_P(EmitterTests, EmitterTestsCore) {
+#ifdef CRT_ENABLED
+    INIT_CRT_DEBUG();
+    ::testing::GTEST_FLAG(output) = "none";
+#endif
+    spdlog::set_pattern("%v");
+
+    size_t test_case_idx;
+    std::string file_path;
+    std::string source_text;
+    std::vector<ClobberToken> tokens;
+
+    std::unique_ptr<CompilationUnit> compilation_unit;
+    std::unique_ptr<SemanticModel> semantic_model;
+    std::vector<std::string> inferred_type_strs;
+
+    test_case_idx = GetParam();
+    file_path     = std::format("./test_files/{}.clj", test_case_idx);
+    source_text   = test_source_contents[test_case_idx];
+
+    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+
+    // mlir::OwningOpRef<mlir::ModuleOp> _module;
+    mlir::ModuleOp _module;
+    mlir::MLIRContext context;
+    context.getOrLoadDialect<mlir::tosa::TosaDialect>();
+    context.getOrLoadDialect<mlir::func::FuncDialect>();
+    context.getOrLoadDialect<mlir::arith::ArithDialect>();
+    context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
+
+    tokens           = clobber::tokenize(source_text);
+    compilation_unit = clobber::parse(source_text, tokens);
+    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit));
+
+    _module = clobber::emit(context, *semantic_model);
+
+    spdlog::info(std::format("\nMLIR:\n```"));
+    _module->dump();
+    spdlog::info(std::format("```"));
+
+    /*
+    try {
+        if (mlir::failed(mlir::verify(module))) {
+            llvm::errs() << "MLIR module verification FAILED\n";
+        } else {
+            llvm::outs() << "MLIR module OK:\n";
+        }
+    } catch (...) {
+        llvm::errs() << "MLIR module verification FAILED (WITH ERRORS)\n";
+    }
+    */
+
+#ifdef CRT_ENABLED
+    if (_CrtDumpMemoryLeaks()) {
+        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+    }
+#endif
+}
+
 // clang-format off
-INSTANTIATE_TEST_SUITE_P(emitter_tests, TokenizerTests, 
-    ::testing::Values(
-        0,
-        1
-    ));
+INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(0, 1, 2));
 // clang-format on

@@ -24,11 +24,14 @@ target_include_directories(clobber_mlir_backend_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
+find_package(spdlog CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(clobber_mlir_backend_tests PRIVATE 
     GTest::gtest GTest::gtest_main     
-    clobber
-    clobber_mlir_backend
+    spdlog::spdlog_header_only
+    magic_enum::magic_enum
+    clobber clobber_mlir_backend clobber_common
 )
 
 if (MSVC)

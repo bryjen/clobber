@@ -1,9 +1,11 @@
 project(clobber_mlir_backend CXX)
 
 add_library(clobber_mlir_backend
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/emit_error.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/tosa_emitter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/lowering.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/emitter.cpp
+)
+
+target_precompile_headers(clobber_common PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/clobber/mlir-backend/pch.hpp"
 )
 
 
@@ -26,7 +28,8 @@ message(STATUS "[LLVM_MLIR_LIB_DIR]:     ${LLVM_MLIR_LIB_DIR}")
 file(GLOB MLIR_LIBS "${LLVM_MLIR_LIB_DIR}/*.lib")
 # message(STATUS ${MLIR_LIBS})
 
-target_link_libraries(clobber_mlir_backend PRIVATE 
+target_link_libraries(clobber_mlir_backend 
+  PUBLIC
     # llvm/mlir 
     ${MLIR_LIBS}
     ntdll.lib
@@ -45,13 +48,8 @@ target_include_directories(clobber_mlir_backend
     $ENV{LLVM_BUILD_DIR}/include  # llvm/mlir generated headers
     $ENV{LLVM_BUILD_DIR}/tools/mlir/include
 
-  PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+  # PRIVATE  ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
-
-if (MSVC)
-  target_compile_options(clobber_mlir_backend PRIVATE /MP)
-endif()
 
 # configure tests
 enable_testing()
