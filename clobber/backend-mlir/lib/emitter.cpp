@@ -1,3 +1,20 @@
+#pragma warning(push)
+#pragma warning(disable : 4267 4244 4996)
+#include <mlir/IR/Builders.h>
+#include <mlir/IR/BuiltinOps.h>
+#include <mlir/IR/BuiltinTypes.h>
+#include <mlir/IR/MLIRContext.h>
+
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/LLVMIR/LLVMDialect.h>
+#include <mlir/Dialect/SPIRV/IR/SPIRVDialect.h>
+#include <mlir/Dialect/SPIRV/IR/SPIRVOps.h>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/Dialect/Tosa/IR/TosaOps.h>
+#pragma warning(pop)
 
 #include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
@@ -7,15 +24,94 @@
 
 #include "clobber/mlir-backend/emitter.hpp"
 
+template <typename T> using Option = std::optional<T>;
+
+/* @brief Used to store the operation for variables. Accounts for scopes via block ptr hashes. */
+class VariableValueOpHasher {
+public:
+    void
+    insert(mlir::Block *block, const std::string &var, mlir::Operation *op) {
+        if (!block || !op) {
+            return;
+        }
+
+        if (block_ptr_hash_map.find(block) == block_ptr_hash_map.end()) {
+            block_ptr_hash_map[block] = current_block_ptr_hash++;
+        }
+
+        var_value_map[get_hash(block, var)] = op;
+    }
+
+    mlir::Operation *
+    try_get_op(mlir::Block *block, const std::string &var) {
+        if (!block) {
+            return nullptr;
+        }
+
+        if (block_ptr_hash_map.find(block) == block_ptr_hash_map.end()) {
+            block_ptr_hash_map[block] = current_block_ptr_hash++;
+        }
+
+        auto it = var_value_map.find(get_hash(block, var));
+        return it != var_value_map.end() ? it->second : nullptr;
+    }
+
+private:
+    size_t
+    get_hash(mlir::Block *block, const std::string &var) { // assumed 'block' is not a nullptr
+        size_t string_hash = std::hash<std::string>{}(var);
+        size_t block_hash  = block_ptr_hash_map[block];
+        return string_hash ^ (block_hash + 0x9e3779b9 + (string_hash << 6) + (string_hash >> 2));
+    }
+
+    size_t current_block_ptr_hash;
+    std::unordered_map<mlir::Block *, size_t> block_ptr_hash_map;
+    std::unordered_map<size_t, mlir::Operation *> var_value_map;
+};
+
+/* @brief */
 struct EmitterContext {
     const SemanticModel &semantic_model;
     mlir::OpBuilder &builder;
     std::vector<EmitError> errors;
 
-    std::vector<mlir::Block *> scopes;
+    std::vector<std::tuple<mlir::Block *, mlir::Block::iterator>> scopes;
+    VariableValueOpHasher var_val_op_hasher;
 };
 
-template <typename T> using Option = std::optional<T>;
+namespace utils {
+    Option<mlir::Type>
+    to_mlir_type(mlir::OpBuilder &builder, const Type &type) {
+        switch (type.kind) {
+        case Type::Char: {
+            return std::make_optional(builder.getI8Type());
+        }
+        case Type::Double: {
+            return std::make_optional(builder.getF64Type());
+        }
+        case Type::Float: {
+            return std::make_optional(builder.getF32Type());
+        }
+        case Type::Int: {
+            return std::make_optional(builder.getI32Type());
+        }
+            /* unsupported as of right now
+        case Type::Bool: {
+            break;
+        }
+        case Type::Func: {
+            break;
+        }
+        case Type::String: {
+            break;
+        }
+            */
+        default: {
+            return std::nullopt;
+        }
+        }
+    }
+}; // namespace utils
 
 // using raw pointer types because ownership is handled by mlir
 using EmitDelegate = mlir::Operation *(*)(EmitterContext &, const ExprBase &);
@@ -72,8 +168,8 @@ emit_num_literal_expr(EmitterContext &emitter_context, const ExprBase &expr_base
     }
 
     // sets insertion location to the start of the scope temporarily
-    mlir::OpBuilder::InsertionGuard _(builder);
-    builder.setInsertionPointToStart(emitter_context.scopes.back());
+    // mlir::OpBuilder::InsertionGuard _(builder);
+    // builder.setInsertionPointToStart(emitter_context.scopes.back());
 
     mlir::arith::ConstantOp const_op;
     std::string value_str = source_text.substr(nle.token.start, nle.token.length);
@@ -139,12 +235,81 @@ emit_char_literal_expr(EmitterContext &emitter_context, const ExprBase &expr_bas
 
 mlir::Operation *
 emit_identifier_expr(EmitterContext &emitter_context, const ExprBase &expr_base) {
-    throw 0;
+    mlir::OpBuilder &builder         = emitter_context.builder;
+    const IdentifierExpr &ident_expr = static_cast<const IdentifierExpr &>(expr_base);
+    mlir::Block *current_block       = builder.getInsertionBlock();
+
+    mlir::Operation *value_op = emitter_context.var_val_op_hasher.try_get_op(current_block, ident_expr.name);
+    if (!value_op) {
+        // TODO: Emit error here
+        throw 0;
+    }
+
+    return value_op;
 }
 
 mlir::Operation *
 emit_let_expr(EmitterContext &emitter_context, const ExprBase &expr_base) {
-    throw 0;
+    mlir::OpBuilder &builder = emitter_context.builder;
+    const LetExpr &let_expr  = static_cast<const LetExpr &>(expr_base);
+
+    const TypeMap &type_map = std::cref(*emitter_context.semantic_model.type_map);
+    auto type_it            = type_map.find(let_expr.id);
+    if (type_it == type_map.end()) {
+        // TODO: throw internal error here
+        return nullptr;
+    }
+    auto merge_ret_type_opt = utils::to_mlir_type(builder, *type_it->second);
+    if (!merge_ret_type_opt) {
+        // TODO: throw internal error here
+        return nullptr;
+    }
+
+    // mlir::OpBuilder::InsertionGuard _(builder);
+    mlir::Block *block   = builder.getInsertionBlock();
+    mlir::Region *region = block->getParent();
+
+    mlir::Block *sub_block   = builder.createBlock(region);
+    mlir::Block *merge_block = builder.createBlock(region);
+    merge_block->addArgument(merge_ret_type_opt.value(), builder.getUnknownLoc());
+
+    {
+        mlir::OpBuilder::InsertionGuard _(builder);
+        builder.setInsertionPointToEnd(block);
+        builder.create<mlir::cf::BranchOp>(builder.getUnknownLoc(), sub_block);
+
+        emitter_context.scopes.push_back({sub_block, builder.getInsertionPoint()});
+    }
+
+    builder.setInsertionPointToStart(sub_block);
+    for (size_t i = 0; i < let_expr.binding_vector_expr->num_bindings; i++) {
+        const std::string &name = let_expr.binding_vector_expr->identifiers[i]->name;
+        const auto &expr_view   = std::cref(*let_expr.binding_vector_expr->exprs[i]);
+
+        mlir::Operation *op = emit_expr_base(emitter_context, expr_view);
+        if (!op) {
+            return nullptr; // propagates error from function call
+        }
+
+        emitter_context.var_val_op_hasher.insert(sub_block, name, op);
+    }
+
+    mlir::Operation *last_operation = nullptr;
+    for (const auto &body_expr_view : ptr_utils::get_expr_views(let_expr.body_exprs)) {
+        last_operation = emit_expr_base(emitter_context, body_expr_view);
+    }
+
+    {
+        mlir::OpBuilder::InsertionGuard _(builder);
+        builder.setInsertionPointToEnd(sub_block);
+        builder.create<mlir::cf::BranchOp>(builder.getUnknownLoc(), merge_block, mlir::ValueRange{last_operation->getResult(0)});
+
+        emitter_context.scopes.pop_back();
+    }
+
+    // builder.setInsertionPointToStart(merge_block);
+    builder.setInsertionPointToEnd(merge_block);
+    return last_operation;
 }
 
 mlir::Operation *
@@ -161,40 +326,6 @@ mlir::Operation *
 emit_do_expr(EmitterContext &emitter_context, const ExprBase &expr_base) {
     throw 0;
 }
-
-namespace utils {
-    Option<mlir::Type>
-    to_mlir_type(mlir::OpBuilder &builder, const Type &type) {
-        switch (type.kind) {
-        case Type::Char: {
-            return std::make_optional(builder.getI8Type());
-        }
-        case Type::Double: {
-            return std::make_optional(builder.getF64Type());
-        }
-        case Type::Float: {
-            return std::make_optional(builder.getF32Type());
-        }
-        case Type::Int: {
-            return std::make_optional(builder.getI32Type());
-        }
-            /* unsupported as of right now
-        case Type::Bool: {
-            break;
-        }
-        case Type::Func: {
-            break;
-        }
-        case Type::String: {
-            break;
-        }
-            */
-        default: {
-            return std::nullopt;
-        }
-        }
-    }
-}; // namespace utils
 
 namespace fns {
     mlir::Operation *
@@ -334,7 +465,8 @@ clobber::emit(mlir::MLIRContext &context, const SemanticModel &semantic_model) {
         .semantic_model = semantic_model,
         .builder = builder,
         .errors = {},
-        .scopes = { &entry_point }
+        .scopes = { { &entry_point, builder.getInsertionPoint() } },
+        .var_val_op_hasher = {}
     };
     // clang-format on
 

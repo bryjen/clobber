@@ -18,6 +18,8 @@
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Verifier.h>
 
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/LLVMIR/LLVMDialect.h>
@@ -49,6 +51,12 @@ R"((+ 1 2)
 R"((+ 1.0f 2.0f))",
 
 R"((+ 1 2 3 4))",
+
+R"(
+(let [x 10
+      y 5]
+  (+ x y))
+)",
 };
 // clang-format on
 
@@ -79,6 +87,61 @@ TEST(SanityChecks, llvm_sanity_check_1) {
     // auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2);
     auto sum = builder.create<mlir::arith::AddIOp>(loc, c1, c2).getResult();
     builder.create<mlir::func::ReturnOp>(loc, sum);
+
+    // Add function to module
+    module.push_back(func);
+
+    if (mlir::failed(mlir::verify(module))) {
+        llvm::errs() << "MLIR verification failed\n";
+        module.dump();
+    } else {
+        llvm::outs() << "MLIR module:\n";
+        module.dump();
+    }
+
+    EXPECT_TRUE(true);
+}
+
+TEST(SanityChecks, llvm_sanity_check_2) {
+    mlir::MLIRContext context;
+    context.getOrLoadDialect<mlir::tosa::TosaDialect>();
+    context.getOrLoadDialect<mlir::func::FuncDialect>();
+    context.getOrLoadDialect<mlir::arith::ArithDialect>();
+    context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
+    context.getOrLoadDialect<mlir::cf::ControlFlowDialect>();
+
+    mlir::OpBuilder builder(&context);
+    auto i32 = builder.getI32Type();
+    auto loc = builder.getUnknownLoc();
+
+    // Create a new MLIR module
+    auto module = mlir::ModuleOp::create(loc);
+
+    auto funcType      = builder.getFunctionType({}, i32);
+    auto func          = builder.create<mlir::func::FuncOp>(loc, "main", funcType);
+    mlir::Region &body = func.getBody();
+
+    // Create all blocks up front
+    mlir::Block *entry = builder.createBlock(&body);
+    mlir::Block *sub   = builder.createBlock(&body);
+    mlir::Block *merge = builder.createBlock(&body);
+    merge->addArgument(i32, loc);
+
+    // Emit into entry block
+    builder.setInsertionPointToStart(entry);
+    auto a = builder.create<mlir::arith::ConstantOp>(loc, builder.getI32IntegerAttr(10));
+    builder.create<mlir::cf::BranchOp>(loc, sub); // ✅ now definitely in entry block
+
+    // Emit into sub block
+    builder.setInsertionPointToStart(sub);
+    auto x = builder.create<mlir::arith::AddIOp>(loc, a, a);
+    builder.create<mlir::cf::BranchOp>(loc, merge, mlir::ValueRange{x.getResult()});
+
+    // Emit into merge block
+    builder.setInsertionPointToStart(merge);
+    auto z = merge->getArgument(0);
+    auto y = builder.create<mlir::arith::AddIOp>(loc, z, a);
+    builder.create<mlir::func::ReturnOp>(loc, y.getResult());
 
     // Add function to module
     module.push_back(func);
@@ -125,6 +188,7 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     context.getOrLoadDialect<mlir::func::FuncDialect>();
     context.getOrLoadDialect<mlir::arith::ArithDialect>();
     context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
+    context.getOrLoadDialect<mlir::cf::ControlFlowDialect>();
 
     tokens           = clobber::tokenize(source_text);
     compilation_unit = clobber::parse(source_text, tokens);
@@ -136,9 +200,8 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     _module->dump();
     spdlog::info(std::format("```"));
 
-    /*
     try {
-        if (mlir::failed(mlir::verify(module))) {
+        if (mlir::failed(mlir::verify(_module))) {
             llvm::errs() << "MLIR module verification FAILED\n";
         } else {
             llvm::outs() << "MLIR module OK:\n";
@@ -146,7 +209,6 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     } catch (...) {
         llvm::errs() << "MLIR module verification FAILED (WITH ERRORS)\n";
     }
-    */
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
@@ -156,4 +218,5 @@ TEST_P(EmitterTests, EmitterTestsCore) {
 }
 
 // INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(0, 1, 2, 3));
-INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(3));
+// INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(3));
+INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(5));
