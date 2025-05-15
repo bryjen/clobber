@@ -2,6 +2,8 @@
 
 #include "pch.hpp"
 
-struct Type; // clobber/semantics.hpp
+namespace clobber {
+    struct Type; // clobber/semantics.hpp
+};
 
-std::string type_tostring(const Type &);
+std::string type_tostring(const clobber::Type &);

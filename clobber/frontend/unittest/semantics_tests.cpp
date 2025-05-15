@@ -48,10 +48,10 @@ TEST_P(SemanticsTests, SemanticsTests) {
     size_t test_case_idx;
     std::string file_path;
     std::string source_text;
-    std::vector<ClobberToken> tokens;
+    std::vector<clobber::ClobberToken> tokens;
 
-    std::unique_ptr<CompilationUnit> compilation_unit;
-    std::unique_ptr<SemanticModel> semantic_model;
+    std::unique_ptr<clobber::CompilationUnit> compilation_unit;
+    std::unique_ptr<clobber::SemanticModel> semantic_model;
 
     std::vector<std::string> inferred_type_strs;
 

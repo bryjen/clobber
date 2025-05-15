@@ -12,3 +12,6 @@ AlignConsecutiveAssignments:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
+
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4

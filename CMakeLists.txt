@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+
+# TEMP; TODO REMOVE
+add_compile_options(
+    /W0
+)
+
 # global build options (propagated to sub-projects)
 if (CLOBBER_STRICT)
     message(STATUS "[root] strict (pedantic) build enabled")

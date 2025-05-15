@@ -2,39 +2,41 @@
 
 #include <clobber/common/utils.hpp>
 
+#include <clobber/ast.hpp>
+#include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
 #include "type_tostring.hpp"
 
 std::string
-type_tostring(const Type &type) {
+type_tostring(const clobber::Type &type) {
     std::string repr;
     switch (type.kind) {
-    case Type::Int: {
+    case clobber::Type::Int: {
         repr = "int";
         break;
     }
-    case Type::Float: {
+    case clobber::Type::Float: {
         repr = "float";
         break;
     }
-    case Type::Double: {
+    case clobber::Type::Double: {
         repr = "double";
         break;
     }
-    case Type::String: {
+    case clobber::Type::String: {
         repr = "string";
         break;
     }
-    case Type::Char: {
+    case clobber::Type::Char: {
         repr = "string";
         break;
     }
-    case Type::Bool: {
+    case clobber::Type::Bool: {
         repr = "bool";
         break;
     }
-    case Type::Func: {
+    case clobber::Type::Func: {
         std::vector<std::string> type_strs;
         /*
         for (const auto &type_param : type.params) {

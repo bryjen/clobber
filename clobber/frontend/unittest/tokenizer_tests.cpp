@@ -11,7 +11,7 @@ using namespace SyntaxFactory;
 using namespace TokenizerTestsHelpers;
 
 // clang-format off
-std::vector<std::vector<ClobberToken>> expected_cases = {
+std::vector<std::vector<clobber::ClobberToken>> expected_cases = {
     { 
         OpenParen(),
         Plus(),
@@ -172,8 +172,8 @@ TEST_P(TokenizerTests, IsEven) {
     size_t test_case_idx;
     std::string file_path;
     std::string source_text;
-    std::vector<ClobberToken> actual_tokens;
-    std::vector<ClobberToken> expected_tokens;
+    std::vector<clobber::ClobberToken> actual_tokens;
+    std::vector<clobber::ClobberToken> expected_tokens;
 
     test_case_idx   = GetParam();
     file_path       = std::format("./test_files/{}.clj", test_case_idx);

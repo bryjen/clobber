@@ -79,11 +79,11 @@ base_format(const std::string &file, const std::string &source_text, size_t span
     return out.str();
 }
 
-ParserError::ParserError() {}
+clobber::ParserError::ParserError() {}
 
-ParserError::~ParserError() {}
+clobber::ParserError::~ParserError() {}
 
-ParserError::ParserError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
+clobber::ParserError::ParserError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;
@@ -91,17 +91,18 @@ ParserError::ParserError(size_t span_start, size_t span_len, const std::string &
 }
 
 std::string
-ParserError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
+clobber::ParserError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
     return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
 }
 
 // TODO: remake this file and shi
 
-SemanticWarning::SemanticWarning() {}
+clobber::SemanticWarning::SemanticWarning() {}
 
-SemanticWarning::~SemanticWarning() {}
+clobber::SemanticWarning::~SemanticWarning() {}
 
-SemanticWarning::SemanticWarning(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
+clobber::SemanticWarning::SemanticWarning(size_t span_start, size_t span_len, const std::string &general_err_msg,
+                                          const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;
@@ -109,15 +110,15 @@ SemanticWarning::SemanticWarning(size_t span_start, size_t span_len, const std::
 }
 
 std::string
-SemanticWarning::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
+clobber::SemanticWarning::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
     return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
 }
 
-SemanticError::SemanticError() {}
+clobber::SemanticError::SemanticError() {}
 
-SemanticError::~SemanticError() {}
+clobber::SemanticError::~SemanticError() {}
 
-SemanticError::SemanticError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
+clobber::SemanticError::SemanticError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg) {
     this->span_start      = span_start;
     this->span_len        = span_len;
     this->general_err_msg = general_err_msg;
@@ -125,6 +126,6 @@ SemanticError::SemanticError(size_t span_start, size_t span_len, const std::stri
 }
 
 std::string
-SemanticError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
+clobber::SemanticError::GetFormattedErrorMsg(const std::string &file, const std::string &source_text) {
     return base_format(file, source_text, this->span_start, this->span_len, this->general_err_msg, this->err_msg);
 }

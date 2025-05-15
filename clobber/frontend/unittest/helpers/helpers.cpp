@@ -1,12 +1,12 @@
-
 #include "pch.hpp"
 
 #include "expr_tostring.hpp"
 #include "helpers.hpp"
 #include "type_tostring.hpp"
 
-#include <clobber/ast.hpp>
 #include <clobber/common/utils.hpp>
+
+#include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
@@ -31,8 +31,9 @@ to_string_any(const std::any &a) {
 }
 
 std::string
-clobber_token_tostring(const ClobberToken &token, bool use_alignment) {
-    std::string value_str      = to_string_any(token.value);
+clobber_token_tostring(const clobber::ClobberToken &token, bool use_alignment) {
+    // std::string value_str      = to_string_any(token.value);
+    std::string value_str      = "";
     std::string token_type_str = std::string(magic_enum::enum_name(token.token_type));
     if (use_alignment) { // cannot reduce to conditional due to `std::format` constexpr constraint
         return std::format("(tt: {:>20.20} (val: `{}`)", token_type_str, value_str);
@@ -42,10 +43,10 @@ clobber_token_tostring(const ClobberToken &token, bool use_alignment) {
 }
 
 std::string
-reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<ClobberToken> &tokens) {
+reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<clobber::ClobberToken> &tokens) {
     std::ostringstream builder;
     for (size_t i = 0; i < tokens.size(); i++) {
-        ClobberToken token = tokens[i];
+        clobber::ClobberToken token = tokens[i];
         builder << token.ExtractFullText(source_text);
     }
 
@@ -53,13 +54,13 @@ reconstruct_source_text_from_tokens(const std::string &source_text, const std::v
 }
 
 void
-print_tokens(const std::string &source_text, const std::vector<ClobberToken> &expected_tokens,
-             const std::vector<ClobberToken> &actual_tokens) {
+print_tokens(const std::string &source_text, const std::vector<clobber::ClobberToken> &expected_tokens,
+             const std::vector<clobber::ClobberToken> &actual_tokens) {
 #ifndef CRT_ENABLED
     spdlog::info(std::format("[Expected; n={}]", expected_tokens.size()));
     spdlog::info("---------------------------------------------------------");
     for (size_t i = 0; i < expected_tokens.size(); i++) {
-        ClobberToken token = expected_tokens[i];
+        clobber::ClobberToken token = expected_tokens[i];
         spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(token, true)));
     }
     spdlog::info(std::format("Source text:\n```\n{}\n```\n", source_text));
@@ -68,7 +69,7 @@ print_tokens(const std::string &source_text, const std::vector<ClobberToken> &ex
     spdlog::info(std::format("[Actual; n={}]", actual_tokens.size()));
     spdlog::info("---------------------------------------------------------");
     for (size_t i = 0; i < actual_tokens.size(); i++) {
-        ClobberToken token = actual_tokens[i];
+        clobber::ClobberToken token = actual_tokens[i];
         spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(token, true)));
     }
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
@@ -104,7 +105,8 @@ Logging::dispose_logger(const std::string &logger_name) {
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<ClobberToken> &expected, const std::vector<ClobberToken> &actual) {
+TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<clobber::ClobberToken> &expected,
+                                            const std::vector<clobber::ClobberToken> &actual) {
     size_t actual_num_tokens   = actual.size();
     size_t expected_num_tokens = expected.size();
     if (actual_num_tokens == expected_num_tokens) {
@@ -115,18 +117,19 @@ TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<ClobberToken> &exp
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::are_tokens_equal(const std::vector<ClobberToken> &expected_tokens, const std::vector<ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::are_tokens_equal(const std::vector<clobber::ClobberToken> &expected_tokens,
+                                        const std::vector<clobber::ClobberToken> &actual_tokens) {
     // we're assumed to have equal number of tokens, asserted by "assert_equal_number_tokens"
     size_t num_tokens;
 
     num_tokens = expected_tokens.size();
     for (size_t i = 0; i < num_tokens; i++) {
-        ClobberToken expected;
-        ClobberToken actual;
+        clobber::ClobberToken expected;
+        clobber::ClobberToken actual;
 
         expected = expected_tokens[i];
         actual   = actual_tokens[i];
-        if (!ClobberToken::AreEquivalent(expected, actual)) {
+        if (!clobber::ClobberToken::AreEquivalent(expected, actual)) {
             return ::testing::AssertionFailure() << std::format("Tokens at {} are not equal; expected: {}; actual: {}", i,
                                                                 clobber_token_tostring(expected), clobber_token_tostring(actual));
         }
@@ -136,7 +139,7 @@ TokenizerTestsHelpers::are_tokens_equal(const std::vector<ClobberToken> &expecte
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const std::vector<ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const std::vector<clobber::ClobberToken> &actual_tokens) {
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
     if (source_text == reconstructed) {
         return ::testing::AssertionSuccess();
@@ -146,17 +149,18 @@ TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const s
 }
 
 ::testing::AssertionResult
-are_compilation_units_equivalent(const CompilationUnit &, const CompilationUnit &) {
+are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber::CompilationUnit &) {
     throw 0;
 }
 
 std::vector<std::string>
-ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<ParserError> &parse_errors) {
+ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &source_text,
+                                   const std::vector<clobber::ParserError> &parse_errors) {
     std::vector<std::string> errs;
 
     size_t i;
     for (i = 0; i < parse_errors.size(); i++) {
-        ParserError parse_err = parse_errors[i];
+        clobber::ParserError parse_err = parse_errors[i];
         errs.push_back(parse_err.GetFormattedErrorMsg(file, source_text));
     }
 
@@ -171,60 +175,60 @@ normalize(const std::string &str) {
     return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
 }
 
-std::vector<std::string> get_expr_inferred_type_strs_core(const SemanticModel &, const ExprBase &);
+std::vector<std::string> get_expr_inferred_type_strs_core(const clobber::SemanticModel &, const clobber::Expr &);
 
 std::vector<std::string>
-num_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+num_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const NumLiteralExpr &nle_expr = static_cast<const NumLiteralExpr &>(expr);
+    const clobber::NumLiteralExpr &nle_expr = static_cast<const clobber::NumLiteralExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(nle_expr.id);
+    auto it              = semantic_model.type_map->find(nle_expr.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", nle_expr.id, type_str, normalize(expr2str::num_lit_expr(SRC_TXT, nle_expr))));
+    strs.push_back(std::format("{}: {} `{}`", nle_expr.hash(), type_str, normalize(expr2str::num_lit_expr(SRC_TXT, nle_expr))));
     return strs;
 }
 
 std::vector<std::string>
-str_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+str_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const StringLiteralExpr &sle = static_cast<const StringLiteralExpr &>(expr);
+    const clobber::StringLiteralExpr &sle = static_cast<const clobber::StringLiteralExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(sle.id);
+    auto it              = semantic_model.type_map->find(sle.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", sle.id, type_str, normalize(expr2str::str_lit_expr(SRC_TXT, sle))));
+    strs.push_back(std::format("{}: {} `{}`", sle.hash(), type_str, normalize(expr2str::str_lit_expr(SRC_TXT, sle))));
     return strs;
 }
 
 std::vector<std::string>
-char_lit_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+char_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const CharLiteralExpr &cle = static_cast<const CharLiteralExpr &>(expr);
+    const clobber::CharLiteralExpr &cle = static_cast<const clobber::CharLiteralExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(cle.id);
+    auto it              = semantic_model.type_map->find(cle.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", cle.id, type_str, normalize(expr2str::char_lit_expr(SRC_TXT, cle))));
+    strs.push_back(std::format("{}: {} `{}`", cle.hash(), type_str, normalize(expr2str::char_lit_expr(SRC_TXT, cle))));
     return strs;
 }
 
 std::vector<std::string>
-ident_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+ident_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const IdentifierExpr &iden_expr = static_cast<const IdentifierExpr &>(expr);
+    const clobber::IdentifierExpr &iden_expr = static_cast<const clobber::IdentifierExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(iden_expr.id);
+    auto it              = semantic_model.type_map->find(iden_expr.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", iden_expr.id, type_str, normalize(expr2str::iden_expr(SRC_TXT, iden_expr))));
+    strs.push_back(std::format("{}: {} `{}`", iden_expr.hash(), type_str, normalize(expr2str::iden_expr(SRC_TXT, iden_expr))));
     return strs;
 }
 
 std::vector<std::string>
-let_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+let_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const LetExpr &let_expr = static_cast<const LetExpr &>(expr);
+    const clobber::LetExpr &let_expr = static_cast<const clobber::LetExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(let_expr.id);
+    auto it              = semantic_model.type_map->find(let_expr.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", let_expr.id, type_str, normalize(expr2str::let_expr(SRC_TXT, let_expr))));
+    strs.push_back(std::format("{}: {} `{}`", let_expr.hash(), type_str, normalize(expr2str::let_expr(SRC_TXT, let_expr))));
 
     auto body_expr_views = ptr_utils::get_expr_views(let_expr.body_exprs);
     for (const auto &body_expr_view : body_expr_views) {
@@ -236,28 +240,28 @@ let_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr
 }
 
 std::vector<std::string>
-fn_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
+fn_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     throw 0;
 }
 
 std::vector<std::string>
-def_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
+def_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     throw 0;
 }
 
 std::vector<std::string>
-do_expr_inferred_strs(const SemanticModel &, const ExprBase &) {
+do_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     throw 0;
 }
 
 std::vector<std::string>
-call_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &expr) {
+call_expr_inferred_strs(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
     std::vector<std::string> strs{};
-    const CallExpr &call_expr = static_cast<const CallExpr &>(expr);
+    const clobber::CallExpr &call_expr = static_cast<const clobber::CallExpr &>(expr);
 
-    auto it              = semantic_model.type_map->find(call_expr.id);
+    auto it              = semantic_model.type_map->find(call_expr.hash());
     std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-    strs.push_back(std::format("{}: {} `{}`", call_expr.id, type_str, normalize(expr2str::call_expr(SRC_TXT, call_expr))));
+    strs.push_back(std::format("{}: {} `{}`", call_expr.hash(), type_str, normalize(expr2str::call_expr(SRC_TXT, call_expr))));
 
     auto argument_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
     for (const auto &argument_expr_view : argument_expr_views) {
@@ -269,26 +273,26 @@ call_expr_inferred_strs(const SemanticModel &semantic_model, const ExprBase &exp
 }
 
 std::vector<std::string>
-get_expr_inferred_type_strs_core(const SemanticModel &semantic_model, const ExprBase &expr) {
-    using InferredTypeStrsDelegate = std::vector<std::string> (*)(const SemanticModel &, const ExprBase &);
+get_expr_inferred_type_strs_core(const clobber::SemanticModel &semantic_model, const clobber::Expr &expr) {
+    using InferredTypeStrsDelegate = std::vector<std::string> (*)(const clobber::SemanticModel &, const clobber::Expr &);
 
     // clang-format off
-    const std::unordered_map<ClobberExprType, InferredTypeStrsDelegate> delegates = {
-        {ClobberExprType::NumericLiteralExpr, num_lit_expr_inferred_strs},
-        {ClobberExprType::StringLiteralExpr, str_lit_expr_inferred_strs},
-        {ClobberExprType::CharLiteralExpr, char_lit_expr_inferred_strs},
-        {ClobberExprType::IdentifierExpr, ident_expr_inferred_strs},
-        {ClobberExprType::LetExpr, let_expr_inferred_strs},
-        {ClobberExprType::CallExpr, call_expr_inferred_strs},
+    const std::unordered_map<clobber::Expr::Type, InferredTypeStrsDelegate> delegates = {
+        {clobber::Expr::Type::NumericLiteralExpr, num_lit_expr_inferred_strs},
+        {clobber::Expr::Type::StringLiteralExpr, str_lit_expr_inferred_strs},
+        {clobber::Expr::Type::CharLiteralExpr, char_lit_expr_inferred_strs},
+        {clobber::Expr::Type::IdentifierExpr, ident_expr_inferred_strs},
+        {clobber::Expr::Type::LetExpr, let_expr_inferred_strs},
+        {clobber::Expr::Type::CallExpr, call_expr_inferred_strs},
     };
     // clang-format on
 
-    auto it = delegates.find(expr.expr_type);
+    auto it = delegates.find(expr.type);
     return it != delegates.end() ? it->second(semantic_model, expr) : std::vector<std::string>{};
 }
 
 std::vector<std::string>
-SemanticTestsHelpers::get_expr_inferred_type_strs(const SemanticModel &semantic_model) {
+SemanticTestsHelpers::get_expr_inferred_type_strs(const clobber::SemanticModel &semantic_model) {
     std::vector<std::string> strs;
     auto expr_views = ptr_utils::get_expr_views(semantic_model.compilation_unit->exprs);
     for (const auto &expr_view : expr_views) {
