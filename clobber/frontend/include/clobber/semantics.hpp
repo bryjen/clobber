@@ -4,45 +4,14 @@
 
 #include "pch.hpp"
 
-// TODO: Make all errors/warnings subclasses of `Diagnostic`
-
 namespace clobber {
     struct ExprBase;
     struct CompilationUnit;
-    struct Diagnostic {};
 
-    /* @brief */
-    struct SemanticWarning final : Diagnostic {
-    public:
-        SemanticWarning();
-        SemanticWarning(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg);
-        ~SemanticWarning();
+    struct Diagnostic;
+}; // namespace clobber
 
-        std::string GetFormattedErrorMsg(const std::string &file, const std::string &source_text);
-
-    protected:
-        size_t span_start;
-        size_t span_len;
-        std::string general_err_msg;
-        std::string err_msg;
-    };
-
-    /* @brief */
-    struct SemanticError final : Diagnostic {
-    public:
-        SemanticError();
-        SemanticError(size_t span_start, size_t span_len, const std::string &general_err_msg, const std::string &err_msg);
-        ~SemanticError();
-
-        std::string GetFormattedErrorMsg(const std::string &file, const std::string &source_text);
-
-    protected:
-        size_t span_start;
-        size_t span_len;
-        std::string general_err_msg;
-        std::string err_msg;
-    };
-
+namespace clobber {
     struct Type {
         enum Kind {
             String,
@@ -67,9 +36,9 @@ namespace clobber {
     struct SemanticModel {
         std::unique_ptr<clobber::CompilationUnit> compilation_unit;
         std::unique_ptr<TypeMap> type_map;
-        std::vector<Diagnostic> diagnostics;
     };
 
     /* @brief */
-    std::unique_ptr<SemanticModel> get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilation_unit);
+    std::unique_ptr<SemanticModel> get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilation_unit,
+                                                      std::vector<clobber::Diagnostic> &);
 }; // namespace clobber

@@ -13,9 +13,9 @@
 */
 
 #define DEFINE_TOKEN_FUNC(NAME, STR)                                                                                                       \
-    inline clobber::ClobberToken NAME() {                                                                                                  \
-        clobber::ClobberToken token{};                                                                                                     \
-        token.token_type = clobber::ClobberTokenType::NAME##Token;                                                                         \
+    inline clobber::Token NAME() {                                                                                                         \
+        clobber::Token token{};                                                                                                            \
+        token.type = clobber::Token::Type::NAME##Token;                                                                                    \
         return token;                                                                                                                      \
     }
 
@@ -43,58 +43,58 @@ namespace SyntaxFactory {
     DEFINE_TOKEN_FUNC(FnKeyword, "fn")
 
     /* @brief Constructs a string literal token, inserts the double quotes into the value provided. */
-    inline clobber::ClobberToken
+    inline clobber::Token
     StringLiteralInsertDoubleQuot(std::string value) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::StringLiteralToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::StringLiteralToken;
         // token.value      = std::format("\"{}\"", value);
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     CharLiteral(char c) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::CharLiteralToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::CharLiteralToken;
         // token.value      = std::format("'{}'", c);
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     Identifier(std::string name) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::IdentifierToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::IdentifierToken;
         // token.value      = name;
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     NumericLiteral(int value) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::NumericLiteralToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::NumericLiteralToken;
         // token.value      = std::to_string(value);
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     NumericLiteral(float value, int decimal_places = 2) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::NumericLiteralToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::NumericLiteralToken;
         // token.value      = std::format("{:.{}f}f", value, decimal_places);
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     NumericLiteral(double value, int decimal_places = 2, bool postfix_d = false) {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::NumericLiteralToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::NumericLiteralToken;
         // token.value      = postfix_d ? std::format("{:.{}f}d", value, decimal_places) : std::format("{:.{}f}", value, decimal_places);
         return token;
     }
 
-    inline clobber::ClobberToken
+    inline clobber::Token
     BadToken() {
-        clobber::ClobberToken token{};
-        token.token_type = clobber::ClobberTokenType::BadToken;
+        clobber::Token token{};
+        token.type = clobber::Token::Type::BadToken;
         // return token;
     }
 

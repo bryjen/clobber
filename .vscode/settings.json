@@ -98,6 +98,7 @@
         "bitset": "cpp",
         "coroutine": "cpp",
         "expected": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "typeindex": "cpp"
     }
 }

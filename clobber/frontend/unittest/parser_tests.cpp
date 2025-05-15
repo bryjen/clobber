@@ -4,8 +4,10 @@
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
 
-#include <clobber/ast.hpp>
+#include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
+
+#include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
 
 using namespace ParserTestsHelpers;
@@ -45,8 +47,9 @@ TEST_P(ParserTests, ParserTests) {
     size_t test_case_idx;
     std::string file_path;
     std::string source_text;
-    std::vector<clobber::ClobberToken> tokens;
+    std::vector<clobber::Token> tokens;
 
+    std::vector<clobber::Diagnostic> diagnostics;
     std::unique_ptr<clobber::CompilationUnit> cu;
 
     test_case_idx = GetParam();
@@ -56,7 +59,7 @@ TEST_P(ParserTests, ParserTests) {
     spdlog::info(std::format("source:\n```\n{}\n```", source_text));
 
     tokens = clobber::tokenize(source_text);
-    cu     = clobber::parse(source_text, tokens);
+    cu     = clobber::parse(source_text, tokens, diagnostics);
 
     /*
     if (cu->parse_errors.size() > 0) {

@@ -93,7 +93,7 @@ ExprToString::expr_base(const std::string &source_text, const clobber::Expr &exp
 }
 
 std::string
-token_tostring(const std::string &source_text, const clobber::ClobberToken &token) {
+token_tostring(const std::string &source_text, const clobber::Token &token) {
     return source_text.substr(token.full_start, token.full_length);
 }
 

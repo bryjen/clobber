@@ -46,10 +46,10 @@ namespace utils {
 } // namespace utils
 
 size_t
-clobber::ClobberToken::hash() const {
+clobber::Token::hash() const {
     std::vector<size_t> hashes;
     hashes.push_back(std::hash<std::type_index>{}(std::type_index(typeid(*this))));
-    hashes.push_back(std::hash<ClobberTokenType>{}(this->token_type));
+    hashes.push_back(std::hash<Token::Type>{}(this->type));
     hashes.push_back(std::hash<size_t>{}(this->start));
     hashes.push_back(std::hash<size_t>{}(this->length));
     hashes.push_back(std::hash<size_t>{}(this->full_start));
@@ -58,19 +58,19 @@ clobber::ClobberToken::hash() const {
 }
 
 std::string
-clobber::ClobberToken::ExtractText(const std::string &source_text) {
+clobber::Token::ExtractText(const std::string &source_text) {
     return source_text.substr(this->start, this->length);
 }
 
 std::string
-clobber::ClobberToken::ExtractFullText(const std::string &source_text) {
+clobber::Token::ExtractFullText(const std::string &source_text) {
     return source_text.substr(this->full_start, this->full_length);
 }
 
 // OBSOLETE/DEPRECATED ?
 bool
-clobber::ClobberToken::AreEquivalent(const ClobberToken &token1, const ClobberToken &token2) {
-    if (token1.token_type != token2.token_type) {
+clobber::Token::AreEquivalent(const Token &token1, const Token &token2) {
+    if (token1.type != token2.type) {
         return false;
     }
 
@@ -80,7 +80,7 @@ clobber::ClobberToken::AreEquivalent(const ClobberToken &token1, const ClobberTo
 clobber::Expr::Expr(Expr::Type type)
     : type(type) {}
 
-clobber::ParenthesizedExpr::ParenthesizedExpr(Expr::Type type, const ClobberToken &open_paren_token, const ClobberToken &close_paren_token)
+clobber::ParenthesizedExpr::ParenthesizedExpr(Expr::Type type, const Token &open_paren_token, const Token &close_paren_token)
     : Expr(type)
     , open_paren_token(open_paren_token)
     , close_paren_token(close_paren_token) {}
@@ -90,7 +90,7 @@ clobber::ParenthesizedExpr::ParenthesizedExpr(const ParenthesizedExpr &other)
     , open_paren_token(other.open_paren_token)
     , close_paren_token(other.close_paren_token) {}
 
-clobber::NumLiteralExpr::NumLiteralExpr(const ClobberToken &token)
+clobber::NumLiteralExpr::NumLiteralExpr(const Token &token)
     : Expr(Expr::Type::NumericLiteralExpr)
     , token(token) {}
 
@@ -111,7 +111,7 @@ clobber::NumLiteralExpr::clone() const {
     throw 0;
 }
 
-clobber::StringLiteralExpr::StringLiteralExpr(const std::string &value, const ClobberToken &token)
+clobber::StringLiteralExpr::StringLiteralExpr(const std::string &value, const Token &token)
     : Expr(Expr::Type::StringLiteralExpr)
     , value(value)
     , token(token) {}
@@ -135,7 +135,7 @@ clobber::StringLiteralExpr::clone() const {
     throw 0;
 }
 
-clobber::CharLiteralExpr::CharLiteralExpr(const std::string &value, const ClobberToken &token)
+clobber::CharLiteralExpr::CharLiteralExpr(const std::string &value, const Token &token)
     : Expr(Expr::Type::CharLiteralExpr)
     , value(value)
     , token(token) {}
@@ -159,7 +159,7 @@ clobber::CharLiteralExpr::clone() const {
     throw 0;
 }
 
-clobber::IdentifierExpr::IdentifierExpr(const std::string &name, const ClobberToken &token)
+clobber::IdentifierExpr::IdentifierExpr(const std::string &name, const Token &token)
     : Expr(Expr::Type::IdentifierExpr)
     , name(name)
     , token(token) {}
@@ -188,9 +188,8 @@ clobber::IdentifierExpr::clone_nowrap() {
     return std::make_unique<IdentifierExpr>(this->name, this->token);
 }
 
-clobber::BindingVectorExpr::BindingVectorExpr(const ClobberToken &open_bracket_token,
-                                              std::vector<std::unique_ptr<IdentifierExpr>> &&identifiers,
-                                              std::vector<std::unique_ptr<Expr>> &&exprs, const ClobberToken &close_bracket_token,
+clobber::BindingVectorExpr::BindingVectorExpr(const Token &open_bracket_token, std::vector<std::unique_ptr<IdentifierExpr>> &&identifiers,
+                                              std::vector<std::unique_ptr<Expr>> &&exprs, const Token &close_bracket_token,
                                               size_t num_bindings)
     : open_bracket_token(open_bracket_token)
     , identifiers(std::move(identifiers))
@@ -200,8 +199,8 @@ clobber::BindingVectorExpr::BindingVectorExpr(const ClobberToken &open_bracket_t
 
 clobber::BindingVectorExpr::BindingVectorExpr(const BindingVectorExpr &other)
     : open_bracket_token(other.open_bracket_token)
-    , identifiers(std::move(utils::deepcopy_identifiers(other.identifiers)))
-    , exprs(std::move(utils::deepcopy_exprs(other.exprs)))
+    , identifiers(utils::deepcopy_identifiers(other.identifiers))
+    , exprs(utils::deepcopy_exprs(other.exprs))
     , close_bracket_token(other.close_bracket_token)
     , num_bindings(other.num_bindings) {}
 
@@ -210,16 +209,16 @@ clobber::BindingVectorExpr::clone_nowrap() const {
     throw 0;
 }
 
-clobber::ParameterVectorExpr::ParameterVectorExpr(const ClobberToken &open_bracket_token,
+clobber::ParameterVectorExpr::ParameterVectorExpr(const Token &open_bracket_token,
                                                   std::vector<std::unique_ptr<IdentifierExpr>> &&identifiers,
-                                                  const ClobberToken &close_bracket_token)
+                                                  const Token &close_bracket_token)
     : open_bracket_token(open_bracket_token)
     , identifiers(std::move(identifiers))
     , close_bracket_token(close_bracket_token) {}
 
 clobber::ParameterVectorExpr::ParameterVectorExpr(const ParameterVectorExpr &other)
     : open_bracket_token(other.open_bracket_token)
-    , identifiers(std::move(utils::deepcopy_identifiers(other.identifiers)))
+    , identifiers(utils::deepcopy_identifiers(other.identifiers))
     , close_bracket_token(other.close_bracket_token) {}
 
 std::unique_ptr<clobber::ParameterVectorExpr>
@@ -227,9 +226,8 @@ clobber::ParameterVectorExpr::clone_nowrap() const {
     throw 0;
 }
 
-clobber::LetExpr::LetExpr(const ClobberToken &open_paren_token, const ClobberToken &let_token,
-                          std::unique_ptr<BindingVectorExpr> binding_vector_expr, std::vector<std::unique_ptr<Expr>> &&body_exprs,
-                          const ClobberToken &close_paren_token)
+clobber::LetExpr::LetExpr(const Token &open_paren_token, const Token &let_token, std::unique_ptr<BindingVectorExpr> binding_vector_expr,
+                          std::vector<std::unique_ptr<Expr>> &&body_exprs, const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::LetExpr, open_paren_token, close_paren_token)
     , let_token(let_token)
     , binding_vector_expr(std::move(binding_vector_expr))
@@ -239,7 +237,7 @@ clobber::LetExpr::LetExpr(const LetExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , let_token(other.let_token)
     , binding_vector_expr(std::move(other.binding_vector_expr->clone_nowrap()))
-    , body_exprs(std::move(utils::deepcopy_exprs(other.body_exprs))) {}
+    , body_exprs(utils::deepcopy_exprs(other.body_exprs)) {}
 
 size_t
 clobber::LetExpr::hash() const {
@@ -261,9 +259,8 @@ clobber::LetExpr::clone() const {
     throw 0;
 }
 
-clobber::FnExpr::FnExpr(const ClobberToken &open_paren_token, const ClobberToken &fn_token,
-                        std::unique_ptr<ParameterVectorExpr> parameter_vector_expr, std::vector<std::unique_ptr<Expr>> &&body_exprs,
-                        const ClobberToken &close_paren_token)
+clobber::FnExpr::FnExpr(const Token &open_paren_token, const Token &fn_token, std::unique_ptr<ParameterVectorExpr> parameter_vector_expr,
+                        std::vector<std::unique_ptr<Expr>> &&body_exprs, const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::FnExpr, open_paren_token, close_paren_token)
     , fn_token(fn_token)
     , parameter_vector_expr(std::move(parameter_vector_expr))
@@ -273,7 +270,7 @@ clobber::FnExpr::FnExpr(const FnExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , fn_token(other.fn_token)
     , parameter_vector_expr(std::move(other.parameter_vector_expr->clone_nowrap()))
-    , body_exprs(std::move(utils::deepcopy_exprs(other.body_exprs))) {}
+    , body_exprs(utils::deepcopy_exprs(other.body_exprs)) {}
 
 size_t
 clobber::FnExpr::hash() const {
@@ -295,8 +292,8 @@ clobber::FnExpr::clone() const {
     throw 0;
 }
 
-clobber::DefExpr::DefExpr(const ClobberToken &open_paren_token, const ClobberToken &def_token, std::unique_ptr<IdentifierExpr> identifier,
-                          std::unique_ptr<Expr> value, const ClobberToken &close_paren_token)
+clobber::DefExpr::DefExpr(const Token &open_paren_token, const Token &def_token, std::unique_ptr<IdentifierExpr> identifier,
+                          std::unique_ptr<Expr> value, const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::DefExpr, open_paren_token, close_paren_token)
     , def_token(def_token)
     , identifier(std::move(identifier))
@@ -305,8 +302,8 @@ clobber::DefExpr::DefExpr(const ClobberToken &open_paren_token, const ClobberTok
 clobber::DefExpr::DefExpr(const DefExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , def_token(other.def_token)
-    , identifier(std::move(other.identifier->clone_nowrap()))
-    , value(std::move(other.value->clone())) {}
+    , identifier(other.identifier->clone_nowrap())
+    , value(other.value->clone()) {}
 
 size_t
 clobber::DefExpr::hash() const {
@@ -325,8 +322,8 @@ clobber::DefExpr::clone() const {
     throw 0;
 }
 
-clobber::DoExpr::DoExpr(const ClobberToken &open_paren_token, const ClobberToken &do_token, std::vector<std::unique_ptr<Expr>> &&body_exprs,
-                        const ClobberToken &close_paren_token)
+clobber::DoExpr::DoExpr(const Token &open_paren_token, const Token &do_token, std::vector<std::unique_ptr<Expr>> &&body_exprs,
+                        const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::DoExpr, open_paren_token, close_paren_token)
     , do_token(do_token)
     , body_exprs(std::move(body_exprs)) {}
@@ -334,7 +331,7 @@ clobber::DoExpr::DoExpr(const ClobberToken &open_paren_token, const ClobberToken
 clobber::DoExpr::DoExpr(const DoExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , do_token(other.do_token)
-    , body_exprs(std::move(utils::deepcopy_exprs(other.body_exprs))) {}
+    , body_exprs(utils::deepcopy_exprs(other.body_exprs)) {}
 
 size_t
 clobber::DoExpr::hash() const {
@@ -356,9 +353,8 @@ clobber::DoExpr::clone() const {
     throw 0;
 }
 
-clobber::CallExpr::CallExpr(CallExprOperatorExprType operator_expr_type, const ClobberToken &open_paren_token,
-                            const ClobberToken &operator_token, const ClobberToken &close_paren_token,
-                            std::vector<std::unique_ptr<Expr>> &&arguments)
+clobber::CallExpr::CallExpr(CallExprOperatorExprType operator_expr_type, const Token &open_paren_token, const Token &operator_token,
+                            const Token &close_paren_token, std::vector<std::unique_ptr<Expr>> &&arguments)
     : ParenthesizedExpr(Expr::Type::CallExpr, open_paren_token, close_paren_token)
     , operator_expr_type(operator_expr_type)
     , operator_token(operator_token)
@@ -368,7 +364,7 @@ clobber::CallExpr::CallExpr(const CallExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , operator_expr_type(other.operator_expr_type)
     , operator_token(other.operator_token)
-    , arguments(std::move(utils::deepcopy_exprs(other.arguments))) {}
+    , arguments(utils::deepcopy_exprs(other.arguments)) {}
 
 size_t
 clobber::CallExpr::hash() const {
@@ -391,9 +387,9 @@ clobber::CallExpr::clone() const {
     throw 0;
 }
 
-clobber::accel::AccelExpr::AccelExpr(const ClobberToken &open_paren_token, const ClobberToken &accel_token,
+clobber::accel::AccelExpr::AccelExpr(const Token &open_paren_token, const Token &accel_token,
                                      std::unique_ptr<BindingVectorExpr> binding_vector_expr,
-                                     std::vector<std::unique_ptr<Expr>> &&body_exprs, const ClobberToken &close_paren_token)
+                                     std::vector<std::unique_ptr<Expr>> &&body_exprs, const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::AccelExpr, open_paren_token, close_paren_token)
     , accel_token(accel_token)
     , binding_vector_expr(std::move(binding_vector_expr))
@@ -403,7 +399,7 @@ clobber::accel::AccelExpr::AccelExpr(const AccelExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , accel_token(other.accel_token)
     , binding_vector_expr(std::move(other.binding_vector_expr->clone_nowrap()))
-    , body_exprs(std::move(utils::deepcopy_exprs(other.body_exprs))) {}
+    , body_exprs(utils::deepcopy_exprs(other.body_exprs)) {}
 
 size_t
 clobber::accel::AccelExpr::hash() const {
@@ -425,9 +421,8 @@ clobber::accel::AccelExpr::clone() const {
     throw 0;
 }
 
-clobber::accel::MatMulExpr::MatMulExpr(const ClobberToken &open_paren_token, const ClobberToken &mat_mul_token,
-                                       std::unique_ptr<Expr> fst_operand, std::unique_ptr<Expr> snd_operand,
-                                       const ClobberToken &close_paren_token)
+clobber::accel::MatMulExpr::MatMulExpr(const Token &open_paren_token, const Token &mat_mul_token, std::unique_ptr<Expr> fst_operand,
+                                       std::unique_ptr<Expr> snd_operand, const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::MatMulExpr, open_paren_token, close_paren_token)
     , mat_mul_token(mat_mul_token)
     , fst_operand(std::move(fst_operand))
@@ -436,8 +431,8 @@ clobber::accel::MatMulExpr::MatMulExpr(const ClobberToken &open_paren_token, con
 clobber::accel::MatMulExpr::MatMulExpr(const MatMulExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , mat_mul_token(other.mat_mul_token)
-    , fst_operand(std::move(other.fst_operand->clone()))
-    , snd_operand(std::move(other.snd_operand->clone())) {}
+    , fst_operand(other.fst_operand->clone())
+    , snd_operand(other.snd_operand->clone()) {}
 
 size_t
 clobber::accel::MatMulExpr::hash() const {
@@ -456,8 +451,8 @@ clobber::accel::MatMulExpr::clone() const {
     throw 0;
 }
 
-clobber::accel::RelUExpr::RelUExpr(const ClobberToken &open_paren_token, const ClobberToken &relu_token, std::unique_ptr<Expr> operand,
-                                   const ClobberToken &close_paren_token)
+clobber::accel::RelUExpr::RelUExpr(const Token &open_paren_token, const Token &relu_token, std::unique_ptr<Expr> operand,
+                                   const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::RelUExpr, open_paren_token, close_paren_token)
     , relu_token(relu_token)
     , operand(std::move(operand)) {}
@@ -465,7 +460,7 @@ clobber::accel::RelUExpr::RelUExpr(const ClobberToken &open_paren_token, const C
 clobber::accel::RelUExpr::RelUExpr(const RelUExpr &other)
     : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
     , relu_token(other.relu_token)
-    , operand(std::move(other.operand->clone())) {}
+    , operand(other.operand->clone()) {}
 
 size_t
 clobber::accel::RelUExpr::hash() const {
@@ -483,14 +478,13 @@ clobber::accel::RelUExpr::clone() const {
     throw 0;
 }
 
-clobber::CompilationUnit::CompilationUnit(const std::string &source_text, std::vector<std::unique_ptr<Expr>> &&exprs)
+clobber::CompilationUnit::CompilationUnit(const std::string &source_text, std::vector<std::unique_ptr<Expr>> &&exprs,
+                                          const std::vector<clobber::Diagnostic> &diagnostics)
     : source_text(source_text)
     , exprs(std::move(exprs))
-// , parse_errors(std::move(parse_errors))
-{}
+    , diagnostics(diagnostics) {}
 
 clobber::CompilationUnit::CompilationUnit(const CompilationUnit &other)
     : source_text(other.source_text)
-    , exprs(std::move(utils::deepcopy_exprs(other.exprs)))
-// , parse_errors(other.parse_errors) // parse_errors can be copied via value semantics
-{}
+    , exprs(utils::deepcopy_exprs(other.exprs))
+    , diagnostics(other.diagnostics) {}

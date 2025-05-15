@@ -48,8 +48,9 @@ TEST_P(SemanticsTests, SemanticsTests) {
     size_t test_case_idx;
     std::string file_path;
     std::string source_text;
-    std::vector<clobber::ClobberToken> tokens;
+    std::vector<clobber::Token> tokens;
 
+    std::vector<clobber::Diagnostic> diagnostics;
     std::unique_ptr<clobber::CompilationUnit> compilation_unit;
     std::unique_ptr<clobber::SemanticModel> semantic_model;
 
@@ -62,8 +63,8 @@ TEST_P(SemanticsTests, SemanticsTests) {
     spdlog::info(std::format("source:\n```\n{}\n```", source_text));
 
     tokens           = clobber::tokenize(source_text);
-    compilation_unit = clobber::parse(source_text, tokens);
-    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit));
+    compilation_unit = clobber::parse(source_text, tokens, diagnostics);
+    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit), diagnostics);
 
     inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
     spdlog::info(str_utils::join("\n", inferred_type_strs));

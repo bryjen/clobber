@@ -2,6 +2,7 @@ project(clobber_common CXX)
 
 add_library(clobber_common 
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/diagnostic.cpp
 )
 
 target_precompile_headers(clobber_common PRIVATE 

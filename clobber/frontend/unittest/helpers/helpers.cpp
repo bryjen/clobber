@@ -4,6 +4,7 @@
 #include "helpers.hpp"
 #include "type_tostring.hpp"
 
+#include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
 
 #include <clobber/ast.hpp>
@@ -31,10 +32,10 @@ to_string_any(const std::any &a) {
 }
 
 std::string
-clobber_token_tostring(const clobber::ClobberToken &token, bool use_alignment) {
+clobber_token_tostring(const clobber::Token &token, bool use_alignment) {
     // std::string value_str      = to_string_any(token.value);
     std::string value_str      = "";
-    std::string token_type_str = std::string(magic_enum::enum_name(token.token_type));
+    std::string token_type_str = std::string(magic_enum::enum_name(token.type));
     if (use_alignment) { // cannot reduce to conditional due to `std::format` constexpr constraint
         return std::format("(tt: {:>20.20} (val: `{}`)", token_type_str, value_str);
     } else {
@@ -43,10 +44,10 @@ clobber_token_tostring(const clobber::ClobberToken &token, bool use_alignment) {
 }
 
 std::string
-reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<clobber::ClobberToken> &tokens) {
+reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<clobber::Token> &tokens) {
     std::ostringstream builder;
     for (size_t i = 0; i < tokens.size(); i++) {
-        clobber::ClobberToken token = tokens[i];
+        clobber::Token token = tokens[i];
         builder << token.ExtractFullText(source_text);
     }
 
@@ -54,13 +55,13 @@ reconstruct_source_text_from_tokens(const std::string &source_text, const std::v
 }
 
 void
-print_tokens(const std::string &source_text, const std::vector<clobber::ClobberToken> &expected_tokens,
-             const std::vector<clobber::ClobberToken> &actual_tokens) {
+print_tokens(const std::string &source_text, const std::vector<clobber::Token> &expected_tokens,
+             const std::vector<clobber::Token> &actual_tokens) {
 #ifndef CRT_ENABLED
     spdlog::info(std::format("[Expected; n={}]", expected_tokens.size()));
     spdlog::info("---------------------------------------------------------");
     for (size_t i = 0; i < expected_tokens.size(); i++) {
-        clobber::ClobberToken token = expected_tokens[i];
+        clobber::Token token = expected_tokens[i];
         spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(token, true)));
     }
     spdlog::info(std::format("Source text:\n```\n{}\n```\n", source_text));
@@ -69,7 +70,7 @@ print_tokens(const std::string &source_text, const std::vector<clobber::ClobberT
     spdlog::info(std::format("[Actual; n={}]", actual_tokens.size()));
     spdlog::info("---------------------------------------------------------");
     for (size_t i = 0; i < actual_tokens.size(); i++) {
-        clobber::ClobberToken token = actual_tokens[i];
+        clobber::Token token = actual_tokens[i];
         spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(token, true)));
     }
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
@@ -105,8 +106,7 @@ Logging::dispose_logger(const std::string &logger_name) {
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<clobber::ClobberToken> &expected,
-                                            const std::vector<clobber::ClobberToken> &actual) {
+TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<clobber::Token> &expected, const std::vector<clobber::Token> &actual) {
     size_t actual_num_tokens   = actual.size();
     size_t expected_num_tokens = expected.size();
     if (actual_num_tokens == expected_num_tokens) {
@@ -117,19 +117,19 @@ TokenizerTestsHelpers::are_num_tokens_equal(const std::vector<clobber::ClobberTo
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::are_tokens_equal(const std::vector<clobber::ClobberToken> &expected_tokens,
-                                        const std::vector<clobber::ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::are_tokens_equal(const std::vector<clobber::Token> &expected_tokens,
+                                        const std::vector<clobber::Token> &actual_tokens) {
     // we're assumed to have equal number of tokens, asserted by "assert_equal_number_tokens"
     size_t num_tokens;
 
     num_tokens = expected_tokens.size();
     for (size_t i = 0; i < num_tokens; i++) {
-        clobber::ClobberToken expected;
-        clobber::ClobberToken actual;
+        clobber::Token expected;
+        clobber::Token actual;
 
         expected = expected_tokens[i];
         actual   = actual_tokens[i];
-        if (!clobber::ClobberToken::AreEquivalent(expected, actual)) {
+        if (!clobber::Token::AreEquivalent(expected, actual)) {
             return ::testing::AssertionFailure() << std::format("Tokens at {} are not equal; expected: {}; actual: {}", i,
                                                                 clobber_token_tostring(expected), clobber_token_tostring(actual));
         }
@@ -139,7 +139,7 @@ TokenizerTestsHelpers::are_tokens_equal(const std::vector<clobber::ClobberToken>
 }
 
 ::testing::AssertionResult
-TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const std::vector<clobber::ClobberToken> &actual_tokens) {
+TokenizerTestsHelpers::is_roundtrippable(const std::string &source_text, const std::vector<clobber::Token> &actual_tokens) {
     const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
     if (source_text == reconstructed) {
         return ::testing::AssertionSuccess();
@@ -155,13 +155,13 @@ are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber
 
 std::vector<std::string>
 ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &source_text,
-                                   const std::vector<clobber::ParserError> &parse_errors) {
+                                   const std::vector<clobber::Diagnostic> &diagnostics) {
     std::vector<std::string> errs;
 
     size_t i;
-    for (i = 0; i < parse_errors.size(); i++) {
-        clobber::ParserError parse_err = parse_errors[i];
-        errs.push_back(parse_err.GetFormattedErrorMsg(file, source_text));
+    for (i = 0; i < diagnostics.size(); i++) {
+        clobber::Diagnostic diagnostic = diagnostics[i];
+        errs.push_back(diagnostic.GetFormattedErrorMsg(file, source_text));
     }
 
     return errs;

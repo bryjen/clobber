@@ -113,7 +113,7 @@ struct SemanticContext {
     SymbolTable &symbol_table;
     TypePool &type_pool;
     clobber::TypeMap &type_map;
-    std::vector<clobber::Diagnostic> diagnostics;
+    std::vector<clobber::Diagnostic> &diagnostics;
 };
 
 void
@@ -170,11 +170,14 @@ init_builtin_fns(TypePool &type_pool, SymbolTable &symbol_table) {
     }
 }
 
+// TODO: remake this:
+/*
 // 'Could Not Infer Type' error; shorthand for less smelly code solely for the below function.
 #define CNIT_ERROR()                                                                                                                       \
     clobber::SemanticError error =                                                                                                         \
         diagnostics::semantics::errors::could_not_infer_type_error(num_lit_expr.token.start, num_lit_expr.token.length);                   \
     context.diagnostics.push_back(error);
+*/
 
 std::shared_ptr<clobber::Type>
 type_infer_num_literal_expr(SemanticContext &context, const clobber::Expr &expr) {
@@ -186,7 +189,7 @@ type_infer_num_literal_expr(SemanticContext &context, const clobber::Expr &expr)
         (value_string.back() == 'd' || value_string.back() == 'f') ? value_string.substr(0, value_string.size() - 1) : value_string;
 
     if (value_string.empty()) {
-        CNIT_ERROR();
+        NOT_IMPLEMENTED(); // TODO: Throw here
         return nullptr;
     }
 
@@ -198,7 +201,7 @@ type_infer_num_literal_expr(SemanticContext &context, const clobber::Expr &expr)
     } else if (str_utils::try_stod(value_string_no_postfix).has_value()) {
         type_desc.kind = clobber::Type::Double;
     } else {
-        CNIT_ERROR();
+        NOT_IMPLEMENTED(); // TODO: Throw here
         return nullptr;
     }
 
@@ -233,9 +236,12 @@ type_infer_identifier_expr(SemanticContext &context, const clobber::Expr &expr) 
     const std::optional<clobber::Symbol> symbol_opt = context.symbol_table.lookup_symbol(ident_expr.name);
 
     if (!symbol_opt) {
+        NOT_IMPLEMENTED(); // TODO: Throw here
+        /*
         clobber::SemanticError error =
             diagnostics::semantics::errors::unresolved_symbol_error(ident_expr.token.start, ident_expr.token.length);
         context.diagnostics.push_back(error);
+        */
         return nullptr;
     }
 
@@ -323,9 +329,12 @@ type_infer_call_expr(SemanticContext &context, const clobber::Expr &expr) {
     std::optional<clobber::Symbol> symbol_opt = context.symbol_table.lookup_symbol(fn_name);
 
     if (!symbol_opt) {
+        NOT_IMPLEMENTED(); // TODO: Throw here
+        /*
         clobber::SemanticError error =
             diagnostics::semantics::errors::unresolved_symbol_error(call_expr.operator_token.start, call_expr.operator_token.length);
         context.diagnostics.push_back(error);
+        */
         return nullptr;
     }
 
@@ -338,9 +347,12 @@ type_infer_call_expr(SemanticContext &context, const clobber::Expr &expr) {
     size_t actual_num_arguments   = call_expr.arguments.size();
 
     if (expected_num_arguments != actual_num_arguments) {
+        NOT_IMPLEMENTED(); // TODO: Throw here
+        /*
         clobber::SemanticError error = diagnostics::semantics::errors::mismatched_arity_error(
             call_expr.operator_token.start, call_expr.operator_token.length, expected_num_arguments, actual_num_arguments);
         context.diagnostics.push_back(error);
+        */
         return nullptr;
     }
 
@@ -389,13 +401,22 @@ type_infer_expr_base(SemanticContext &context, const clobber::Expr &expr) {
 }
 
 std::unique_ptr<clobber::SemanticModel>
-clobber::get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilation_unit) {
+clobber::get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilation_unit, std::vector<clobber::Diagnostic> &diagnostics) {
     SymbolTable symbol_table{};
     TypePool type_pool{};
     std::unique_ptr<clobber::TypeMap> type_map = std::make_unique<clobber::TypeMap>();
 
     init_builtin_fns(type_pool, symbol_table);
-    SemanticContext context{*compilation_unit, symbol_table, type_pool, *type_map, {}};
+
+    // clang-format off
+    SemanticContext context{
+        .compilation_unit = *compilation_unit, 
+        .symbol_table = symbol_table, 
+        .type_pool = type_pool, 
+        .type_map = *type_map, 
+        .diagnostics = diagnostics
+    };
+    // clang-format on
 
     auto expr_views = ptr_utils::get_expr_views(compilation_unit->exprs);
     for (const auto &expr_view : expr_views) {
@@ -410,7 +431,6 @@ clobber::get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilat
     std::unique_ptr<clobber::SemanticModel> semantic_model = std::make_unique<clobber::SemanticModel>(SemanticModel{
         .compilation_unit = std::move(compilation_unit), 
         .type_map = std::move(type_map), 
-        .diagnostics = context.diagnostics
     });
     // clang-format on
 

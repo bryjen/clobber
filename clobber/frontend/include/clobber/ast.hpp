@@ -5,79 +5,81 @@
 #include "pch.hpp"
 
 namespace clobber {
+    struct Diagnostic; // clobber/common/diagnostic.hpp
+};
 
-    /* @brief Represents the type of a token.
-     */
-    enum class ClobberTokenType {
-        OpenParenToken,
-        CloseParenToken,
-        OpenBracketToken,
-        CloseBracketToken,
-        OpenBraceToken,
-        CloseBraceToken,
-
-        PlusToken,
-        MinusToken,
-        AsteriskToken,
-        SlashToken,     // '/'
-        BackslashToken, // '\'
-        EqualsToken,
-        LessThanToken,    // '<'
-        GreaterThanToken, // '>'
-
-        IdentifierToken,
-        NumericLiteralToken,
-        StringLiteralToken,
-        CharLiteralToken,
-
-        LetKeywordToken,
-        FnKeywordToken,
-        DefKeywordToken,
-        DoKeywordToken,
-
-        // hardware acceleration tokens
-        AccelKeywordToken, // `accel`
-
-        TosaReshapeKeywordToken,   // `tosa-reshape`
-        TosaTransposeKeywordToken, // `tosa-transpose`
-        TosaTileKeywordToken,      // `tosa-tile`
-        TosaSliceKeywordToken,     // `tosa-slice`
-        TosaConcatKeywordToken,    // `tosa-concat`
-        TosaIdentityKeywordToken,  // `tosa-identity`
-        TosaCastKeywordToken,      // `tosa-cast`
-
-        TosaConv2dKeywordToken,          // `tosa-conv2d`
-        TosaDepthwiseConv2dKeywordToken, // `tosa-depthwise-conv2d`
-        TosaMatmulKeywordToken,          // `tosa-matmul`
-        TosaFullyConnectedKeywordToken,  // `tosa-fully-connected`
-        TosaAvgPool2dKeywordToken,       // `tosa-avgpool2d`
-        TosaMaxPool2dKeywordToken,       // `tosa-maxpool2d`
-        TosaPadKeywordToken,             // `tosa-pad`
-
-        TosaReluKeywordToken,    // `tosa-relu`
-        TosaSigmoidKeywordToken, // `tosa-sigmoid`
-        TosaTanhKeywordToken,    // `tosa-tanh`
-        TosaSoftmaxKeywordToken, // `tosa-softmax`
-
-        BadToken,
-        EofToken,
-    };
+namespace clobber {
 
     // remarks: cheap to copy
     /* @brief Represents a token. */
-    struct ClobberToken final {
+    struct Token final {
+        enum class Type {
+            OpenParenToken,
+            CloseParenToken,
+            OpenBracketToken,
+            CloseBracketToken,
+            OpenBraceToken,
+            CloseBraceToken,
+
+            PlusToken,
+            MinusToken,
+            AsteriskToken,
+            SlashToken,     // '/'
+            BackslashToken, // '\'
+            EqualsToken,
+            LessThanToken,    // '<'
+            GreaterThanToken, // '>'
+
+            IdentifierToken,
+            NumericLiteralToken,
+            StringLiteralToken,
+            CharLiteralToken,
+
+            LetKeywordToken,
+            FnKeywordToken,
+            DefKeywordToken,
+            DoKeywordToken,
+
+            // hardware acceleration tokens
+            AccelKeywordToken, // `accel`
+
+            TosaReshapeKeywordToken,   // `tosa-reshape`
+            TosaTransposeKeywordToken, // `tosa-transpose`
+            TosaTileKeywordToken,      // `tosa-tile`
+            TosaSliceKeywordToken,     // `tosa-slice`
+            TosaConcatKeywordToken,    // `tosa-concat`
+            TosaIdentityKeywordToken,  // `tosa-identity`
+            TosaCastKeywordToken,      // `tosa-cast`
+
+            TosaConv2dKeywordToken,          // `tosa-conv2d`
+            TosaDepthwiseConv2dKeywordToken, // `tosa-depthwise-conv2d`
+            TosaMatmulKeywordToken,          // `tosa-matmul`
+            TosaFullyConnectedKeywordToken,  // `tosa-fully-connected`
+            TosaAvgPool2dKeywordToken,       // `tosa-avgpool2d`
+            TosaMaxPool2dKeywordToken,       // `tosa-maxpool2d`
+            TosaPadKeywordToken,             // `tosa-pad`
+
+            TosaReluKeywordToken,    // `tosa-relu`
+            TosaSigmoidKeywordToken, // `tosa-sigmoid`
+            TosaTanhKeywordToken,    // `tosa-tanh`
+            TosaSoftmaxKeywordToken, // `tosa-softmax`
+
+            BadToken,
+            EofToken,
+        };
+
         size_t start;
         size_t length;
         size_t full_start;  // includes trivia
         size_t full_length; // includes trivia
-        ClobberTokenType token_type;
+        Token::Type type;
 
     public:
         std::string ExtractText(const std::string &);
         std::string ExtractFullText(const std::string &);
 
         size_t hash() const;
-        static bool AreEquivalent(const ClobberToken &, const ClobberToken &);
+        static bool AreEquivalent(const Token &, const Token &);
     };
 
     /* @brief Represents a clobber expression. Base class for all expression types. */
@@ -102,7 +104,7 @@ namespace clobber {
             RelUExpr,
         };
 
-        Type type;
+        Expr::Type type;
 
     public:
         Expr(Expr::Type);
@@ -116,11 +118,11 @@ namespace clobber {
     // Helps us to deal with the redundancies of declaring open and close parentheses for types.
     /* @brief Represents a parenthesized clobber expression. */
     struct ParenthesizedExpr : Expr {
-        ClobberToken open_paren_token;
-        ClobberToken close_paren_token;
+        Token open_paren_token;
+        Token close_paren_token;
 
     public:
-        ParenthesizedExpr(Expr::Type, const ClobberToken &, const ClobberToken &);
+        ParenthesizedExpr(Expr::Type, const Token &, const Token &);
         ParenthesizedExpr(const ParenthesizedExpr &);
 
         virtual size_t hash() const                 = 0;
@@ -130,15 +132,15 @@ namespace clobber {
 
     /* @brief Represents a variable binding list. Ex. `[x 1 y 2]` */
     struct BindingVectorExpr final {
-        ClobberToken open_bracket_token;
+        Token open_bracket_token;
         std::vector<std::unique_ptr<IdentifierExpr>> identifiers;
         std::vector<std::unique_ptr<Expr>> exprs;
-        ClobberToken close_bracket_token;
+        Token close_bracket_token;
         size_t num_bindings;
 
     public:
-        BindingVectorExpr(const ClobberToken &, std::vector<std::unique_ptr<IdentifierExpr>> &&, std::vector<std::unique_ptr<Expr>> &&,
-                          const ClobberToken &, size_t);
+        BindingVectorExpr(const Token &, std::vector<std::unique_ptr<IdentifierExpr>> &&, std::vector<std::unique_ptr<Expr>> &&,
+                          const Token &, size_t);
         BindingVectorExpr(const BindingVectorExpr &);
 
         std::unique_ptr<BindingVectorExpr> clone_nowrap() const;
@@ -146,12 +148,12 @@ namespace clobber {
 
     /* @brief Represents a parameter vector list. Ex. `[x y]` */
     struct ParameterVectorExpr final {
-        ClobberToken open_bracket_token;
+        Token open_bracket_token;
         std::vector<std::unique_ptr<IdentifierExpr>> identifiers;
-        ClobberToken close_bracket_token;
+        Token close_bracket_token;
 
     public:
-        ParameterVectorExpr(const ClobberToken &, std::vector<std::unique_ptr<IdentifierExpr>> &&, const ClobberToken &);
+        ParameterVectorExpr(const Token &, std::vector<std::unique_ptr<IdentifierExpr>> &&, const Token &);
         ParameterVectorExpr(const ParameterVectorExpr &);
 
         std::unique_ptr<ParameterVectorExpr> clone_nowrap() const;
@@ -159,10 +161,10 @@ namespace clobber {
 
     /* @brief Represents a numerical literal expression. */
     struct NumLiteralExpr final : Expr {
-        ClobberToken token;
+        Token token;
 
     public:
-        NumLiteralExpr(const ClobberToken &);
+        NumLiteralExpr(const Token &);
         NumLiteralExpr(const NumLiteralExpr &);
 
         size_t hash() const override;
@@ -172,10 +174,10 @@ namespace clobber {
     /* @brief Represents a string literal expression. */
     struct StringLiteralExpr final : Expr {
         std::string value;
-        ClobberToken token;
+        Token token;
 
     public:
-        StringLiteralExpr(const std::string &, const ClobberToken &);
+        StringLiteralExpr(const std::string &, const Token &);
         StringLiteralExpr(const StringLiteralExpr &);
 
         size_t hash() const override;
@@ -188,10 +190,10 @@ namespace clobber {
      */
     struct CharLiteralExpr final : Expr {
         std::string value;
-        ClobberToken token;
+        Token token;
 
     public:
-        CharLiteralExpr(const std::string &, const ClobberToken &);
+        CharLiteralExpr(const std::string &, const Token &);
         CharLiteralExpr(const CharLiteralExpr &);
 
         size_t hash() const override;
@@ -201,10 +203,10 @@ namespace clobber {
     /* @brief Represents an identifier. */
     struct IdentifierExpr final : Expr {
         std::string name;
-        ClobberToken token;
+        Token token;
 
     public:
-        IdentifierExpr(const std::string &, const ClobberToken &);
+        IdentifierExpr(const std::string &, const Token &);
         IdentifierExpr(const IdentifierExpr &);
 
         std::unique_ptr<IdentifierExpr> clone_nowrap();
@@ -215,13 +217,12 @@ namespace clobber {
 
     /* @brief Represents a `let` expression. Ex. `(let [x 1 y 2] (x))` */
     struct LetExpr final : ParenthesizedExpr {
-        ClobberToken let_token;
+        Token let_token;
         std::unique_ptr<BindingVectorExpr> binding_vector_expr;
         std::vector<std::unique_ptr<Expr>> body_exprs;
 
     public:
-        LetExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&,
-                const ClobberToken &);
+        LetExpr(const Token &, const Token &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         LetExpr(const LetExpr &);
 
         size_t hash() const override;
@@ -230,13 +231,12 @@ namespace clobber {
 
     /* @brief Represents a `fn` expression. Ex. `(fn [x y] (+ x y))` */
     struct FnExpr final : ParenthesizedExpr {
-        ClobberToken fn_token;
+        Token fn_token;
         std::unique_ptr<ParameterVectorExpr> parameter_vector_expr;
         std::vector<std::unique_ptr<Expr>> body_exprs;
 
     public:
-        FnExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<ParameterVectorExpr>, std::vector<std::unique_ptr<Expr>> &&,
-               const ClobberToken &);
+        FnExpr(const Token &, const Token &, std::unique_ptr<ParameterVectorExpr>, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         FnExpr(const FnExpr &);
 
         size_t hash() const override;
@@ -245,12 +245,12 @@ namespace clobber {
 
     /* @brief Represents a `def` expression. Ex. `(def x 2)` */
     struct DefExpr final : ParenthesizedExpr {
-        ClobberToken def_token;
+        Token def_token;
         std::unique_ptr<IdentifierExpr> identifier;
         std::unique_ptr<Expr> value;
 
     public:
-        DefExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<IdentifierExpr>, std::unique_ptr<Expr>, const ClobberToken &);
+        DefExpr(const Token &, const Token &, std::unique_ptr<IdentifierExpr>, std::unique_ptr<Expr>, const Token &);
         DefExpr(const DefExpr &);
 
         size_t hash() const override;
@@ -259,11 +259,11 @@ namespace clobber {
 
     /* @brief Represents a `def` expression. Ex. `(do (def x 2)(+ x 2))` */
     struct DoExpr final : ParenthesizedExpr {
-        ClobberToken do_token;
+        Token do_token;
         std::vector<std::unique_ptr<Expr>> body_exprs;
 
     public:
-        DoExpr(const ClobberToken &, const ClobberToken &, std::vector<std::unique_ptr<Expr>> &&, const ClobberToken &);
+        DoExpr(const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         DoExpr(const DoExpr &);
 
         size_t hash() const override;
@@ -280,12 +280,11 @@ namespace clobber {
     struct CallExpr final : ParenthesizedExpr {
         CallExprOperatorExprType operator_expr_type;
 
-        ClobberToken operator_token;
+        Token operator_token;
         std::vector<std::unique_ptr<Expr>> arguments;
 
     public:
-        CallExpr(CallExprOperatorExprType, const ClobberToken &, const ClobberToken &, const ClobberToken &,
-                 std::vector<std::unique_ptr<Expr>> &&);
+        CallExpr(CallExprOperatorExprType, const Token &, const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&);
         CallExpr(const CallExpr &);
 
         size_t hash() const override;
@@ -299,13 +298,13 @@ namespace clobber {
 
         /* @brief Represents a hardware accelerated code block. */
         struct AccelExpr final : ParenthesizedExpr {
-            ClobberToken accel_token;
+            Token accel_token;
             std::unique_ptr<BindingVectorExpr> binding_vector_expr;
             std::vector<std::unique_ptr<Expr>> body_exprs;
 
         public:
-            AccelExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&,
-                      const ClobberToken &);
+            AccelExpr(const Token &, const Token &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&,
+                      const Token &);
             AccelExpr(const AccelExpr &);
 
             size_t hash() const override;
@@ -314,12 +313,12 @@ namespace clobber {
 
         /* @brief Represents a matrix multiply expression. */
         struct MatMulExpr final : ParenthesizedExpr {
-            ClobberToken mat_mul_token;
+            Token mat_mul_token;
             std::unique_ptr<Expr> fst_operand;
             std::unique_ptr<Expr> snd_operand;
 
         public:
-            MatMulExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<Expr>, std::unique_ptr<Expr>, const ClobberToken &);
+            MatMulExpr(const Token &, const Token &, std::unique_ptr<Expr>, std::unique_ptr<Expr>, const Token &);
             MatMulExpr(const MatMulExpr &);
 
             size_t hash() const override;
@@ -328,11 +327,11 @@ namespace clobber {
 
         /* @brief Represents a RelU expression. */
         struct RelUExpr final : ParenthesizedExpr {
-            ClobberToken relu_token;
+            Token relu_token;
             std::unique_ptr<Expr> operand;
 
         public:
-            RelUExpr(const ClobberToken &, const ClobberToken &, std::unique_ptr<Expr>, const ClobberToken &);
+            RelUExpr(const Token &, const Token &, std::unique_ptr<Expr>, const Token &);
             RelUExpr(const RelUExpr &);
 
             size_t hash() const override;
@@ -342,12 +341,12 @@ namespace clobber {
 
     /* @brief Represents a clobber compilation unit. Usually contains all the contents of a source file. */
     struct CompilationUnit {
-        std::string source_text;
-        std::vector<std::unique_ptr<Expr>> exprs;
-        // std::vector<clobber::ParserError> parse_errors;
+        const std::string &source_text;
+        const std::vector<std::unique_ptr<Expr>> exprs;
+        const std::vector<clobber::Diagnostic> &diagnostics;
 
     public:
-        CompilationUnit(const std::string &, std::vector<std::unique_ptr<Expr>> &&);
+        CompilationUnit(const std::string &, std::vector<std::unique_ptr<Expr>> &&, const std::vector<clobber::Diagnostic> &);
         CompilationUnit(const CompilationUnit &);
 
         size_t hash() const;

@@ -7,9 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 # TEMP; TODO REMOVE
-add_compile_options(
-    /W0
-)
+add_compile_options(/W0)
 
 # global build options (propagated to sub-projects)
 if (CLOBBER_STRICT)
