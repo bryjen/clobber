@@ -103,6 +103,85 @@ public:
         return ptr;
     }
 
+    // prebuilts + utils
+    // TODO: change type to shorthand + bit precision; more descriptive + avoids keyword conflicts
+
+    std::shared_ptr<clobber::Type>
+    get_non_composite(clobber::Type::Kind kind) {
+        switch (kind) {
+        case clobber::Type::Int:
+            return i32();
+        case clobber::Type::Float:
+            return f32();
+        case clobber::Type::Double:
+            return f64();
+        case clobber::Type::String:
+            return str();
+        case clobber::Type::Char:
+            return _char();
+        case clobber::Type::Nil:
+            return nil();
+        default:
+            return nullptr;
+        }
+    }
+
+    std::shared_ptr<clobber::Type>
+    i32() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Int;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    f32() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Float;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    f64() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Double;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    str() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::String;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    _char() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Char;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    nil() {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Nil;
+        type_desc.params.clear();
+        return intern(type_desc);
+    }
+
+    std::shared_ptr<clobber::Type>
+    func(const std::vector<std::shared_ptr<clobber::Type>> &fn_types) {
+        clobber::Type type_desc = clobber::Type{};
+        type_desc.kind          = clobber::Type::Func;
+        type_desc.params        = fn_types;
+        return intern(type_desc);
+    }
+
 private:
     std::unordered_map<size_t, std::shared_ptr<clobber::Type>> pool;
 };
@@ -116,59 +195,26 @@ struct SemanticContext {
     std::vector<clobber::Diagnostic> &diagnostics;
 };
 
-void
-init_builtin_fns(TypePool &type_pool, SymbolTable &symbol_table) {
-    clobber::Type type_desc;
+namespace builtin_fns {
+    std::unordered_map<std::string, std::function<std::shared_ptr<clobber::Type>(TypePool &)>> name_rtype_map = {
+        {"itos", [](TypePool &tp) { return tp.func({tp.i32(), tp.str()}); }},
+        {"ftos", [](TypePool &tp) { return tp.func({tp.f32(), tp.str()}); }},
+        {"dtos", [](TypePool &tp) { return tp.func({tp.f64(), tp.str()}); }},
+        {"println", [](TypePool &tp) { return tp.func({tp.str(), tp.nil()}); }},
+        {"print", [](TypePool &tp) { return tp.func({tp.str(), tp.nil()}); }},
+    };
 
-    // int
-    type_desc      = clobber::Type{};
-    type_desc.kind = clobber::Type::Int;
-    type_desc.params.clear();
-    std::shared_ptr<clobber::Type> int_type = type_pool.intern(type_desc);
-
-    // float
-    type_desc      = clobber::Type{};
-    type_desc.kind = clobber::Type::Float;
-    type_desc.params.clear();
-    std::shared_ptr<clobber::Type> float_type = type_pool.intern(type_desc);
-
-    // double
-    type_desc      = clobber::Type{};
-    type_desc.kind = clobber::Type::Double;
-    type_desc.params.clear();
-    std::shared_ptr<clobber::Type> double_type = type_pool.intern(type_desc);
-
-    // str
-    type_desc      = clobber::Type{};
-    type_desc.kind = clobber::Type::String;
-    type_desc.params.clear();
-    std::shared_ptr<clobber::Type> string_type = type_pool.intern(type_desc);
-
-    // char
-    type_desc      = clobber::Type{};
-    type_desc.kind = clobber::Type::Char;
-    type_desc.params.clear();
-    std::shared_ptr<clobber::Type> char_type = type_pool.intern(type_desc);
-
-    // arithmetic with ints
-
-    std::vector<std::shared_ptr<clobber::Type>> arithmetic_type_descs{int_type, float_type, double_type};
-    std::vector<std::string> builtin_fns{"+", "-", "*", "/"};
-    for (const auto &fn_param_ret_type_desc : arithmetic_type_descs) {
-        type_desc        = clobber::Type{};
-        type_desc.kind   = clobber::Type::Func;
-        type_desc.params = {fn_param_ret_type_desc, fn_param_ret_type_desc, fn_param_ret_type_desc};
-
-        std::shared_ptr<clobber::Type> basic_arithmetic_type = type_pool.intern(type_desc);
-
-        for (const auto &fn_name : builtin_fns) {
+    void
+    init(TypePool &type_pool, SymbolTable &symbol_table) {
+        for (const auto &[fn_name, get_type_callback] : name_rtype_map) {
+            std::shared_ptr<clobber::Type> type = get_type_callback(type_pool);
             clobber::Symbol symbol{};
             symbol.name = fn_name;
-            symbol.type = basic_arithmetic_type;
+            symbol.type = type;
             symbol_table.insert_symbol(symbol);
         }
     }
-}
+} // namespace builtin_fns
 
 // TODO: remake this:
 /*
@@ -321,56 +367,102 @@ type_infer_do_expr(SemanticContext &context, const clobber::Expr &expr) {
     return last_type;
 }
 
+namespace call_expr {
+    bool
+    is_arithmetic_token(const clobber::Token &token) {
+        std::unordered_set<clobber::Token::Type> valid_types = {clobber::Token::Type::PlusToken, clobber::Token::Type::MinusToken,
+                                                                clobber::Token::Type::AsteriskToken, clobber::Token::Type::SlashToken};
+        return valid_types.contains(token.type);
+    }
+
+    std::shared_ptr<clobber::Type>
+    type_infer_arithmetic_expr(SemanticContext &context, const clobber::CallExpr &ce) {
+        bool has_unsupported_arg_type = false;
+
+        std::shared_ptr<clobber::Type> type = context.type_pool.i32(); // i32 by default
+        for (const auto &argument : ptr_utils::get_expr_views(ce.arguments)) {
+            auto arg_type = type_infer_expr_base(context, argument);
+            if (!arg_type) {
+                return nullptr;
+            }
+
+            if (arg_type->kind != clobber::Type::Int && arg_type->kind != clobber::Type::Float && arg_type->kind != clobber::Type::Double) {
+                // TODO: error here
+                has_unsupported_arg_type = true; // don't short circuit so we can also do type inference on the rest of the args
+            }
+
+            // promote inferred return type
+            if (arg_type->kind == clobber::Type::Float) {
+                type = context.type_pool.f32();
+            } else if (arg_type->kind == clobber::Type::Double) {
+                type = context.type_pool.f64();
+            }
+        }
+
+        return has_unsupported_arg_type ? nullptr : type;
+    }
+
+    /* TLDR; check if symbol exists -> symbol points to a function type -> assert that the arguments passed are equal types to the declared
+     * parameters -> function's specified return type is the inferred type for the whole expression.
+     * If ever we get partial application stuff, it should go here.
+     */
+    std::shared_ptr<clobber::Type>
+    type_infer_fn_call_expr(SemanticContext &context, const clobber::CallExpr &ce, const std::string &fn_name) {
+        std::optional<clobber::Symbol> symbol_opt = context.symbol_table.lookup_symbol(fn_name);
+
+        if (!symbol_opt) {
+            NOT_IMPLEMENTED(); // TODO: log unresolved symbol err
+            return nullptr;
+        }
+
+        if (symbol_opt.value().type->kind != clobber::Type::Func) {
+            NOT_IMPLEMENTED(); // TODO: log identifier not a function err
+            return nullptr;
+        }
+
+        clobber::Symbol symbol        = symbol_opt.value();
+        auto parameter_types          = symbol.type->params;
+        auto expected_return_type     = parameter_types.back();
+        auto expected_parameter_types = std::vector<std::shared_ptr<clobber::Type>>(parameter_types.begin(), parameter_types.end() - 1);
+
+        size_t expected_num_arguments = expected_parameter_types.size();
+        size_t actual_num_arguments   = ce.arguments.size();
+
+        if (expected_num_arguments != actual_num_arguments) {
+            NOT_IMPLEMENTED(); // TODO: log arity mismatch error
+            return nullptr;
+        }
+
+        bool has_mismatched_argument = false;
+        std::vector<std::shared_ptr<clobber::Type>> actual_types;
+        auto arg_expr_views = ptr_utils::get_expr_views(ce.arguments);
+        for (size_t i = 0; i < arg_expr_views.size(); i++) {
+            const clobber::Expr &arg_expr_view           = arg_expr_views[i].get();
+            std::shared_ptr<clobber::Type> expected_type = expected_parameter_types[i];
+            std::shared_ptr<clobber::Type> arg_type      = type_infer_expr_base(context, arg_expr_view);
+            if (arg_type != expected_type) {
+                // TODO: YOU NEED TO IMPLEMENT A SPAN METHOD FOR AN EXPR: `expr.get_span()`
+                has_mismatched_argument = true; // don't short circuit so we can also do type inference on the rest of the args
+            }
+        }
+
+        // if above holds true -> argument types match function parameter types -> return the return type of the funcion
+        return has_mismatched_argument ? nullptr : expected_return_type;
+    }
+} // namespace call_expr
+
 std::shared_ptr<clobber::Type>
 type_infer_call_expr(SemanticContext &context, const clobber::Expr &expr) {
+    using namespace call_expr;
+
     const clobber::CallExpr &call_expr = static_cast<const clobber::CallExpr &>(expr);
 
-    std::string fn_name = context.compilation_unit.source_text.substr(call_expr.operator_token.start, call_expr.operator_token.length);
-    std::optional<clobber::Symbol> symbol_opt = context.symbol_table.lookup_symbol(fn_name);
-
-    if (!symbol_opt) {
-        NOT_IMPLEMENTED(); // TODO: Throw here
-        /*
-        clobber::SemanticError error =
-            diagnostics::semantics::errors::unresolved_symbol_error(call_expr.operator_token.start, call_expr.operator_token.length);
-        context.diagnostics.push_back(error);
-        */
-        return nullptr;
+    if (is_arithmetic_token(call_expr.operator_token)) {
+        return type_infer_arithmetic_expr(context, call_expr);
+    } else {
+        std::string fn_name = context.compilation_unit.source_text.substr(call_expr.operator_token.start, call_expr.operator_token.length);
+        return type_infer_fn_call_expr(context, call_expr, fn_name);
     }
-
-    clobber::Symbol symbol        = symbol_opt.value();
-    auto parameter_types          = symbol.type->params;
-    auto expected_return_type     = parameter_types.back();
-    auto expected_parameter_types = std::vector<std::shared_ptr<clobber::Type>>(parameter_types.begin(), parameter_types.end() - 1);
-
-    size_t expected_num_arguments = expected_parameter_types.size();
-    size_t actual_num_arguments   = call_expr.arguments.size();
-
-    if (expected_num_arguments != actual_num_arguments) {
-        NOT_IMPLEMENTED(); // TODO: Throw here
-        /*
-        clobber::SemanticError error = diagnostics::semantics::errors::mismatched_arity_error(
-            call_expr.operator_token.start, call_expr.operator_token.length, expected_num_arguments, actual_num_arguments);
-        context.diagnostics.push_back(error);
-        */
-        return nullptr;
-    }
-
-    bool has_mismatched_argument = false;
-    std::vector<std::shared_ptr<clobber::Type>> actual_types;
-    auto arg_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
-    for (size_t i = 0; i < arg_expr_views.size(); i++) {
-        const clobber::Expr &arg_expr_view           = arg_expr_views[i].get();
-        std::shared_ptr<clobber::Type> expected_type = expected_parameter_types[i];
-        std::shared_ptr<clobber::Type> arg_type      = type_infer_expr_base(context, arg_expr_view);
-        if (arg_type != expected_type) {
-            // TODO: YOU NEED TO IMPLEMENT A SPAN METHOD FOR AN EXPR: `expr.get_span()`
-            has_mismatched_argument = true;
-        }
-    }
-
-    // if above holds true -> argument types match function parameter types -> return the return type of the funcion
-    return has_mismatched_argument ? nullptr : expected_return_type;
 }
 
 std::shared_ptr<clobber::Type>
@@ -406,7 +498,7 @@ clobber::get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilat
     TypePool type_pool{};
     std::unique_ptr<clobber::TypeMap> type_map = std::make_unique<clobber::TypeMap>();
 
-    init_builtin_fns(type_pool, symbol_table);
+    builtin_fns::init(type_pool, symbol_table);
 
     // clang-format off
     SemanticContext context{

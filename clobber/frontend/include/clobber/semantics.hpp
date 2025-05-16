@@ -21,6 +21,7 @@ namespace clobber {
             Double,
             Bool,
             Func,
+            Nil,
         } kind;
         std::vector<std::shared_ptr<Type>> params;
     };
