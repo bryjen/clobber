@@ -75,8 +75,8 @@ namespace clobber {
         Token::Type type;
 
     public:
-        std::string ExtractText(const std::string &);
-        std::string ExtractFullText(const std::string &);
+        std::string ExtractText(const std::string &) const;
+        std::string ExtractFullText(const std::string &) const;
 
         size_t hash() const;
         static bool AreEquivalent(const Token &, const Token &);
@@ -351,6 +351,32 @@ namespace clobber {
 
         size_t hash() const;
         std::unique_ptr<CompilationUnit> clone() const;
+    };
+
+    class AstWalker {
+    protected:
+        virtual Expr *on_expr(Expr *);
+
+        // 'leaf' exprs
+        virtual NumLiteralExpr *on_num_literal_expr(NumLiteralExpr *);
+        virtual StringLiteralExpr *on_string_literal_expr(StringLiteralExpr *);
+        virtual CharLiteralExpr *on_char_literal_expr(CharLiteralExpr *);
+        virtual IdentifierExpr *on_identifier_expr(IdentifierExpr *);
+
+        // 'node' exprs
+        virtual ParenthesizedExpr *on_paren_expr(ParenthesizedExpr *);
+        virtual BindingVectorExpr *on_binding_vector_expr(BindingVectorExpr *);
+        virtual ParameterVectorExpr *on_parameter_vector_expr(ParameterVectorExpr *);
+        virtual LetExpr *on_let_expr(LetExpr *);
+        virtual FnExpr *on_fn_expr(FnExpr *);
+        virtual DefExpr *on_def_expr(DefExpr *);
+        virtual DoExpr *on_do_expr(DoExpr *);
+        virtual CallExpr *on_call_expr(CallExpr *);
+
+        // hardware acceleration exprs
+        virtual accel::AccelExpr *on_accel_expr(accel::AccelExpr *);
+        virtual accel::MatMulExpr *on_mat_mul_expr(accel::MatMulExpr *);
+        virtual accel::RelUExpr *on_relu_expr(accel::RelUExpr *);
     };
 
 }; // namespace clobber

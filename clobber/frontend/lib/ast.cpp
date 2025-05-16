@@ -58,12 +58,12 @@ clobber::Token::hash() const {
 }
 
 std::string
-clobber::Token::ExtractText(const std::string &source_text) {
+clobber::Token::ExtractText(const std::string &source_text) const {
     return source_text.substr(this->start, this->length);
 }
 
 std::string
-clobber::Token::ExtractFullText(const std::string &source_text) {
+clobber::Token::ExtractFullText(const std::string &source_text) const {
     return source_text.substr(this->full_start, this->full_length);
 }
 
@@ -488,3 +488,300 @@ clobber::CompilationUnit::CompilationUnit(const CompilationUnit &other)
     : source_text(other.source_text)
     , exprs(utils::deepcopy_exprs(other.exprs))
     , diagnostics(other.diagnostics) {}
+
+clobber::Expr *
+clobber::AstWalker::on_expr(clobber::Expr *e) {
+    switch (e->type) {
+    case clobber::Expr::Type::LetExpr: {
+        ParenthesizedExpr *pe = static_cast<ParenthesizedExpr *>(e);
+        return on_paren_expr(pe);
+    }
+    case clobber::Expr::Type::NumericLiteralExpr: {
+        NumLiteralExpr *nle = static_cast<NumLiteralExpr *>(e);
+        return on_num_literal_expr(nle);
+    }
+    case clobber::Expr::Type::StringLiteralExpr: {
+        StringLiteralExpr *sle = static_cast<StringLiteralExpr *>(e);
+        return on_string_literal_expr(sle);
+    }
+    case clobber::Expr::Type::CharLiteralExpr: {
+        CharLiteralExpr *cle = static_cast<CharLiteralExpr *>(e);
+        return on_char_literal_expr(cle);
+    }
+    case clobber::Expr::Type::IdentifierExpr: {
+        IdentifierExpr *ie = static_cast<IdentifierExpr *>(e);
+        return on_identifier_expr(ie);
+    }
+    case clobber::Expr::Type::FnExpr: {
+        FnExpr *fe = static_cast<FnExpr *>(e);
+        return on_fn_expr(fe);
+    }
+    case clobber::Expr::Type::DefExpr: {
+        DefExpr *de = static_cast<DefExpr *>(e);
+        return on_def_expr(de);
+    }
+    case clobber::Expr::Type::DoExpr: {
+        DoExpr *de = static_cast<DoExpr *>(e);
+        return on_do_expr(de);
+    }
+    case clobber::Expr::Type::CallExpr: {
+        CallExpr *ce = static_cast<CallExpr *>(e);
+        return on_call_expr(ce);
+    }
+    case clobber::Expr::Type::AccelExpr: {
+        accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(e);
+        return on_accel_expr(ae);
+    }
+    case clobber::Expr::Type::MatMulExpr: {
+        accel::MatMulExpr *mme = static_cast<accel::MatMulExpr *>(e);
+        return on_mat_mul_expr(mme);
+    }
+    case clobber::Expr::Type::RelUExpr: {
+        accel::RelUExpr *re = static_cast<accel::RelUExpr *>(e);
+        return on_relu_expr(re);
+    }
+    default: {
+        return nullptr;
+    }
+    }
+}
+
+clobber::NumLiteralExpr *
+clobber::AstWalker::on_num_literal_expr(clobber::NumLiteralExpr *nle) {
+    return nle;
+}
+
+clobber::StringLiteralExpr *
+clobber::AstWalker::on_string_literal_expr(clobber::StringLiteralExpr *sle) {
+    return sle;
+}
+
+clobber::CharLiteralExpr *
+clobber::AstWalker::on_char_literal_expr(clobber::CharLiteralExpr *cle) {
+    return cle;
+}
+
+clobber::IdentifierExpr *
+clobber::AstWalker::on_identifier_expr(clobber::IdentifierExpr *ie) {
+    return ie;
+}
+
+clobber::ParenthesizedExpr *
+clobber::AstWalker::on_paren_expr(clobber::ParenthesizedExpr *pe) {
+    switch (pe->type) {
+    case clobber::Expr::Type::LetExpr: {
+        LetExpr *le = static_cast<LetExpr *>(pe);
+        return on_let_expr(le);
+    }
+    case clobber::Expr::Type::FnExpr: {
+        FnExpr *fe = static_cast<FnExpr *>(pe);
+        return on_fn_expr(fe);
+    }
+    case clobber::Expr::Type::DefExpr: {
+        DefExpr *de = static_cast<DefExpr *>(pe);
+        return on_def_expr(de);
+    }
+    case clobber::Expr::Type::DoExpr: {
+        DoExpr *de = static_cast<DoExpr *>(pe);
+        return on_do_expr(de);
+    }
+    case clobber::Expr::Type::CallExpr: {
+        CallExpr *ce = static_cast<CallExpr *>(pe);
+        return on_call_expr(ce);
+    }
+    case clobber::Expr::Type::AccelExpr: {
+        accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(pe);
+        return on_accel_expr(ae);
+    }
+    case clobber::Expr::Type::MatMulExpr: {
+        accel::MatMulExpr *mme = static_cast<accel::MatMulExpr *>(pe);
+        return on_mat_mul_expr(mme);
+    }
+    case clobber::Expr::Type::RelUExpr: {
+        accel::RelUExpr *re = static_cast<accel::RelUExpr *>(pe);
+        return on_relu_expr(re);
+    }
+    default: {
+        return nullptr;
+    }
+    }
+}
+
+clobber::BindingVectorExpr *
+clobber::AstWalker::on_binding_vector_expr(clobber::BindingVectorExpr *bve) {
+    for (size_t i = 0; i < bve->num_bindings; i++) {
+        {
+            auto old_ptr = bve->identifiers[i].get();
+            auto new_ptr = on_identifier_expr(old_ptr);
+            if (old_ptr != new_ptr) {
+                bve->identifiers[i].reset(new_ptr);
+            }
+        }
+
+        {
+            auto old_ptr = bve->exprs[i].get();
+            auto new_ptr = on_expr(old_ptr);
+            if (old_ptr != new_ptr) {
+                bve->exprs[i].reset(new_ptr);
+            }
+        }
+    }
+
+    return bve;
+}
+
+clobber::ParameterVectorExpr *
+clobber::AstWalker::on_parameter_vector_expr(clobber::ParameterVectorExpr *pe) {
+    for (std::unique_ptr<clobber::IdentifierExpr> &identifier_uptr : pe->identifiers) {
+        auto old_ptr = identifier_uptr.get();
+        auto new_ptr = on_identifier_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            identifier_uptr.reset(new_ptr);
+        }
+    }
+
+    return pe;
+}
+
+clobber::LetExpr *
+clobber::AstWalker::on_let_expr(clobber::LetExpr *le) {
+    { // local scope so I can use variables 'old_ptr' and 'new_ptr' names, too lazy
+        auto old_ptr = le->binding_vector_expr.get();
+        auto new_ptr = on_binding_vector_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            le->binding_vector_expr.reset(new_ptr);
+        }
+    }
+
+    for (std::unique_ptr<clobber::Expr> &expr_uptr : le->body_exprs) {
+        auto old_ptr = expr_uptr.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            expr_uptr.reset(new_ptr);
+        }
+    }
+
+    return le;
+}
+
+clobber::FnExpr *
+clobber::AstWalker::on_fn_expr(clobber::FnExpr *fe) {
+    {
+        auto old_ptr = fe->parameter_vector_expr.get();
+        auto new_ptr = on_parameter_vector_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            fe->parameter_vector_expr.reset(new_ptr);
+        }
+    }
+
+    for (std::unique_ptr<clobber::Expr> &expr_uptr : fe->body_exprs) {
+        auto old_ptr = expr_uptr.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            expr_uptr.reset(new_ptr);
+        }
+    }
+
+    return fe;
+}
+
+clobber::DefExpr *
+clobber::AstWalker::on_def_expr(clobber::DefExpr *de) {
+    {
+        auto old_ptr = de->identifier.get();
+        auto new_ptr = on_identifier_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            de->identifier.reset(new_ptr);
+        }
+    }
+
+    {
+        auto old_ptr = de->value.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            de->value.reset(new_ptr);
+        }
+    }
+
+    return de;
+}
+
+clobber::DoExpr *
+clobber::AstWalker::on_do_expr(clobber::DoExpr *de) {
+    for (std::unique_ptr<clobber::Expr> &expr_uptr : de->body_exprs) {
+        auto old_ptr = expr_uptr.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            expr_uptr.reset(new_ptr);
+        }
+    }
+
+    return de;
+}
+
+clobber::CallExpr *
+clobber::AstWalker::on_call_expr(clobber::CallExpr *ce) {
+    for (std::unique_ptr<clobber::Expr> &expr_uptr : ce->arguments) {
+        auto old_ptr = expr_uptr.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            expr_uptr.reset(new_ptr);
+        }
+    }
+
+    return ce;
+}
+
+clobber::accel::AccelExpr *
+clobber::AstWalker::on_accel_expr(clobber::accel::AccelExpr *ae) {
+    {
+        auto old_ptr = ae->binding_vector_expr.get();
+        auto new_ptr = on_binding_vector_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            ae->binding_vector_expr.reset(new_ptr);
+        }
+    }
+
+    for (std::unique_ptr<clobber::Expr> &expr_uptr : ae->body_exprs) {
+        auto old_ptr = expr_uptr.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            expr_uptr.reset(new_ptr);
+        }
+    }
+    return ae;
+}
+
+clobber::accel::MatMulExpr *
+clobber::AstWalker::on_mat_mul_expr(clobber::accel::MatMulExpr *mme) {
+    {
+        auto old_ptr = mme->fst_operand.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            mme->fst_operand.reset(new_ptr);
+        }
+    }
+
+    {
+        auto old_ptr = mme->snd_operand.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            mme->snd_operand.reset(new_ptr);
+        }
+    }
+
+    return mme;
+}
+
+clobber::accel::RelUExpr *
+clobber::AstWalker::on_relu_expr(clobber::accel::RelUExpr *re) {
+    {
+        auto old_ptr = re->operand.get();
+        auto new_ptr = on_expr(old_ptr);
+        if (old_ptr != new_ptr) {
+            re->operand.reset(new_ptr);
+        }
+    }
+
+    return re;
+}

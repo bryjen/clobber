@@ -76,17 +76,17 @@ TEST_P(ParserTests, ParserTests) {
     */
 
     std::vector<std::string> expr_strs;
-    std::vector<std::reference_wrapper<const clobber::Expr>> expr_views = ptr_utils::get_expr_views(cu->exprs);
-    for (const auto &expr_base : expr_views) {
-        expr_strs.push_back(expr2str::expr_base(source_text, expr_base.get()));
+    std::vector<std::string> tree_strs;
+    for (auto &expr_base : cu->exprs) {
+        expr_strs.push_back(expr_tostring(source_text, *expr_base));
+        tree_strs.push_back(expr_visualize_tree(source_text, *expr_base));
     }
 
     spdlog::info("");
-    spdlog::info(std::format("reconstructed:\n```\n{}\n```", str_utils::join("", expr_strs)));
+    spdlog::info(std::format("reconstructed (new):\n```\n{}\n```", str_utils::join("", expr_strs)));
 
-    for (const auto &expr_base : expr_views) {
-        spdlog::info(expr_base.get().hash());
-    }
+    spdlog::info("");
+    spdlog::info(std::format("tree:\n```\n{}\n```", str_utils::join("", tree_strs)));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
