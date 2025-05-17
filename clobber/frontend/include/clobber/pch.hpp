@@ -1,4 +1,6 @@
 #pragma once
+
+// -- std stuff --
 #include <algorithm>
 #include <any>
 #include <format>
@@ -11,3 +13,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+// -- magic enum --
+#include <magic_enum/magic_enum.hpp>

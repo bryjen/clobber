@@ -27,11 +27,19 @@
 #include <mlir/Dialect/SPIRV/IR/SPIRVOps.h>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #include <mlir/Dialect/Tosa/IR/TosaOps.h>
+
+#include <mlir/Dialect/LLVMIR/BasicPtxBuilderInterface.h>
+#include <mlir/Dialect/LLVMIR/LLVMAttrs.h>
+#include <mlir/Dialect/LLVMIR/LLVMDialect.h>
+#include <mlir/Dialect/LLVMIR/LLVMInterfaces.h>
+#include <mlir/Dialect/LLVMIR/LLVMTypes.h>
 #pragma warning(pop)
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+
+#include <clobber/common/diagnostic.hpp>
 
 #include <clobber/ast.hpp>
 #include <clobber/parser.hpp>
@@ -57,8 +65,71 @@ R"(
       y 5]
   (+ x y))
 )",
+
+R"("hello, world!")",
 };
 // clang-format on
+
+class EmitterTests : public ::testing::TestWithParam<size_t> {};
+
+TEST_P(EmitterTests, EmitterTestsCore) {
+#ifdef CRT_ENABLED
+    INIT_CRT_DEBUG();
+    ::testing::GTEST_FLAG(output) = "none";
+#endif
+    spdlog::set_pattern("%v");
+
+    size_t test_case_idx;
+    std::string file_path;
+    std::string source_text;
+    std::vector<clobber::Token> tokens;
+
+    std::unique_ptr<clobber::CompilationUnit> compilation_unit;
+    std::unique_ptr<clobber::SemanticModel> semantic_model;
+    std::vector<std::string> inferred_type_strs;
+
+    test_case_idx = GetParam();
+    file_path     = std::format("./test_files/{}.clj", test_case_idx);
+    source_text   = test_source_contents[test_case_idx];
+
+    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+
+    std::vector<clobber::Diagnostic> diagnostics;
+
+    mlir::ModuleOp _module;
+    mlir::MLIRContext context;
+    context.getOrLoadDialect<mlir::tosa::TosaDialect>();
+    context.getOrLoadDialect<mlir::func::FuncDialect>();
+    context.getOrLoadDialect<mlir::arith::ArithDialect>();
+    context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
+    context.getOrLoadDialect<mlir::cf::ControlFlowDialect>();
+    context.getOrLoadDialect<mlir::LLVM::LLVMDialect>();
+
+    tokens           = clobber::tokenize(source_text);
+    compilation_unit = clobber::parse(source_text, tokens, diagnostics);
+    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit), diagnostics);
+    _module          = clobber::emit(context, *semantic_model, diagnostics);
+
+    spdlog::info(std::format("\nMLIR:\n```"));
+    _module->dump();
+    spdlog::info(std::format("```"));
+
+    try {
+        if (mlir::failed(mlir::verify(_module))) {
+            llvm::errs() << "MLIR module verification FAILED\n";
+        } else {
+            llvm::outs() << "MLIR module OK:\n";
+        }
+    } catch (...) {
+        llvm::errs() << "MLIR module verification FAILED (WITH ERRORS)\n";
+    }
+
+#ifdef CRT_ENABLED
+    if (_CrtDumpMemoryLeaks()) {
+        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+    }
+#endif
+}
 
 TEST(SanityChecks, llvm_sanity_check_1) {
     mlir::MLIRContext context;
@@ -157,66 +228,7 @@ TEST(SanityChecks, llvm_sanity_check_2) {
     EXPECT_TRUE(true);
 }
 
-class EmitterTests : public ::testing::TestWithParam<size_t> {};
-
-TEST_P(EmitterTests, EmitterTestsCore) {
-#ifdef CRT_ENABLED
-    INIT_CRT_DEBUG();
-    ::testing::GTEST_FLAG(output) = "none";
-#endif
-    spdlog::set_pattern("%v");
-
-    size_t test_case_idx;
-    std::string file_path;
-    std::string source_text;
-    std::vector<ClobberToken> tokens;
-
-    std::unique_ptr<CompilationUnit> compilation_unit;
-    std::unique_ptr<SemanticModel> semantic_model;
-    std::vector<std::string> inferred_type_strs;
-
-    test_case_idx = GetParam();
-    file_path     = std::format("./test_files/{}.clj", test_case_idx);
-    source_text   = test_source_contents[test_case_idx];
-
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
-
-    // mlir::OwningOpRef<mlir::ModuleOp> _module;
-    mlir::ModuleOp _module;
-    mlir::MLIRContext context;
-    context.getOrLoadDialect<mlir::tosa::TosaDialect>();
-    context.getOrLoadDialect<mlir::func::FuncDialect>();
-    context.getOrLoadDialect<mlir::arith::ArithDialect>();
-    context.getOrLoadDialect<mlir::spirv::SPIRVDialect>();
-    context.getOrLoadDialect<mlir::cf::ControlFlowDialect>();
-
-    tokens           = clobber::tokenize(source_text);
-    compilation_unit = clobber::parse(source_text, tokens);
-    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit));
-
-    _module = clobber::emit(context, *semantic_model);
-
-    spdlog::info(std::format("\nMLIR:\n```"));
-    _module->dump();
-    spdlog::info(std::format("```"));
-
-    try {
-        if (mlir::failed(mlir::verify(_module))) {
-            llvm::errs() << "MLIR module verification FAILED\n";
-        } else {
-            llvm::outs() << "MLIR module OK:\n";
-        }
-    } catch (...) {
-        llvm::errs() << "MLIR module verification FAILED (WITH ERRORS)\n";
-    }
-
-#ifdef CRT_ENABLED
-    if (_CrtDumpMemoryLeaks()) {
-        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
-    }
-#endif
-}
-
 // INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(0, 1, 2, 3));
 // INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(3));
-INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(5));
+// INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(5));
+INSTANTIATE_TEST_SUITE_P(EmitterTestsCore, EmitterTests, ::testing::Values(6));

@@ -18,8 +18,10 @@ target_include_directories(clobber
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
+find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(clobber
-    PUBLIC clobber_common
+    PUBLIC  clobber_common
+    PRIVATE magic_enum::magic_enum
 )
 
 set_target_properties(clobber PROPERTIES UNITY_BUILD ON)

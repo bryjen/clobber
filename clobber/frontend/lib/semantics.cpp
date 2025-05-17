@@ -195,7 +195,7 @@ struct SemanticContext {
     std::vector<clobber::Diagnostic> &diagnostics;
 };
 
-namespace builtin_fns {
+namespace builtins {
     std::unordered_map<std::string, std::function<std::shared_ptr<clobber::Type>(TypePool &)>> name_rtype_map = {
         {"itos", [](TypePool &tp) { return tp.func({tp.i32(), tp.str()}); }},
         {"ftos", [](TypePool &tp) { return tp.func({tp.f32(), tp.str()}); }},
@@ -214,7 +214,7 @@ namespace builtin_fns {
             symbol_table.insert_symbol(symbol);
         }
     }
-} // namespace builtin_fns
+} // namespace builtins
 
 // TODO: remake this:
 /*
@@ -498,7 +498,7 @@ clobber::get_semantic_model(std::unique_ptr<clobber::CompilationUnit> &&compilat
     TypePool type_pool{};
     std::unique_ptr<clobber::TypeMap> type_map = std::make_unique<clobber::TypeMap>();
 
-    builtin_fns::init(type_pool, symbol_table);
+    builtins::init(type_pool, symbol_table);
 
     // clang-format off
     SemanticContext context{

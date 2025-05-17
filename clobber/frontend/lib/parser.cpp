@@ -6,6 +6,8 @@
 #include "clobber/ast.hpp"
 #include "clobber/parser.hpp"
 
+#include "clobber/internal/diagnostic_factory.hpp"
+
 struct ParseContext {
     const std::string &source_text;
     const std::vector<clobber::Token> &tokens;
@@ -393,6 +395,12 @@ try_parse_relu_expr(ParseContext &ctx) {
         operand = std::unique_ptr<clobber::Expr>(operand_raw);
     }
 
+    if (ctx.tokens[ctx.current_idx + 1].type != clobber::Token::Type::CloseParenToken) {
+
+        recover(ctx.tokens, ctx.current_idx);
+        return nullptr;
+    }
+
     close_paren_token = ctx.tokens[ctx.current_idx++];
     return new clobber::accel::RelUExpr(open_paren_token, relu_token, std::move(operand), close_paren_token);
 }
@@ -404,12 +412,6 @@ try_parse_call_expr(ParseContext &ctx) {
     clobber::Token operator_token;
     std::vector<std::unique_ptr<clobber::Expr>> arguments;
     Option<clobber::Token> current_token;
-
-    /*
-    // ce            = new CallExpr();
-    ce->arguments = std::vector<std::unique_ptr<clobber::Expr>>{};
-    ce->type      = clobber::Expr::Type::CallExpr;
-    */
 
     open_paren_token = ctx.tokens[ctx.current_idx++];
     operator_token   = ctx.tokens[ctx.current_idx++];
@@ -442,14 +444,15 @@ try_parse(ParseContext &ctx) {
 
     token_opt = try_get_token(ctx.tokens, ctx.current_idx);
     if (!token_opt) {
-        return nullptr;
+        return nullptr; // silently error
     }
     current_token = token_opt.value();
 
     parse_fn_opt = try_get_parse_fun(current_token.type);
     if (!parse_fn_opt) {
-        // clobber::ParserError err = err::InternalErr(1, current_token.start, current_token.length);
-        // parse_errors.push_back(err);
+        std::string err_msg = std::format("Could not find a parse function for the ");
+        auto err            = diag::parser::internal_err(current_token.start, current_token.length, "Could not find the parse");
+        ctx.diagnostics.push_back(err);
         recover(ctx.tokens, ctx.current_idx);
         return nullptr;
     }

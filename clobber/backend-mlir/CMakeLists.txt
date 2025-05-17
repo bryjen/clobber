@@ -28,6 +28,7 @@ message(STATUS "[LLVM_MLIR_LIB_DIR]:     ${LLVM_MLIR_LIB_DIR}")
 file(GLOB MLIR_LIBS "${LLVM_MLIR_LIB_DIR}/*.lib")
 # message(STATUS ${MLIR_LIBS})
 
+find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(clobber_mlir_backend 
   PUBLIC
     # llvm/mlir 
@@ -36,6 +37,10 @@ target_link_libraries(clobber_mlir_backend
 
     # clobber frontend
     clobber
+
+  PRIVATE 
+    clobber_common
+    magic_enum::magic_enum
 )
 
 target_include_directories(clobber_mlir_backend
