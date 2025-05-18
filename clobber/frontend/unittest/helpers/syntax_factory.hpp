@@ -24,10 +24,59 @@ namespace SyntaxFactory {
     DEFINE_TOKEN_FUNC(Equals)
     DEFINE_TOKEN_FUNC(LessThan)
     DEFINE_TOKEN_FUNC(GreaterThan)
+
+    DEFINE_TOKEN_FUNC(Quote)
+    DEFINE_TOKEN_FUNC(Backtick)
+    DEFINE_TOKEN_FUNC(Tilde)
+    DEFINE_TOKEN_FUNC(TildeSplice)
+    DEFINE_TOKEN_FUNC(DispatchHash)
+    DEFINE_TOKEN_FUNC(At)
+    DEFINE_TOKEN_FUNC(Ampersand)
+
+    DEFINE_TOKEN_FUNC(Comma)
+    DEFINE_TOKEN_FUNC(Caret)
     DEFINE_TOKEN_FUNC(Eof)
+
+    DEFINE_TOKEN_FUNC(NsKeyword)
+    DEFINE_TOKEN_FUNC(IfKeyword)
     DEFINE_TOKEN_FUNC(LetKeyword)
-    DEFINE_TOKEN_FUNC(DefKeyword)
     DEFINE_TOKEN_FUNC(FnKeyword)
+    DEFINE_TOKEN_FUNC(DefKeyword)
+    DEFINE_TOKEN_FUNC(DefMacroKeyword)
+    DEFINE_TOKEN_FUNC(DoKeyword)
+
+    // type keywords
+    DEFINE_TOKEN_FUNC(CharKeyword)
+    DEFINE_TOKEN_FUNC(StringKeyword)
+    DEFINE_TOKEN_FUNC(VectorKeyword)
+    DEFINE_TOKEN_FUNC(I8Keyword)
+    DEFINE_TOKEN_FUNC(I16Keyword)
+    DEFINE_TOKEN_FUNC(I32Keyword)
+    DEFINE_TOKEN_FUNC(I64Keyword)
+    DEFINE_TOKEN_FUNC(F32Keyword)
+    DEFINE_TOKEN_FUNC(F64Keyword)
+
+    // hardware acceleration tokens
+    DEFINE_TOKEN_FUNC(AccelKeyword)
+    DEFINE_TOKEN_FUNC(TensorKeyword)
+    DEFINE_TOKEN_FUNC(ReshapeKeyword)
+    DEFINE_TOKEN_FUNC(TransposeKeyword)
+    DEFINE_TOKEN_FUNC(TileKeyword)
+    DEFINE_TOKEN_FUNC(SliceKeyword)
+    DEFINE_TOKEN_FUNC(ConcatKeyword)
+    DEFINE_TOKEN_FUNC(IdentityKeyword)
+    DEFINE_TOKEN_FUNC(CastKeyword)
+    DEFINE_TOKEN_FUNC(Conv2dKeyword)
+    DEFINE_TOKEN_FUNC(DepthwiseConv2dKeyword)
+    DEFINE_TOKEN_FUNC(MatmulKeyword)
+    DEFINE_TOKEN_FUNC(FullyConnectedKeyword)
+    DEFINE_TOKEN_FUNC(AvgPool2dKeyword)
+    DEFINE_TOKEN_FUNC(MaxPool2dKeyword)
+    DEFINE_TOKEN_FUNC(PadKeyword)
+    DEFINE_TOKEN_FUNC(ReluKeyword)
+    DEFINE_TOKEN_FUNC(SigmoidKeyword)
+    DEFINE_TOKEN_FUNC(TanhKeyword)
+    DEFINE_TOKEN_FUNC(SoftmaxKeyword)
 
     /* @brief Constructs a string literal token, inserts the double quotes into the value provided. */
     inline clobber::Token
@@ -78,4 +127,12 @@ namespace SyntaxFactory {
         token.type = clobber::Token::Type::BadToken;
         return token;
     }
+
+    inline clobber::Token
+    KeywordLiteral(const std::string &literal) {
+        clobber::Token token{};
+        token.type = clobber::Token::Type::KeywordLiteralToken;
+        return token;
+    }
+
 }; // namespace SyntaxFactory

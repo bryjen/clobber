@@ -12,14 +12,16 @@ target_precompile_headers(clobber_tests PRIVATE
 )
 
 include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers
 )
 
 target_sources(clobber_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/helpers.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/expr_tostring.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/type_tostring.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/tostring.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/syntax_factory.cpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cases.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tokenizer_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/parser_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/semantics_tests.cpp
@@ -43,9 +45,9 @@ include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 target_compile_definitions(clobber_tests PRIVATE
-    # ENABLE_TOKENIZER_TESTS
+    ENABLE_TOKENIZER_TESTS
     # ENABLE_PARSER_TESTS
-    ENABLE_SEMANTICS_TESTS
+    # ENABLE_SEMANTICS_TESTS
 )
 
 # copy test files into output executable directory

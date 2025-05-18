@@ -5,6 +5,7 @@ add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/tokenizer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/parser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/semantics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/macro_expand.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/diagnostic_factory.cpp
 )

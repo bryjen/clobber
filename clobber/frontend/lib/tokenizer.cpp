@@ -47,8 +47,6 @@ clobber::tokenize(const std::string &source_text) {
 
         clobber::Token::Type token_type;
         clobber::Token token;
-
-        std::any value;
         std::string value_str; // string representation of the value
 
         spaces_len     = consume_space_characters(source_text, current_idx);
@@ -63,40 +61,33 @@ clobber::tokenize(const std::string &source_text) {
             // tokenize as number
             token_len  = read_char_sequence(number_pred, source_text, current_idx);
             token_type = clobber::Token::Type::NumericLiteralToken;
-            value      = source_text.substr(start_idx, token_len);
         } else if (isalpha(peek_char)) {
             // tokenize as identifier
             Option<clobber::Token::Type> token_type_opt;
 
             token_len = read_char_sequence(identifier_pred, source_text, current_idx);
             value_str = source_text.substr(start_idx, token_len);
-            value     = value_str;
 
             token_type_opt = get_type_if_keyword_str(value_str);
             token_type     = token_type_opt ? token_type_opt.value() : clobber::Token::Type::IdentifierToken;
-        } else if (peek_char == '"') {
-            // tokenize as string
-
+        } else if (peek_char == '"') {                                                 // tokenize as string
             token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the double quot for now
             token_len += 2;                                                            // +1 to include the ending double quot
-            value_str = source_text.substr(start_idx, token_len);
-            value     = value_str;
-
+            value_str  = source_text.substr(start_idx, token_len);
             token_type = clobber::Token::Type::StringLiteralToken;
-        } else if (peek_char == '\'') {
-            // tokenize as char
+        } else if (peek_char == '\\') { // tokenize as char
             // the char token can contain more than one char, but this is intended to be asserted in further stages in the pipeline
-
-            token_len = read_char_sequence(string_pred, source_text, current_idx + 1); // +1 to skip the quot for now
-            token_len += 2;                                                            // +1 to include the quot
-            value_str = source_text.substr(start_idx, token_len);
-            value     = value_str;
-
+            token_len = read_char_sequence(is_alphanumeric, source_text, current_idx + 1); // +1 to skip the quot for now
+            token_len += 1;
+            value_str  = source_text.substr(start_idx, token_len);
             token_type = clobber::Token::Type::CharLiteralToken;
-        } else {
-            // tokenize as symbol
+        } else if (peek_char == ':') {                                                     // tokenize as keyword literal
+            token_len = read_char_sequence(identifier_pred, source_text, current_idx + 1); // +1 to skip the colon for now
+            token_len += 1;
+            value_str  = source_text.substr(start_idx, token_len);
+            token_type = clobber::Token::Type::KeywordLiteralToken;
+        } else { // tokenize as symbol
             token_len = try_parse_symbol(source_text, current_idx, token_type);
-            value     = source_text.substr(start_idx, token_len);
         }
 
         current_idx += token_len;
@@ -106,7 +97,6 @@ clobber::tokenize(const std::string &source_text) {
         token.full_start  = full_start_idx;
         token.full_length = spaces_len + token_len;
         token.type        = token_type;
-        // token.value       = value;
 
         tokens.push_back(token);
     }
@@ -117,7 +107,6 @@ clobber::tokenize(const std::string &source_text) {
     eof_token.full_length = 0;
     eof_token.length      = 0;
     eof_token.type        = clobber::Token::Type::EofToken;
-    // eof_token.value       = std::string{std::char_traits<char>::eof()};
 
     tokens.push_back(eof_token);
 
@@ -159,7 +148,7 @@ number_pred(char c) {
 
 bool
 identifier_pred(char c) {
-    return (c == '-') || is_alphanumeric(c);
+    return (c == '-') || (c == '.') || is_alphanumeric(c);
 }
 
 bool
@@ -189,12 +178,30 @@ consume_space_characters(const std::string &source_text, size_t start_idx) {
     return read_char_sequence(is_space, source_text, start_idx);
 }
 
+std::optional<clobber::Token::Type>
+try_parse_two_char_symbol(char fst, char snd) {
+    if (fst == '~' && snd == '@') {
+        return std::make_optional(clobber::Token::Type::TildeSpliceToken);
+    }
+
+    return std::nullopt;
+}
+
 size_t
 try_parse_symbol(const std::string &source_text, size_t start_index, clobber::Token::Type &out_token_type) {
     char fst_char = try_get_char(source_text, start_index);
+    char snd_char = try_get_char(source_text, start_index + 1);
 
-    // we don't need to parse two character operators for now
+    // check if its a valid two character symbol
+    if (snd_char != eof_char) {
+        auto symbol_type = try_parse_two_char_symbol(fst_char, snd_char);
+        if (symbol_type) {
+            out_token_type = symbol_type.value();
+            return 2;
+        }
+    }
 
+    // else, check if its a one character symbol
     // clang-format off
     std::unordered_map<char, clobber::Token::Type> token_map = {
         { '(', clobber::Token::Type::OpenParenToken },
@@ -211,6 +218,15 @@ try_parse_symbol(const std::string &source_text, size_t start_index, clobber::To
         { '=', clobber::Token::Type::EqualsToken },
         { '<', clobber::Token::Type::LessThanToken },
         { '>', clobber::Token::Type::GreaterThanToken },
+
+        { '\'', clobber::Token::Type::QuoteToken },
+        { '`', clobber::Token::Type::BacktickToken },
+        { '~', clobber::Token::Type::TildeToken },
+        { '#', clobber::Token::Type::DispatchHashToken },
+        { '@', clobber::Token::Type::AtToken },
+        { '&', clobber::Token::Type::AmpersandToken },
+        { '^', clobber::Token::Type::CaretToken },
+        { ',', clobber::Token::Type::CommaToken },
     };
     // clang-format on
 
@@ -227,7 +243,22 @@ get_type_if_keyword_str(const std::string &value) {
         {"fn", clobber::Token::Type::FnKeywordToken },
         {"def", clobber::Token::Type::DefKeywordToken },
         {"do", clobber::Token::Type::DoKeywordToken },
-        {"accel", clobber::Token::Type::AccelKeywordToken },
+        {"ns", clobber::Token::Type::NsKeywordToken },
+        {"if", clobber::Token::Type::IfKeywordToken },
+        {"defmacro", clobber::Token::Type::DefMacroKeywordToken },
+
+        {"char", clobber::Token::Type::CharKeywordToken },
+        {"string", clobber::Token::Type::StringKeywordToken },
+        {"vector", clobber::Token::Type::VectorKeywordToken },
+        {"i8", clobber::Token::Type::I8KeywordToken },
+        {"i16", clobber::Token::Type::I16KeywordToken },
+        {"i32", clobber::Token::Type::I32KeywordToken },
+        {"i64", clobber::Token::Type::I64KeywordToken },
+        {"f32", clobber::Token::Type::F32KeywordToken },
+        {"f64", clobber::Token::Type::F64KeywordToken },
+
+        // with tosa prefix
+        /*
         {"tosa-reshape", clobber::Token::Type::TosaReshapeKeywordToken },
         {"tosa-transpose", clobber::Token::Type::TosaTransposeKeywordToken },
         {"tosa-tile", clobber::Token::Type::TosaTileKeywordToken },
@@ -246,6 +277,29 @@ get_type_if_keyword_str(const std::string &value) {
         {"tosa-sigmoid", clobber::Token::Type::TosaSigmoidKeywordToken },
         {"tosa-tanh", clobber::Token::Type::TosaTanhKeywordToken },
         {"tosa-softmax", clobber::Token::Type::TosaSoftmaxKeywordToken },
+        */
+
+        // without tosa prefix
+        {"accel", clobber::Token::Type::AccelKeywordToken },
+        {"tensor", clobber::Token::Type::TensorKeywordToken },
+        {"reshape", clobber::Token::Type::ReshapeKeywordToken },
+        {"transpose", clobber::Token::Type::TransposeKeywordToken },
+        {"tile", clobber::Token::Type::TileKeywordToken },
+        {"slice", clobber::Token::Type::SliceKeywordToken },
+        {"concat", clobber::Token::Type::ConcatKeywordToken },
+        {"identity", clobber::Token::Type::IdentityKeywordToken },
+        {"cast", clobber::Token::Type::CastKeywordToken },
+        {"conv2d", clobber::Token::Type::Conv2dKeywordToken },
+        {"depthwise-conv2d", clobber::Token::Type::DepthwiseConv2dKeywordToken },
+        {"matmul", clobber::Token::Type::MatmulKeywordToken },
+        {"fully-connected", clobber::Token::Type::FullyConnectedKeywordToken },
+        {"avgpool2d", clobber::Token::Type::AvgPool2dKeywordToken },
+        {"maxpool2d", clobber::Token::Type::MaxPool2dKeywordToken },
+        {"pad", clobber::Token::Type::PadKeywordToken },
+        {"relu", clobber::Token::Type::ReluKeywordToken },
+        {"sigmoid", clobber::Token::Type::SigmoidKeywordToken },
+        {"tanh", clobber::Token::Type::TanhKeywordToken },
+        {"softmax", clobber::Token::Type::SoftmaxKeywordToken },
     };
     // clang-format on
 

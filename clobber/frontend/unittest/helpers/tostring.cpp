@@ -1,4 +1,4 @@
-#include "expr_tostring.hpp"
+#include "tostring.hpp"
 #include "pch.hpp"
 
 #include <magic_enum/magic_enum.hpp>
@@ -57,7 +57,7 @@ public:
     }
 
     std::string
-    walk_pve(const std::string &source_text, clobber::ParameterVectorExpr& pve) {
+    walk_pve(const std::string &source_text, clobber::ParameterVectorExpr &pve) {
         this->source_text = &source_text;
         lines             = {};
 
@@ -258,7 +258,7 @@ protected:
         // TODO: see what you can do about this:
         std::string full_text = norm(ts.walk_bve(*source_text, *bve));
         // std::string full_text = norm(ExprToString::binding_vector_expr(*source_text, *bve));
-        std::string str       = indent(current_indentation, std::format("[BindingVector] `{}`", full_text));
+        std::string str = indent(current_indentation, std::format("[BindingVector] `{}`", full_text));
         lines.push_back(str);
 
         inc_indentation();
@@ -291,7 +291,7 @@ protected:
         // TODO: see what you can do about this:
         std::string full_text = norm(ts.walk_pve(*source_text, *pve));
         // std::string full_text = norm(ExprToString::parameter_vector_expr(*source_text, *pve));
-        std::string str       = indent(current_indentation, std::format("[ParameterVector] `{}`", full_text));
+        std::string str = indent(current_indentation, std::format("[ParameterVector] `{}`", full_text));
         lines.push_back(str);
 
         inc_indentation();
@@ -491,4 +491,46 @@ expr_visualize_tree(const std::string &source_text, clobber::Expr &expr) {
     TreeVisualizer tv{};
     return tv.walk(source_text, expr);
     throw 0;
+}
+
+std::string
+type_tostring(const clobber::Type &type) {
+    std::string repr;
+    switch (type.kind) {
+    case clobber::Type::Int: {
+        repr = "int";
+        break;
+    }
+    case clobber::Type::Float: {
+        repr = "float";
+        break;
+    }
+    case clobber::Type::Double: {
+        repr = "double";
+        break;
+    }
+    case clobber::Type::String: {
+        repr = "string";
+        break;
+    }
+    case clobber::Type::Char: {
+        repr = "string";
+        break;
+    }
+    case clobber::Type::Bool: {
+        repr = "bool";
+        break;
+    }
+    case clobber::Type::Func: {
+        std::vector<std::string> type_strs;
+        /*
+        for (const auto &type_param : type.params) {
+        }
+        */
+        repr = std::format("({})", str_utils::join(" -> ", type_strs));
+        break;
+    }
+    }
+
+    return repr;
 }

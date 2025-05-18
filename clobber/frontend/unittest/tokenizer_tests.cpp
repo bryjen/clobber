@@ -1,4 +1,5 @@
 #include "pch.hpp"
+#include "test_cases.hpp"
 
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
@@ -9,133 +10,6 @@
 using path = std::filesystem::path;
 using namespace SyntaxFactory;
 using namespace TokenizerTestsHelpers;
-
-// clang-format off
-std::vector<std::vector<clobber::Token>> expected_cases = {
-    { 
-        OpenParen(),
-        Plus(),
-        NumericLiteral(1),
-        NumericLiteral(2),
-        CloseParen(),
-
-        OpenParen(),
-        Asterisk(),
-        NumericLiteral(3),
-        NumericLiteral(4),
-        CloseParen(),
-
-        OpenParen(),
-        Plus(),
-        StringLiteralInsertDoubleQuot("Hello, "),
-        StringLiteralInsertDoubleQuot("world!"),
-        CloseParen(),
-
-        OpenParen(),
-        Plus(),
-        CharLiteral('a'),
-        CharLiteral('b'),
-        CloseParen(),
-
-        OpenParen(),
-        Plus(),
-        NumericLiteral(10.0f, 1),
-        NumericLiteral(0.2f, 1),
-        CloseParen(),
-
-        OpenParen(),
-        Plus(),
-        NumericLiteral(10.0, 1, false),
-        NumericLiteral(0.2, 1, false),
-        CloseParen(),
-
-        OpenParen(),
-        Plus(),
-        NumericLiteral(10.0, 1, true),
-        NumericLiteral(0.2, 1, true),
-        CloseParen(),
-
-        Eof()
-    },
-    { 
-        OpenParen(),
-        // Identifier("let"),
-        LetKeyword(),
-        OpenBracket(),
-        Identifier("x"),
-        NumericLiteral(10),
-        Identifier("y"),
-        NumericLiteral(5),
-        CloseBracket(),
-        OpenParen(),
-        Plus(),
-        Identifier("x"),
-        Identifier("y"),
-        CloseParen(),
-        CloseParen(),
-        Eof()
-    },
-    {
-        OpenParen(),
-        FnKeyword(),
-        OpenBracket(),
-        Identifier("x"),
-        CloseBracket(),
-        OpenParen(),
-        Asterisk(),
-        Identifier("x"),
-        Identifier("x"),
-        CloseParen(),
-        CloseParen(),
-        Eof()
-    },
-    {
-        OpenParen(),
-        DefKeyword(),
-        Identifier("main"),
-        OpenBracket(),
-        Identifier("x"),
-        Identifier("y"),
-        CloseBracket(),
-
-        OpenParen(),
-        LetKeyword(),
-        OpenParen(),
-
-        OpenParen(),
-        Identifier("z"),
-        OpenParen(),
-        Plus(),
-        Identifier("x"),
-        Identifier("y"),
-        CloseParen(),
-        CloseParen(),
-
-        OpenParen(),
-        Identifier("z2"),
-        OpenParen(),
-        Identifier("relu"),
-        Identifier("z"),
-        CloseParen(),
-        CloseParen(),
-
-        OpenParen(),
-        Identifier("out"),
-        OpenParen(),
-        Identifier("matmul"),
-        Identifier("z2"),
-        Identifier("weights"),
-        CloseParen(),
-        CloseParen(),
-        CloseParen(),
-
-        Identifier("out"),
-        CloseParen(),
-        CloseParen(),
-        Eof()
-    }
-};
-// clang-format on
 
 class TokenizerTests : public ::testing::TestWithParam<size_t> {
 protected:
@@ -161,9 +35,9 @@ protected:
 };
 
 #ifndef ENABLE_TOKENIZER_TESTS
-TEST_P(TokenizerTests, DISABLED_IsEven) {
+TEST_P(TokenizerTests, DISABLED_tokenizer_tests) {
 #else
-TEST_P(TokenizerTests, IsEven) {
+TEST_P(TokenizerTests, tokenizer_tests) {
 #endif
 #ifdef CRT_ENABLED
     INIT_CRT_DEBUG();
@@ -175,17 +49,23 @@ TEST_P(TokenizerTests, IsEven) {
     std::vector<clobber::Token> actual_tokens;
     std::vector<clobber::Token> expected_tokens;
 
-    test_case_idx   = GetParam();
-    file_path       = std::format("./test_files/{}.clj", test_case_idx);
+    test_case_idx = GetParam();
+    file_path     = std::format("./test_files/{}.clj", test_case_idx);
+
+    /*
     source_text     = read_all_text(file_path);
     expected_tokens = expected_cases[test_case_idx];
+    */
+
+    source_text     = test_cases::tokenizer::sources[test_case_idx];
+    expected_tokens = test_cases::tokenizer::expected_tokens[test_case_idx];
 
     actual_tokens = clobber::tokenize(source_text);
 
     print_tokens(source_text, expected_tokens, actual_tokens);
 
     ASSERT_TRUE(are_num_tokens_equal(expected_tokens, actual_tokens));
-    EXPECT_TRUE(are_tokens_equal(expected_tokens, actual_tokens));
+    EXPECT_TRUE(are_tokens_vec_equal(source_text, expected_tokens, actual_tokens));
     EXPECT_TRUE(is_roundtrippable(source_text, actual_tokens));
 
 #ifdef CRT_ENABLED
@@ -195,5 +75,5 @@ TEST_P(TokenizerTests, IsEven) {
 #endif
 }
 
-INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, TokenizerTests, ::testing::Values(0, 1, 2, 3));
+// INSTANTIATE_TEST_SUITE_P(tokenizer_tests, TokenizerTests, ::testing::Values(0, 1, 2, 3));
+INSTANTIATE_TEST_SUITE_P(tokenizer_tests, TokenizerTests, ::testing::Values(4, 5, 6, 7, 8, 9, 10));

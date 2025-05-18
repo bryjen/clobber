@@ -24,45 +24,72 @@ namespace clobber {
             PlusToken,
             MinusToken,
             AsteriskToken,
-            SlashToken,     // '/'
+            SlashToken,     // /
             BackslashToken, // '\'
             EqualsToken,
-            LessThanToken,    // '<'
-            GreaterThanToken, // '>'
+            LessThanToken,       // <
+            GreaterThanToken,    // >
+            CaretToken,          // '^'
+            KeywordLiteralToken, // :<LITERAL>
+
+            // macro stuff
+            QuoteToken,        // '
+            BacktickToken,     // `
+            TildeToken,        // ~
+            TildeSpliceToken,  // ~@
+            DispatchHashToken, // #
+            AtToken,           // @
+            AmpersandToken,    // &
+            CommaToken,
 
             IdentifierToken,
             NumericLiteralToken,
             StringLiteralToken,
             CharLiteralToken,
 
+            NsKeywordToken,
+            IfKeywordToken,
             LetKeywordToken,
             FnKeywordToken,
             DefKeywordToken,
+            DefMacroKeywordToken,
             DoKeywordToken,
 
+            // type keywords
+            CharKeywordToken,   // "string"
+            StringKeywordToken, // "string"
+            VectorKeywordToken, // "vector"
+            I8KeywordToken,     // "i8"
+            I16KeywordToken,    // "i16"
+            I32KeywordToken,    // "i32"
+            I64KeywordToken,    // "i64"
+            F32KeywordToken,    // "f32"
+            F64KeywordToken,    // "f64"
+
             // hardware acceleration tokens
-            AccelKeywordToken, // `accel`
+            AccelKeywordToken,  // `accel`
+            TensorKeywordToken, // `tensor`
 
-            TosaReshapeKeywordToken,   // `tosa-reshape`
-            TosaTransposeKeywordToken, // `tosa-transpose`
-            TosaTileKeywordToken,      // `tosa-tile`
-            TosaSliceKeywordToken,     // `tosa-slice`
-            TosaConcatKeywordToken,    // `tosa-concat`
-            TosaIdentityKeywordToken,  // `tosa-identity`
-            TosaCastKeywordToken,      // `tosa-cast`
+            ReshapeKeywordToken,   // `reshape`
+            TransposeKeywordToken, // `transpose`
+            TileKeywordToken,      // `tile`
+            SliceKeywordToken,     // `slice`
+            ConcatKeywordToken,    // `concat`
+            IdentityKeywordToken,  // `identity`
+            CastKeywordToken,      // `cast`
 
-            TosaConv2dKeywordToken,          // `tosa-conv2d`
-            TosaDepthwiseConv2dKeywordToken, // `tosa-depthwise-conv2d`
-            TosaMatmulKeywordToken,          // `tosa-matmul`
-            TosaFullyConnectedKeywordToken,  // `tosa-fully-connected`
-            TosaAvgPool2dKeywordToken,       // `tosa-avgpool2d`
-            TosaMaxPool2dKeywordToken,       // `tosa-maxpool2d`
-            TosaPadKeywordToken,             // `tosa-pad`
+            Conv2dKeywordToken,          // `conv2d`
+            DepthwiseConv2dKeywordToken, // `depthwise-conv2d`
+            MatmulKeywordToken,          // `matmul`
+            FullyConnectedKeywordToken,  // `fully-connected`
+            AvgPool2dKeywordToken,       // `avgpool2d`
+            MaxPool2dKeywordToken,       // `maxpool2d`
+            PadKeywordToken,             // `pad`
 
-            TosaReluKeywordToken,    // `tosa-relu`
-            TosaSigmoidKeywordToken, // `tosa-sigmoid`
-            TosaTanhKeywordToken,    // `tosa-tanh`
-            TosaSoftmaxKeywordToken, // `tosa-softmax`
+            ReluKeywordToken,    // `relu`
+            SigmoidKeywordToken, // `sigmoid`
+            TanhKeywordToken,    // `tanh`
+            SoftmaxKeywordToken, // `softmax`
 
             BadToken,
             EofToken,

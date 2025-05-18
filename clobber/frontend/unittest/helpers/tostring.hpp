@@ -5,8 +5,8 @@
 
 #include "pch.hpp"
 
-// clobber/ast.hpp
 namespace clobber {
+    // clobber/ast.hpp
     struct Expr;
     struct NumLiteralExpr;
     struct CallExpr;
@@ -25,10 +25,16 @@ namespace clobber {
         struct MatMulExpr;
         struct RelUExpr;
     }; // namespace accel
+
+    // clobber/semantics.hpp
+    struct Type;
 }; // namespace clobber
 
 /* @brief Gets the text encompassed by the passed expr as represented in the source text. */
 std::string expr_tostring(const std::string &source_text, clobber::Expr &expr);
+
+/* @brief Gets the string representation of a clobber type. */
+std::string type_tostring(const clobber::Type &);
 
 /* @brief Visualizes an AST starting from the passed expr. */
 std::string expr_visualize_tree(const std::string &source_text, const clobber::Expr &expr);

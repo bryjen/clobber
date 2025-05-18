@@ -196,8 +196,9 @@ try_parse_call_expr_or_special_form(ParseContext &ctx) {
         {clobber::Token::Type::DefKeywordToken, try_parse_def_expr},
         {clobber::Token::Type::DoKeywordToken, try_parse_do_expr},
         {clobber::Token::Type::AccelKeywordToken, try_parse_accel_expr},
-        {clobber::Token::Type::TosaMatmulKeywordToken, try_parse_matmul_expr},
-        {clobber::Token::Type::TosaReluKeywordToken, try_parse_relu_expr},
+
+        {clobber::Token::Type::MatmulKeywordToken, try_parse_matmul_expr},
+        {clobber::Token::Type::ReluKeywordToken, try_parse_relu_expr},
     };
     // clang-format on
 

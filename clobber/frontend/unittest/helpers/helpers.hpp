@@ -3,19 +3,42 @@
 #include "pch.hpp"
 
 namespace clobber {
-    struct Diagnostic;      // clobber/common/diagnostic.hpp
-    struct Token;           // clobber/ast.hpp
-    struct CompilationUnit; // clobber/ast.hpp
-    struct SemanticModel;   // clobber/semantics.hpp
+    // clobber/common/diagnostic.hpp
+    struct Diagnostic;
+
+    // clobber/ast.hpp
+    struct Token;
+    struct CompilationUnit;
+
+    // clobber/ast.hpp
+    struct Expr;
+    struct NumLiteralExpr;
+    struct CallExpr;
+    struct IdentifierExpr;
+    struct BindingVectorExpr;
+    struct LetExpr;
+    struct ParameterVectorExpr;
+    struct FnExpr;
+    struct DefExpr;
+    struct DoExpr;
+    struct StringLiteralExpr;
+    struct CharLiteralExpr;
+
+    namespace accel {
+        struct AccelExpr;
+        struct MatMulExpr;
+        struct RelUExpr;
+    }; // namespace accel
+
+    struct SemanticModel; // clobber/semantics.hpp
 }; // namespace clobber
+
+namespace clobber {}; // namespace clobber
 
 std::string get_executable_directory();
 std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
 std::string read_all_text(const std::string &);
-std::string clobber_token_tostring(const clobber::Token &token, bool use_alignment = false);
 std::string reconstruct_source_text_from_tokens(const std::string &, const std::vector<clobber::Token> &);
-
-void print_tokens(const std::string &, const std::vector<clobber::Token> &, const std::vector<clobber::Token> &);
 
 namespace Logging {
     void init_logger(const std::string &logger_name, const std::string &out_log_path);
@@ -23,8 +46,12 @@ namespace Logging {
 }; // namespace Logging
 
 namespace TokenizerTestsHelpers {
+    void print_tokens(const std::string &, const std::vector<clobber::Token> &, const std::vector<clobber::Token> &);
+    bool are_tokens_equal(const clobber::Token &, const clobber::Token &);
+
     ::testing::AssertionResult are_num_tokens_equal(const std::vector<clobber::Token> &, const std::vector<clobber::Token> &);
-    ::testing::AssertionResult are_tokens_equal(const std::vector<clobber::Token> &, const std::vector<clobber::Token> &);
+    ::testing::AssertionResult are_tokens_vec_equal(const std::string &, const std::vector<clobber::Token> &,
+                                                    const std::vector<clobber::Token> &);
     ::testing::AssertionResult is_roundtrippable(const std::string &, const std::vector<clobber::Token> &);
 }; // namespace TokenizerTestsHelpers
 
