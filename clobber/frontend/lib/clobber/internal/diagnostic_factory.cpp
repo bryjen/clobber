@@ -24,7 +24,7 @@ diag::parser::internal_err(size_t span_start, size_t span_len) {
 clobber::Diagnostic
 diag::parser::internal_err(size_t span_start, size_t span_len, const std::string &msg) {
     using clobber::Diagnostic;
-    Diagnostic err(Diagnostic::Stage::Parser, Diagnostic::Severity::Error, span_len, span_len, parser::ierr_default_general_msg, msg);
+    Diagnostic err(Diagnostic::Stage::Parser, Diagnostic::Severity::Error, span_start, span_len, parser::ierr_default_general_msg, msg);
     return err;
 }
 

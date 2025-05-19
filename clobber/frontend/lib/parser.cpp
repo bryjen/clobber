@@ -90,6 +90,93 @@ try_get_parse_fun(clobber::Token::Type token_type) {
     }
 }
 
+clobber::TypeExpr *try_parse_builtin_type_expr(const clobber::Token &, ParseContext &);
+clobber::TypeExpr *try_parse_user_defined_type_expr(const clobber::Token &, ParseContext &);
+clobber::TypeExpr *try_parse_parameterized_type_expr(clobber::TypeExpr *, ParseContext &);
+
+// remarks:
+// assumes that the current char is the caret token.
+clobber::TypeExpr *
+try_parse_type_expr(ParseContext &ctx) {
+    auto is_type_keyword_token = [](const clobber::Token::Type &type) {
+        // clang-format off
+        std::unordered_set<clobber::Token::Type> token_types = {
+            clobber::Token::Type::CharKeywordToken,
+            clobber::Token::Type::StringKeywordToken,
+            clobber::Token::Type::VectorKeywordToken,
+            clobber::Token::Type::I8KeywordToken,
+            clobber::Token::Type::I16KeywordToken,
+            clobber::Token::Type::I32KeywordToken,
+            clobber::Token::Type::I64KeywordToken,
+            clobber::Token::Type::F32KeywordToken,
+            clobber::Token::Type::F64KeywordToken
+        };
+        // clang-format on
+
+        auto it = token_types.find(type);
+        return it != token_types.end();
+    };
+
+    clobber::Token caret_token   = ctx.tokens[ctx.current_idx++];
+    clobber::Token current_token = ctx.tokens[ctx.current_idx];
+
+    clobber::TypeExpr *type_expr;
+    if (is_type_keyword_token(current_token.type)) {
+        type_expr = try_parse_builtin_type_expr(caret_token, ctx);
+    } else if (current_token.type == clobber::Token::Type::IdentifierToken) {
+        type_expr = try_parse_builtin_type_expr(caret_token, ctx);
+    } else {
+        // TODO: throw some bullshit here
+        return nullptr;
+    }
+
+    current_token = ctx.tokens[ctx.current_idx];
+    return ctx.tokens[ctx.current_idx].type == clobber::Token::Type::LessThanToken ? try_parse_parameterized_type_expr(type_expr, ctx)
+                                                                                   : type_expr;
+}
+
+clobber::TypeExpr *
+try_parse_builtin_type_expr(const clobber::Token &caret_token, ParseContext &ctx) {
+    clobber::Token type_keyword_token = ctx.tokens[ctx.current_idx++]; // asserted by caller
+    return new clobber::BuiltinTypeExpr(caret_token, type_keyword_token);
+}
+
+clobber::TypeExpr *
+try_parse_user_defined_type_expr(const clobber::Token &caret_token, ParseContext &ctx) {
+    clobber::Token identifier_token = ctx.tokens[ctx.current_idx++]; // asserted by caller
+    return new clobber::UserDefinedTypeExpr(caret_token, identifier_token);
+}
+
+clobber::TypeExpr *
+try_parse_parameterized_type_expr(clobber::TypeExpr *type_expr, ParseContext &ctx) {
+    clobber::Token lt_token = ctx.tokens[ctx.current_idx++];
+
+    std::vector<std::unique_ptr<clobber::Expr>> pvalues;
+    std::vector<clobber::Token> commas;
+    while (ctx.current_idx < ctx.tokens.size()) {
+        auto param_value = try_parse(ctx);
+        if (!param_value) {
+            return nullptr;
+        }
+
+        pvalues.push_back(std::unique_ptr<clobber::Expr>(param_value));
+
+        clobber::Token current_token = ctx.tokens[ctx.current_idx];
+        if (current_token.type == clobber::Token::Type::GreaterThanToken) {
+            clobber::Token gt_token = ctx.tokens[ctx.current_idx++];
+            auto type_expr_uptr     = std::unique_ptr<clobber::TypeExpr>(type_expr);
+            return new clobber::ParameterizedTypeExpr(std::move(type_expr_uptr), lt_token, std::move(pvalues), commas, gt_token);
+
+        } else if (current_token.type == clobber::Token::Type::CommaToken) {
+            commas.push_back(ctx.tokens[ctx.current_idx++]);
+
+        } else {
+            // TODO: throw some bullshit here
+            return nullptr;
+        }
+    }
+}
+
 clobber::Expr *
 try_parse_numeric_literal_expr(ParseContext &ctx) {
     return new clobber::NumLiteralExpr(ctx.tokens[ctx.current_idx++]); // no bounds check, current token exists, asserted by caller
@@ -410,13 +497,18 @@ clobber::Expr *
 try_parse_call_expr(ParseContext &ctx) {
     clobber::Token open_paren_token;
     clobber::Token close_paren_token;
-    clobber::Token operator_token;
     std::vector<std::unique_ptr<clobber::Expr>> arguments;
     Option<clobber::Token> current_token;
 
     open_paren_token = ctx.tokens[ctx.current_idx++];
-    operator_token   = ctx.tokens[ctx.current_idx++];
-    current_token    = try_get_token(ctx.tokens, ctx.current_idx);
+
+    clobber::Expr *operator_expr = try_parse(ctx);
+    if (operator_expr) {
+        // TODO: throw some bullshit here
+        return nullptr;
+    }
+
+    current_token = try_get_token(ctx.tokens, ctx.current_idx);
 
     while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
         clobber::Expr *arg_expr = try_parse(ctx);
@@ -432,8 +524,7 @@ try_parse_call_expr(ParseContext &ctx) {
     }
 
     ctx.current_idx++;
-    return new clobber::CallExpr(clobber::CallExprOperatorExprType::IdentifierExpr, open_paren_token, operator_token, close_paren_token,
-                                 std::move(arguments));
+    return new clobber::CallExpr(open_paren_token, std::unique_ptr<clobber::Expr>(operator_expr), std::move(arguments), close_paren_token);
 }
 
 clobber::Expr *

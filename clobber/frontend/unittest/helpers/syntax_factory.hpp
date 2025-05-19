@@ -135,4 +135,30 @@ namespace SyntaxFactory {
         return token;
     }
 
+    clobber::ParameterVectorExpr *ParameterVectorExpr(std::vector<clobber::IdentifierExpr *> identifiers);
+    clobber::BindingVectorExpr *BindingVectorExpr(std::vector<clobber::IdentifierExpr *> identifiers, std::vector<clobber::Expr *> values);
+
+    clobber::BuiltinTypeExpr *BuiltinTypeExpr(const clobber::Token &type_token);
+    clobber::UserDefinedTypeExpr *UserDefinedTypeExpr(const clobber::Token &identifier_token);
+    clobber::ParameterizedTypeExpr *ParameterizedTypeExpr(clobber::TypeExpr *type_expr, std::vector<clobber::Expr *> param_values);
+
+    clobber::IdentifierExpr *IdentifierExpr(const std::string &name);
+    clobber::NumLiteralExpr *NumLiteralExpr(int value);
+    clobber::NumLiteralExpr *NumLiteralExpr(float value);
+    clobber::NumLiteralExpr *NumLiteralExpr(double value);
+    clobber::StringLiteralExpr *StringLiteralExpr(const std::string &value);
+    clobber::CharLiteralExpr *CharLiteralExpr(char value);
+
+    clobber::LetExpr *LetExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs);
+    clobber::FnExpr *FnExpr(clobber::ParameterVectorExpr *pve, std::vector<clobber::Expr *> body_exprs);
+    clobber::DefExpr *DefExpr(clobber::IdentifierExpr *identifier, clobber::Expr *value);
+    clobber::DoExpr *DoExpr(std::vector<clobber::Expr *> body_exprs);
+
+    clobber::CallExpr *CallExpr(clobber::Expr *operator_expr, std::vector<clobber::Expr *> arguments);
+    clobber::CallExpr *CallExpr(const std::string &fn_name, std::vector<clobber::Expr *> arguments);
+
+    clobber::accel::AccelExpr *AccelExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs);
+    clobber::accel::MatMulExpr *MatMulExpr(clobber::Expr *fst_operand, clobber::Expr *snd_operand);
+    clobber::accel::RelUExpr *RelUExpr(clobber::Expr *operand);
+
 }; // namespace SyntaxFactory

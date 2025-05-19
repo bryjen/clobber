@@ -457,12 +457,16 @@ type_infer_call_expr(SemanticContext &context, const clobber::Expr &expr) {
 
     const clobber::CallExpr &call_expr = static_cast<const clobber::CallExpr &>(expr);
 
+    /*
     if (is_arithmetic_token(call_expr.operator_token)) {
         return type_infer_arithmetic_expr(context, call_expr);
     } else {
         std::string fn_name = context.compilation_unit.source_text.substr(call_expr.operator_token.start, call_expr.operator_token.length);
         return type_infer_fn_call_expr(context, call_expr, fn_name);
     }
+    */
+
+    throw 0;
 }
 
 std::shared_ptr<clobber::Type>

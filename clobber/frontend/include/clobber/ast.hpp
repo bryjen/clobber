@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include <clobber/common/debug.hpp> // common debug header
 
 #include "pch.hpp"
@@ -95,10 +97,10 @@ namespace clobber {
             EofToken,
         };
 
-        size_t start;
-        size_t length;
-        size_t full_start;  // includes trivia
-        size_t full_length; // includes trivia
+        size_t start       = 0;
+        size_t length      = 0;
+        size_t full_start  = 0; // includes trivia
+        size_t full_length = 0; // includes trivia
         Token::Type type;
 
     public:
@@ -112,15 +114,14 @@ namespace clobber {
     /* @brief Represents a clobber expression. Base class for all expression types. */
     struct Expr {
         enum class Type {
-            CallExpr,
-            IdentifierExpr,
-            ParameterVectorExpr,
-            BindingVectorExpr,
-
             NumericLiteralExpr,
             StringLiteralExpr,
             CharLiteralExpr,
+            IdentifierExpr,
 
+            TypeExpr,
+
+            CallExpr,
             LetExpr,
             FnExpr,
             DefExpr,
@@ -138,6 +139,71 @@ namespace clobber {
 
         virtual size_t hash() const                 = 0;
         virtual std::unique_ptr<Expr> clone() const = 0;
+    };
+
+    /* @brief */
+    struct TypeExpr : Expr {
+        enum class Type {
+            BuiltinType,
+            UserDefinedType,
+            ParameterizedType
+        };
+
+        TypeExpr::Type type_kind;
+
+    public:
+        TypeExpr(TypeExpr::Type);
+        TypeExpr(const TypeExpr &);
+
+        virtual size_t hash() const                            = 0;
+        virtual std::unique_ptr<Expr> clone() const            = 0;
+        virtual std::unique_ptr<TypeExpr> clone_nowrap() const = 0;
+    };
+
+    /* @brief */
+    struct BuiltinTypeExpr final : TypeExpr {
+        Token caret_token;
+        Token type_keyword_token;
+
+    public:
+        BuiltinTypeExpr(const Token &, const Token &);
+        BuiltinTypeExpr(const BuiltinTypeExpr &);
+
+        size_t hash() const override;
+        std::unique_ptr<Expr> clone() const override;
+        std::unique_ptr<TypeExpr> clone_nowrap() const override;
+    };
+
+    /* @brief */
+    struct UserDefinedTypeExpr final : TypeExpr {
+        Token caret_token;
+        Token identifier_token;
+
+    public:
+        UserDefinedTypeExpr(const Token &, const Token &);
+        UserDefinedTypeExpr(const UserDefinedTypeExpr &);
+
+        size_t hash() const override;
+        std::unique_ptr<Expr> clone() const override;
+        std::unique_ptr<TypeExpr> clone_nowrap() const override;
+    };
+
+    /* @brief */
+    struct ParameterizedTypeExpr final : TypeExpr { // 'composite' type, so it shouldn't include caret token
+        std::unique_ptr<TypeExpr> type_expr;
+        Token less_than_token;
+        std::vector<std::unique_ptr<Expr>> param_values;
+        std::vector<Token> commas;
+        Token greater_than_token;
+
+    public:
+        ParameterizedTypeExpr(std::unique_ptr<TypeExpr>, const Token &, std::vector<std::unique_ptr<Expr>> &&, std::vector<Token>,
+                              const Token &);
+        ParameterizedTypeExpr(const ParameterizedTypeExpr &);
+
+        size_t hash() const override;
+        std::unique_ptr<Expr> clone() const override;
+        std::unique_ptr<TypeExpr> clone_nowrap() const override;
     };
 
     struct IdentifierExpr; // fwd dec
@@ -297,21 +363,13 @@ namespace clobber {
         std::unique_ptr<Expr> clone() const override;
     };
 
-    /* @brief Enum class representing the type of operation/function being called in a `CallExpr`. */
-    enum class CallExprOperatorExprType {
-        IdentifierExpr,
-        AnonymousFunctionExpr,
-    };
-
     /* @brief Represents a call expression. */
     struct CallExpr final : ParenthesizedExpr {
-        CallExprOperatorExprType operator_expr_type;
-
-        Token operator_token;
+        std::unique_ptr<Expr> operator_expr;
         std::vector<std::unique_ptr<Expr>> arguments;
 
     public:
-        CallExpr(CallExprOperatorExprType, const Token &, const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&);
+        CallExpr(const Token &, std::unique_ptr<Expr> operator_expr, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         CallExpr(const CallExpr &);
 
         size_t hash() const override;

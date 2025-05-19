@@ -15,9 +15,9 @@ namespace test_cases {
         extern const std::vector<std::vector<clobber::Token>> expected_tokens;
     }; // namespace tokenizer
 
-    namespace tokenizer {
+    namespace parser {
         extern const std::vector<std::string> sources;
 
-        extern const std::vector<std::vector<clobber::Expr>> expected_exprs;
-    }; // namespace tokenizer
+        extern const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> expected_exprs;
+    }; // namespace parser
 } // namespace test_cases

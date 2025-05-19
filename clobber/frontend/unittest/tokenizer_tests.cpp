@@ -43,22 +43,12 @@ TEST_P(TokenizerTests, tokenizer_tests) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    size_t test_case_idx;
-    std::string file_path;
-    std::string source_text;
     std::vector<clobber::Token> actual_tokens;
     std::vector<clobber::Token> expected_tokens;
 
-    test_case_idx = GetParam();
-    file_path     = std::format("./test_files/{}.clj", test_case_idx);
-
-    /*
-    source_text     = read_all_text(file_path);
-    expected_tokens = expected_cases[test_case_idx];
-    */
-
-    source_text     = test_cases::tokenizer::sources[test_case_idx];
-    expected_tokens = test_cases::tokenizer::expected_tokens[test_case_idx];
+    size_t test_case_idx          = GetParam();
+    const std::string source_text = test_cases::tokenizer::sources[test_case_idx];
+    expected_tokens               = test_cases::tokenizer::expected_tokens[test_case_idx];
 
     actual_tokens = clobber::tokenize(source_text);
 

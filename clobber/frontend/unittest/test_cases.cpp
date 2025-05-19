@@ -584,3 +584,49 @@ const std::vector<std::vector<clobber::Token>> test_cases::tokenizer::expected_t
     }
     // clang-format on
 };
+
+const std::vector<std::string> test_cases::parser::sources = {
+    R"((fn [x] (* x x))
+((fn [x] (* x x)) 5))",
+
+    R"(
+    )",
+};
+
+const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parser::expected_exprs = {
+    // clang-format off
+    { // 0
+        {
+            std::shared_ptr<clobber::Expr>(
+                FnExpr(
+                    ParameterVectorExpr({ IdentifierExpr("x") }),
+                    { 
+                        CallExpr("*", {
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("x")
+                            }
+                        )
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr(
+                    FnExpr(
+                        ParameterVectorExpr({ IdentifierExpr("x") }),
+                        { 
+                            CallExpr("*", {
+                                IdentifierExpr("x"), 
+                                IdentifierExpr("x")
+                                }
+                            )
+                        }
+                    ),
+                    {
+                        NumLiteralExpr(5)
+                    }
+                )
+            )
+        }
+    }
+    // clang-format on
+};

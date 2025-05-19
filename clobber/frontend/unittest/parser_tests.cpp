@@ -3,7 +3,7 @@
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
 #include "helpers/tostring.hpp"
-
+#include "test_cases.hpp"
 
 #include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
@@ -12,6 +12,26 @@
 #include <clobber/parser.hpp>
 
 using namespace ParserTestsHelpers;
+
+namespace {
+    std::vector<clobber::Expr *>
+    get_raw_ptrs(std::vector<std::shared_ptr<clobber::Expr>> sptrs) {
+        std::vector<clobber::Expr *> exprs;
+        for (const auto &sptr : sptrs) {
+            exprs.push_back(sptr.get());
+        }
+        return exprs;
+    }
+
+    void
+    print_tree_vis(const std::string &source_text, std::vector<clobber::Expr *> exprs) {
+        std::vector<std::string> tree_strs;
+        for (auto &expr : exprs) {
+            tree_strs.push_back(expr_visualize_tree(source_text, *expr));
+        }
+        spdlog::info(std::format("```\n{}\n```", str_utils::join("\n", tree_strs)));
+    }
+}; // namespace
 
 class ParserTests : public ::testing::TestWithParam<size_t> {
 protected:
@@ -45,27 +65,24 @@ TEST_P(ParserTests, ParserTests) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    size_t test_case_idx;
-    std::string file_path;
-    std::string source_text;
-    std::vector<clobber::Token> tokens;
 
     std::vector<clobber::Diagnostic> diagnostics;
-    std::unique_ptr<clobber::CompilationUnit> cu;
 
-    test_case_idx = GetParam();
-    file_path     = std::format("./test_files/{}.clj", test_case_idx);
-    source_text   = read_all_text(file_path);
+    size_t test_case_idx     = GetParam();
+    std::string source_text  = test_cases::parser::sources[test_case_idx];
+    auto expected_expr_sptrs = test_cases::parser::expected_exprs[test_case_idx];
+    auto expected_exprs      = get_raw_ptrs(expected_expr_sptrs);
 
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+    spdlog::info(std::format("source text:\n```\n{}\n```", source_text));
+    spdlog::info("\nexpected tree:");
+    print_tree_vis(source_text, expected_exprs);
 
-    tokens = clobber::tokenize(source_text);
-    cu     = clobber::parse(source_text, tokens, diagnostics);
+    std::vector<clobber::Token> tokens           = clobber::tokenize(source_text);
+    std::unique_ptr<clobber::CompilationUnit> cu = clobber::parse(source_text, tokens, diagnostics);
 
-    /*
-    if (cu->parse_errors.size() > 0) {
+    if (cu->diagnostics.size() > 0) {
         std::string file                  = "C:/USER/Documents/clobber_proj/main.clj";
-        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, cu->parse_errors);
+        std::vector<std::string> err_msgs = get_error_msgs(file, source_text, cu->diagnostics);
         for (size_t i = 0; i < err_msgs.size(); i++) {
             std::cout << err_msgs[i] << "\n";
         }
@@ -74,17 +91,18 @@ TEST_P(ParserTests, ParserTests) {
         EXPECT_TRUE(false);
         return;
     }
-    */
 
     std::vector<std::string> expr_strs;
     std::vector<std::string> tree_strs;
     for (auto &expr_base : cu->exprs) {
-        expr_strs.push_back(expr_tostring(source_text, *expr_base));
+        // expr_strs.push_back(expr_tostring(source_text, *expr_base));
         tree_strs.push_back(expr_visualize_tree(source_text, *expr_base));
     }
 
+    /*
     spdlog::info("");
     spdlog::info(std::format("reconstructed (new):\n```\n{}\n```", str_utils::join("", expr_strs)));
+    */
 
     spdlog::info("");
     spdlog::info(std::format("tree:\n```\n{}\n```", str_utils::join("", tree_strs)));

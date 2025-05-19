@@ -152,7 +152,7 @@ protected:
     clobber::CallExpr *
     on_call_expr(clobber::CallExpr *ce) override {
         this->on_token(ce->open_paren_token);
-        this->on_token(ce->operator_token);
+        this->on_expr(ce->operator_expr.get());
         auto _ = clobber::AstWalker::on_call_expr(ce);
         this->on_token(ce->close_paren_token);
         return ce;
@@ -399,7 +399,7 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
-        on_token(ce->operator_token);
+        on_expr(ce->operator_expr.get());
         for (auto &argument : ce->arguments) {
             auto old_ptr = argument.get();
             auto new_ptr = on_expr(old_ptr);
@@ -490,7 +490,6 @@ std::string
 expr_visualize_tree(const std::string &source_text, clobber::Expr &expr) {
     TreeVisualizer tv{};
     return tv.walk(source_text, expr);
-    throw 0;
 }
 
 std::string

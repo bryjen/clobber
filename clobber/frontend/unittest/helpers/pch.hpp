@@ -1,6 +1,7 @@
 #pragma once
 
 // -- std lib --
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <fmt/core.h>
@@ -9,10 +10,10 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <vector>
-
 
 // -- externals --
 // -- gtest --
