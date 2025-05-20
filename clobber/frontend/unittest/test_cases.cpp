@@ -586,16 +586,115 @@ const std::vector<std::vector<clobber::Token>> test_cases::tokenizer::expected_t
 };
 
 const std::vector<std::string> test_cases::parser::sources = {
+    // 0
+    R"((+ 1 2)
+(* 3 4)
+(+ "Hello, " "world!")
+(+ \a \b)
+(+ 10.0f 0.2f)
+(+ 10.0 0.2)
+(+ 10.0d 0.2d))",
+
+    // 1
+    R"((let [x 10
+      y 5]
+  (+ x y)))",
+
+    // 2
     R"((fn [x] (* x x))
 ((fn [x] (* x x)) 5))",
 
-    R"(
-    )",
+    // 3
+    R"((do
+  (def x 10)
+  (def y 5)
+  (+ x y)))",
+
+    // 4
+    R"((accel [] (relu (matmul tensor1 tensor2)))",
 };
 
 const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parser::expected_exprs = {
     // clang-format off
     { // 0
+        {
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    NumLiteralExpr("1"), 
+                    NumLiteralExpr("2") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("*", { 
+                    NumLiteralExpr("3"), 
+                    NumLiteralExpr("4") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    StringLiteralExpr("Hello, "), 
+                    StringLiteralExpr("world!") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    CharLiteralExpr("\\a"), 
+                    CharLiteralExpr("\\b") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    NumLiteralExpr("10.0f"), 
+                    NumLiteralExpr("0.2f") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    NumLiteralExpr("10.0"), 
+                    NumLiteralExpr("0.2") 
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr("+", { 
+                    NumLiteralExpr("10.0d"), 
+                    NumLiteralExpr("0.2d") 
+                    }
+                )
+            ),
+        }
+    },
+    { // 1
+        {
+            std::shared_ptr<clobber::Expr>(
+                LetExpr(
+                    BindingVectorExpr(
+                        {
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("y")
+                        },
+                        {
+                            NumLiteralExpr("10"), 
+                            NumLiteralExpr("5")
+                        }
+                    ),
+                    {
+                        CallExpr("+", { 
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("y")
+                            }
+                        )
+                    }
+                )
+            ),
+        }
+    },
+    { // 2
         {
             std::shared_ptr<clobber::Expr>(
                 FnExpr(
@@ -622,7 +721,34 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                         }
                     ),
                     {
-                        NumLiteralExpr(5)
+                        NumLiteralExpr("5")
+                    }
+                )
+            )
+        }
+    },
+    { // 3
+        {
+            std::shared_ptr<clobber::Expr>(
+                DoExpr({
+                    DefExpr(IdentifierExpr("x"), NumLiteralExpr("10")),
+                    DefExpr(IdentifierExpr("y"), NumLiteralExpr("5")),
+                    CallExpr("*", {
+                        IdentifierExpr("x"), 
+                        IdentifierExpr("x")
+                        }
+                    )
+                })
+            )
+        }
+    },
+    { // 4
+        {
+            std::shared_ptr<clobber::Expr>(
+                AccelExpr(
+                    BindingVectorExpr({},{}),
+                    {
+                        MatMulExpr(IdentifierExpr("tensor1"), IdentifierExpr("tensor2"))
                     }
                 )
             )

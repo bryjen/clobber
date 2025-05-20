@@ -1,3 +1,5 @@
+#include <magic_enum/magic_enum.hpp>
+
 #include "clobber/pch.hpp"
 
 #include <clobber/common/diagnostic.hpp>
@@ -66,17 +68,26 @@ recover(const std::vector<clobber::Token> &, size_t &idx) {
 
 Option<ParseDelegate>
 try_get_parse_fun(clobber::Token::Type token_type) {
-    // keep using if-statements instead of a map/switch to support predicates over different token types
-    const std::unordered_set<clobber::Token::Type> valid_token_types = {clobber::Token::Type::NumericLiteralToken};
-    auto is_reserved_symbol_identifier = [&valid_token_types](clobber::Token::Type tt) { return valid_token_types.contains(tt); };
+    // clang-format off
+    auto is_operator_token_type = [](clobber::Token::Type tt) { 
+        const std::unordered_set<clobber::Token::Type> valid_token_types = {
+            clobber::Token::Type::PlusToken,
+            clobber::Token::Type::MinusToken,
+            clobber::Token::Type::AsteriskToken,
+            clobber::Token::Type::SlashToken
+        };
+        return valid_token_types.contains(tt); 
+    };
+    // clang-format on
 
+    // keep using if-statements instead of a map/switch to support predicates over different token types
     if (token_type == clobber::Token::Type::NumericLiteralToken) {
         return std::make_optional(try_parse_numeric_literal_expr);
 
     } else if (token_type == clobber::Token::Type::OpenParenToken) {
         return std::make_optional(try_parse_call_expr_or_special_form);
 
-    } else if (token_type == clobber::Token::Type::IdentifierToken || is_reserved_symbol_identifier(token_type)) {
+    } else if (token_type == clobber::Token::Type::IdentifierToken || is_operator_token_type(token_type)) {
         return std::make_optional(try_parse_identifier);
 
     } else if (token_type == clobber::Token::Type::StringLiteralToken) {
@@ -345,10 +356,11 @@ try_parse_fn_expr(ParseContext &ctx) {
     current_token = try_get_token(ctx.tokens, ctx.current_idx);
     while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
         clobber::Expr *expr = try_parse(ctx);
-        if (expr) {
-            body_exprs.push_back(std::unique_ptr<clobber::Expr>(expr));
+        if (!expr) {
+            return nullptr;
         }
 
+        body_exprs.push_back(std::unique_ptr<clobber::Expr>(expr));
         current_token = try_get_token(ctx.tokens, ctx.current_idx);
     }
 
@@ -503,7 +515,7 @@ try_parse_call_expr(ParseContext &ctx) {
     open_paren_token = ctx.tokens[ctx.current_idx++];
 
     clobber::Expr *operator_expr = try_parse(ctx);
-    if (operator_expr) {
+    if (!operator_expr) {
         // TODO: throw some bullshit here
         return nullptr;
     }
@@ -542,8 +554,9 @@ try_parse(ParseContext &ctx) {
 
     parse_fn_opt = try_get_parse_fun(current_token.type);
     if (!parse_fn_opt) {
-        std::string err_msg = std::format("Could not find a parse function for the ");
-        auto err            = diag::parser::internal_err(current_token.start, current_token.length, "Could not find the parse");
+        const std::string token_str = std::string(magic_enum::enum_name(current_token.type));
+        const std::string err_msg   = std::format("Could not find a parse function for the token type `{}`", token_str);
+        auto err                    = diag::parser::internal_err(current_token.start, current_token.length, err_msg);
         ctx.diagnostics.push_back(err);
         recover(ctx.tokens, ctx.current_idx);
         return nullptr;

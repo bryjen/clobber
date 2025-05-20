@@ -2,90 +2,97 @@
 
 #include "clobber/ast.hpp"
 
-#define DEFINE_TOKEN_FUNC(NAME)                                                                                                            \
+// defining annotations to help remember which syntax factory functions are meant to be used where.
+// using custom annotations instead of comments because they stand out more 🔥.
+#if defined(__clang__) || defined(__GNUC__)
+#define USAGE_NOTE(msg) __attribute__((annotate(msg)))
+#elif defined(_MSC_VER)
+#define USAGE_NOTE(msg) __declspec(novtable) // MSVC doesn't support __attribute__((annotate))
+#else
+#define USAGE_NOTE(msg)
+#endif
+
+const std::string default_str_metadata_tag = "default_value";
+
+#define DEFINE_TOKEN_FUNC(NAME, VALUE)                                                                                                     \
     inline clobber::Token NAME() {                                                                                                         \
         clobber::Token token{};                                                                                                            \
-        token.type = clobber::Token::Type::NAME##Token;                                                                                    \
+        token.type                               = clobber::Token::Type::NAME##Token;                                                      \
+        token.metadata[default_str_metadata_tag] = VALUE;                                                                                  \
         return token;                                                                                                                      \
     }
 
 namespace SyntaxFactory {
-    DEFINE_TOKEN_FUNC(OpenParen)
-    DEFINE_TOKEN_FUNC(CloseParen)
-    DEFINE_TOKEN_FUNC(OpenBracket)
-    DEFINE_TOKEN_FUNC(CloseBracket)
-    DEFINE_TOKEN_FUNC(OpenBrace)
-    DEFINE_TOKEN_FUNC(CloseBrace)
-    DEFINE_TOKEN_FUNC(Plus)
-    DEFINE_TOKEN_FUNC(Minus)
-    DEFINE_TOKEN_FUNC(Asterisk)
-    DEFINE_TOKEN_FUNC(Slash)
-    DEFINE_TOKEN_FUNC(Backslash)
-    DEFINE_TOKEN_FUNC(Equals)
-    DEFINE_TOKEN_FUNC(LessThan)
-    DEFINE_TOKEN_FUNC(GreaterThan)
+    DEFINE_TOKEN_FUNC(OpenParen, "(")
+    DEFINE_TOKEN_FUNC(CloseParen, ")")
+    DEFINE_TOKEN_FUNC(OpenBracket, "[")
+    DEFINE_TOKEN_FUNC(CloseBracket, "]")
+    DEFINE_TOKEN_FUNC(OpenBrace, "{")
+    DEFINE_TOKEN_FUNC(CloseBrace, "}")
+    DEFINE_TOKEN_FUNC(Plus, "+")
+    DEFINE_TOKEN_FUNC(Minus, "-")
+    DEFINE_TOKEN_FUNC(Asterisk, "*")
+    DEFINE_TOKEN_FUNC(Slash, "/")
+    DEFINE_TOKEN_FUNC(Backslash, "\\")
+    DEFINE_TOKEN_FUNC(Equals, "=")
+    DEFINE_TOKEN_FUNC(LessThan, "<")
+    DEFINE_TOKEN_FUNC(GreaterThan, ">")
 
-    DEFINE_TOKEN_FUNC(Quote)
-    DEFINE_TOKEN_FUNC(Backtick)
-    DEFINE_TOKEN_FUNC(Tilde)
-    DEFINE_TOKEN_FUNC(TildeSplice)
-    DEFINE_TOKEN_FUNC(DispatchHash)
-    DEFINE_TOKEN_FUNC(At)
-    DEFINE_TOKEN_FUNC(Ampersand)
+    DEFINE_TOKEN_FUNC(Quote, "'")
+    DEFINE_TOKEN_FUNC(Backtick, "`")
+    DEFINE_TOKEN_FUNC(Tilde, "~")
+    DEFINE_TOKEN_FUNC(TildeSplice, "~@")
+    DEFINE_TOKEN_FUNC(DispatchHash, "#")
+    DEFINE_TOKEN_FUNC(At, "@")
+    DEFINE_TOKEN_FUNC(Ampersand, "&")
+    DEFINE_TOKEN_FUNC(Caret, "^")
 
-    DEFINE_TOKEN_FUNC(Comma)
-    DEFINE_TOKEN_FUNC(Caret)
-    DEFINE_TOKEN_FUNC(Eof)
+    DEFINE_TOKEN_FUNC(Comma, ",")
+    DEFINE_TOKEN_FUNC(Eof, "")
 
-    DEFINE_TOKEN_FUNC(NsKeyword)
-    DEFINE_TOKEN_FUNC(IfKeyword)
-    DEFINE_TOKEN_FUNC(LetKeyword)
-    DEFINE_TOKEN_FUNC(FnKeyword)
-    DEFINE_TOKEN_FUNC(DefKeyword)
-    DEFINE_TOKEN_FUNC(DefMacroKeyword)
-    DEFINE_TOKEN_FUNC(DoKeyword)
+    DEFINE_TOKEN_FUNC(NsKeyword, "ns")
+    DEFINE_TOKEN_FUNC(IfKeyword, "if")
+    DEFINE_TOKEN_FUNC(LetKeyword, "let")
+    DEFINE_TOKEN_FUNC(FnKeyword, "fn")
+    DEFINE_TOKEN_FUNC(DefKeyword, "def")
+    DEFINE_TOKEN_FUNC(DefMacroKeyword, "defmacro")
+    DEFINE_TOKEN_FUNC(DoKeyword, "do")
 
     // type keywords
-    DEFINE_TOKEN_FUNC(CharKeyword)
-    DEFINE_TOKEN_FUNC(StringKeyword)
-    DEFINE_TOKEN_FUNC(VectorKeyword)
-    DEFINE_TOKEN_FUNC(I8Keyword)
-    DEFINE_TOKEN_FUNC(I16Keyword)
-    DEFINE_TOKEN_FUNC(I32Keyword)
-    DEFINE_TOKEN_FUNC(I64Keyword)
-    DEFINE_TOKEN_FUNC(F32Keyword)
-    DEFINE_TOKEN_FUNC(F64Keyword)
+    DEFINE_TOKEN_FUNC(CharKeyword, "char")
+    DEFINE_TOKEN_FUNC(StringKeyword, "string")
+    DEFINE_TOKEN_FUNC(VectorKeyword, "vector")
+    DEFINE_TOKEN_FUNC(I8Keyword, "i8")
+    DEFINE_TOKEN_FUNC(I16Keyword, "i16")
+    DEFINE_TOKEN_FUNC(I32Keyword, "i32")
+    DEFINE_TOKEN_FUNC(I64Keyword, "i64")
+    DEFINE_TOKEN_FUNC(F32Keyword, "f32")
+    DEFINE_TOKEN_FUNC(F64Keyword, "f64")
 
     // hardware acceleration tokens
-    DEFINE_TOKEN_FUNC(AccelKeyword)
-    DEFINE_TOKEN_FUNC(TensorKeyword)
-    DEFINE_TOKEN_FUNC(ReshapeKeyword)
-    DEFINE_TOKEN_FUNC(TransposeKeyword)
-    DEFINE_TOKEN_FUNC(TileKeyword)
-    DEFINE_TOKEN_FUNC(SliceKeyword)
-    DEFINE_TOKEN_FUNC(ConcatKeyword)
-    DEFINE_TOKEN_FUNC(IdentityKeyword)
-    DEFINE_TOKEN_FUNC(CastKeyword)
-    DEFINE_TOKEN_FUNC(Conv2dKeyword)
-    DEFINE_TOKEN_FUNC(DepthwiseConv2dKeyword)
-    DEFINE_TOKEN_FUNC(MatmulKeyword)
-    DEFINE_TOKEN_FUNC(FullyConnectedKeyword)
-    DEFINE_TOKEN_FUNC(AvgPool2dKeyword)
-    DEFINE_TOKEN_FUNC(MaxPool2dKeyword)
-    DEFINE_TOKEN_FUNC(PadKeyword)
-    DEFINE_TOKEN_FUNC(ReluKeyword)
-    DEFINE_TOKEN_FUNC(SigmoidKeyword)
-    DEFINE_TOKEN_FUNC(TanhKeyword)
-    DEFINE_TOKEN_FUNC(SoftmaxKeyword)
+    DEFINE_TOKEN_FUNC(AccelKeyword, "accel")
+    DEFINE_TOKEN_FUNC(TensorKeyword, "tensor")
+    DEFINE_TOKEN_FUNC(ReshapeKeyword, "reshape")
+    DEFINE_TOKEN_FUNC(TransposeKeyword, "transpose")
+    DEFINE_TOKEN_FUNC(TileKeyword, "tile")
+    DEFINE_TOKEN_FUNC(SliceKeyword, "slice")
+    DEFINE_TOKEN_FUNC(ConcatKeyword, "concat")
+    DEFINE_TOKEN_FUNC(IdentityKeyword, "identity")
+    DEFINE_TOKEN_FUNC(CastKeyword, "cast")
+    DEFINE_TOKEN_FUNC(Conv2dKeyword, "conv2d")
+    DEFINE_TOKEN_FUNC(DepthwiseConv2dKeyword, "depthwise-conv2d")
+    DEFINE_TOKEN_FUNC(MatmulKeyword, "matmul")
+    DEFINE_TOKEN_FUNC(FullyConnectedKeyword, "fully-connected")
+    DEFINE_TOKEN_FUNC(AvgPool2dKeyword, "avg-pool2d")
+    DEFINE_TOKEN_FUNC(MaxPool2dKeyword, "max-pool2d")
+    DEFINE_TOKEN_FUNC(PadKeyword, "pad")
+    DEFINE_TOKEN_FUNC(ReluKeyword, "relu")
+    DEFINE_TOKEN_FUNC(SigmoidKeyword, "sigmoid")
+    DEFINE_TOKEN_FUNC(TanhKeyword, "tanh")
+    DEFINE_TOKEN_FUNC(SoftmaxKeyword, "softmax")
 
-    /* @brief Constructs a string literal token, inserts the double quotes into the value provided. */
-    inline clobber::Token
-    StringLiteralInsertDoubleQuot(std::string value) {
-        clobber::Token token{};
-        token.type = clobber::Token::Type::StringLiteralToken;
-        return token;
-    }
-
+#pragma region tokenizer_legacy_only
+    USAGE_NOTE("tokenizer only")
     inline clobber::Token
     CharLiteral(char c) {
         clobber::Token token{};
@@ -93,13 +100,7 @@ namespace SyntaxFactory {
         return token;
     }
 
-    inline clobber::Token
-    Identifier(std::string name) {
-        clobber::Token token{};
-        token.type = clobber::Token::Type::IdentifierToken;
-        return token;
-    }
-
+    USAGE_NOTE("tokenizer only")
     inline clobber::Token
     NumericLiteral(int value) {
         clobber::Token token{};
@@ -107,6 +108,7 @@ namespace SyntaxFactory {
         return token;
     }
 
+    USAGE_NOTE("tokenizer only")
     inline clobber::Token
     NumericLiteral(float value, int decimal_places = 2) {
         clobber::Token token{};
@@ -114,10 +116,47 @@ namespace SyntaxFactory {
         return token;
     }
 
+    USAGE_NOTE("tokenizer only")
     inline clobber::Token
     NumericLiteral(double value, int decimal_places = 2, bool postfix_d = false) {
         clobber::Token token{};
         token.type = clobber::Token::Type::NumericLiteralToken;
+        return token;
+    }
+#pragma endregion
+
+    /* @brief Constructs a string literal token, inserts the double quotes into the value provided. */
+    inline clobber::Token
+    StringLiteralInsertDoubleQuot(std::string value) {
+        clobber::Token token{};
+        token.type                               = clobber::Token::Type::StringLiteralToken;
+        token.metadata[default_str_metadata_tag] = std::format("\"{}\"", value);
+        return token;
+    }
+
+    inline clobber::Token
+    CharLiteral(const std::string &src) {
+        clobber::Token token{};
+        token.type                               = clobber::Token::Type::CharLiteralToken;
+        token.metadata[default_str_metadata_tag] = src;
+        return token;
+    }
+
+    inline clobber::Token
+    Identifier(const std::string &name) {
+        clobber::Token token{};
+        token.type                               = clobber::Token::Type::IdentifierToken;
+        token.metadata[default_str_metadata_tag] = name;
+        return token;
+    }
+
+    /* @remarks String parameter represents what a numeric literal expression references in source code.
+                Useful for avoiding inaccuracies when comparing floating point numbers. */
+    inline clobber::Token
+    NumericLiteral(const std::string &string_repr) {
+        clobber::Token token{};
+        token.type                               = clobber::Token::Type::NumericLiteralToken;
+        token.metadata[default_str_metadata_tag] = string_repr;
         return token;
     }
 
@@ -143,6 +182,7 @@ namespace SyntaxFactory {
     clobber::ParameterizedTypeExpr *ParameterizedTypeExpr(clobber::TypeExpr *type_expr, std::vector<clobber::Expr *> param_values);
 
     clobber::IdentifierExpr *IdentifierExpr(const std::string &name);
+    clobber::NumLiteralExpr *NumLiteralExpr(const std::string &);
     clobber::NumLiteralExpr *NumLiteralExpr(int value);
     clobber::NumLiteralExpr *NumLiteralExpr(float value);
     clobber::NumLiteralExpr *NumLiteralExpr(double value);

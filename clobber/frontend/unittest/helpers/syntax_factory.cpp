@@ -68,18 +68,8 @@ namespace SyntaxFactory {
     }
 
     clobber::NumLiteralExpr *
-    NumLiteralExpr(int value) {
-        return new clobber::NumLiteralExpr(NumericLiteral(value));
-    }
-
-    clobber::NumLiteralExpr *
-    NumLiteralExpr(float value) {
-        return new clobber::NumLiteralExpr(NumericLiteral(value));
-    }
-
-    clobber::NumLiteralExpr *
-    NumLiteralExpr(double value) {
-        return new clobber::NumLiteralExpr(NumericLiteral(value));
+    NumLiteralExpr(const std::string &num_lit) {
+        return new clobber::NumLiteralExpr(NumericLiteral(num_lit));
     }
 
     clobber::StringLiteralExpr *
@@ -88,8 +78,8 @@ namespace SyntaxFactory {
     }
 
     clobber::CharLiteralExpr *
-    CharLiteralExpr(char value) {
-        return new clobber::CharLiteralExpr(std::to_string(value), CharLiteral(value));
+    CharLiteralExpr(const std::string &char_lit) {
+        return new clobber::CharLiteralExpr(char_lit, CharLiteral(char_lit));
     }
 
     clobber::LetExpr *

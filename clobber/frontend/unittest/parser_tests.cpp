@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "pch.hpp"
 
 #include "helpers/helpers.hpp"
@@ -19,6 +23,15 @@ namespace {
         std::vector<clobber::Expr *> exprs;
         for (const auto &sptr : sptrs) {
             exprs.push_back(sptr.get());
+        }
+        return exprs;
+    }
+
+    std::vector<clobber::Expr *>
+    get_raw_ptrs(const std::vector<std::unique_ptr<clobber::Expr>> &uptrs) {
+        std::vector<clobber::Expr *> exprs;
+        for (const auto &uptr : uptrs) {
+            exprs.push_back(uptr.get());
         }
         return exprs;
     }
@@ -61,6 +74,11 @@ TEST_P(ParserTests, DISABLED_ParserTests) {
 #else
 TEST_P(ParserTests, ParserTests) {
 #endif
+
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
 #ifdef CRT_ENABLED
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
@@ -92,20 +110,8 @@ TEST_P(ParserTests, ParserTests) {
         return;
     }
 
-    std::vector<std::string> expr_strs;
-    std::vector<std::string> tree_strs;
-    for (auto &expr_base : cu->exprs) {
-        // expr_strs.push_back(expr_tostring(source_text, *expr_base));
-        tree_strs.push_back(expr_visualize_tree(source_text, *expr_base));
-    }
-
-    /*
-    spdlog::info("");
-    spdlog::info(std::format("reconstructed (new):\n```\n{}\n```", str_utils::join("", expr_strs)));
-    */
-
-    spdlog::info("");
-    spdlog::info(std::format("tree:\n```\n{}\n```", str_utils::join("", tree_strs)));
+    spdlog::info("\nactual tree:");
+    print_tree_vis(source_text, get_raw_ptrs(cu->exprs));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
@@ -116,6 +122,7 @@ TEST_P(ParserTests, ParserTests) {
     EXPECT_TRUE(true);
 }
 
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 4));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3, 4));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 4));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(1));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));

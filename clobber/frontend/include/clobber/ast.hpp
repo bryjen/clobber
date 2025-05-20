@@ -102,6 +102,7 @@ namespace clobber {
         size_t full_start  = 0; // includes trivia
         size_t full_length = 0; // includes trivia
         Token::Type type;
+        std::unordered_map<std::string, std::any> metadata;
 
     public:
         std::string ExtractText(const std::string &) const;
@@ -133,6 +134,7 @@ namespace clobber {
         };
 
         Expr::Type type;
+        std::unordered_map<std::string, std::any> metadata;
 
     public:
         Expr(Expr::Type);

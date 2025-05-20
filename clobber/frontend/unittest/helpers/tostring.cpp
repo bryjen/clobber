@@ -21,13 +21,34 @@ namespace {
     }
 
     inline std::string
-    token_type_tostring(clobber::Token::Type token_type) {
+    tt_tostring(clobber::Token::Type token_type) {
         return std::string(magic_enum::enum_name(token_type));
     }
 
     std::string
     norm(const std::string &str) {
         return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
+    }
+
+    std::string
+    format_string_metadata(const std::unordered_map<std::string, std::any> &metadata) {
+        // two separate iterations cause why not
+
+        std::vector<std::tuple<std::string, std::string>> kvps;
+        for (const auto &[key, value] : metadata) {
+            auto name = value.type().name();
+            if (value.type() == typeid(std::string)) {
+                const std::string &str = std::any_cast<const std::string &>(value);
+                kvps.emplace_back(key, str);
+            }
+        }
+
+        std::vector<std::string> strs;
+        for (const auto &[k, v] : kvps) {
+            strs.push_back(std::format("\"{}\" : `{}`", k, v));
+        }
+
+        return strs.size() > 0 ? std::format("{{ {} }}", str_utils::join("; ", strs)) : "";
     }
 }; // namespace
 
@@ -210,8 +231,9 @@ public:
 protected:
     void
     on_token(const clobber::Token &token) {
-        std::string full_text = norm(token.ExtractFullText(*source_text));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", token_type_tostring(token.type), full_text));
+        std::string full_text    = norm(token.ExtractFullText(*source_text));
+        std::string str_metadata = format_string_metadata(token.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", tt_tostring(token.type), full_text, str_metadata));
         lines.push_back(str);
     }
 
@@ -316,6 +338,11 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
+        if (print_tokens) {
+            on_token(le->open_paren_token);
+            on_token(le->let_token);
+        }
+
         on_binding_vector_expr(le->binding_vector_expr.get());
 
         for (auto &body_expr : le->body_exprs) {
@@ -324,6 +351,10 @@ protected:
             if (old_ptr != new_ptr) {
                 body_expr.reset(new_ptr);
             }
+        }
+
+        if (print_tokens) {
+            on_token(le->close_paren_token);
         }
         dec_indentation();
 
@@ -339,6 +370,11 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
+        if (print_tokens) {
+            on_token(fe->open_paren_token);
+            on_token(fe->fn_token);
+        }
+
         on_parameter_vector_expr(fe->parameter_vector_expr.get());
 
         for (auto &body_expr : fe->body_exprs) {
@@ -347,6 +383,10 @@ protected:
             if (old_ptr != new_ptr) {
                 body_expr.reset(new_ptr);
             }
+        }
+
+        if (print_tokens) {
+            on_token(fe->close_paren_token);
         }
         dec_indentation();
 
@@ -362,8 +402,17 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
+        if (print_tokens) {
+            on_token(de->open_paren_token);
+            on_token(de->def_token);
+        }
+
         on_identifier_expr(de->identifier.get());
         on_expr(de->value.get());
+
+        if (print_tokens) {
+            on_token(de->close_paren_token);
+        }
         dec_indentation();
 
         return de;
@@ -378,12 +427,21 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
+        if (print_tokens) {
+            on_token(de->open_paren_token);
+            on_token(de->do_token);
+        }
+
         for (auto &body_expr : de->body_exprs) {
             auto old_ptr = body_expr.get();
             auto new_ptr = on_expr(old_ptr);
             if (old_ptr != new_ptr) {
                 body_expr.reset(new_ptr);
             }
+        }
+
+        if (print_tokens) {
+            on_token(de->close_paren_token);
         }
         dec_indentation();
 
@@ -399,6 +457,10 @@ protected:
         lines.push_back(str);
 
         inc_indentation();
+        if (print_tokens) {
+            on_token(ce->open_paren_token);
+        }
+
         on_expr(ce->operator_expr.get());
         for (auto &argument : ce->arguments) {
             auto old_ptr = argument.get();
@@ -406,6 +468,10 @@ protected:
             if (old_ptr != new_ptr) {
                 argument.reset(new_ptr);
             }
+        }
+
+        if (print_tokens) {
+            on_token(ce->close_paren_token);
         }
         dec_indentation();
 
@@ -475,6 +541,7 @@ private:
         current_indentation = std::max((size_t)0, current_indentation - 4);
     }
 
+    const bool print_tokens = true;
     const std::string *source_text;
     size_t current_indentation;
     std::vector<std::string> lines;
