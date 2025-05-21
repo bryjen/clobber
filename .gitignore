@@ -69,3 +69,4 @@ bootstrap/__pycache__/
 bootstrap/llvm/
 bootstrap/vcpgk/
 bootstrap/vcpkg/
+CMakePresets.json
