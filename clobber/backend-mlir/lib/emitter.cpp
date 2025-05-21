@@ -326,7 +326,9 @@ emit_string_literal_expr(EmitterContext &emitter_context, const clobber::Expr &e
 
         auto indexVal = builder.create<mlir::LLVM::ConstantOp>(loc, i64_type, builder.getI64IntegerAttr(i));
 
-        auto gep = builder.create<mlir::LLVM::GEPOp>(loc, ptr_type, i8_type, basePtr, mlir::ValueRange{indexVal}, false);
+        // auto gep = builder.create<mlir::LLVM::GEPOp>(loc, ptr_type, i8_type, basePtr, mlir::ValueRange{indexVal}, false);
+        auto gep = builder.create<mlir::LLVM::GEPOp>(loc, ptr_type, i8_type, basePtr, mlir::ValueRange{indexVal},
+                                                     mlir::LLVM::GEPNoWrapFlags::none);
 
         builder.create<mlir::LLVM::StoreOp>(loc, charVal, gep);
     }
@@ -489,7 +491,8 @@ namespace fns {
                               const std::vector<mlir::Operation *> arguments) {
         mlir::OpBuilder &builder       = emitter_context.builder;
         const std::string &source_text = emitter_context.semantic_model.compilation_unit->source_text;
-        const std::string fn_name      = source_text.substr(ce.operator_token.start, ce.operator_token.length);
+        // const std::string fn_name      = source_text.substr(ce.operator_token.start, ce.operator_token.length);
+        const std::string fn_name = source_text.substr(0, 0); // TODO: fix
 
         const clobber::TypeMap &type_map = std::cref(*emitter_context.semantic_model.type_map);
         auto it                          = type_map.find(ce.hash());
@@ -538,7 +541,8 @@ emit_call_expr(EmitterContext &emitter_context, const clobber::Expr &expr) {
         emitted_args.push_back(arg_operation);
     }
 
-    const std::string operator_name = source_text.substr(ce.operator_token.start, ce.operator_token.length);
+    // const std::string operator_name = source_text.substr(ce.operator_token.start, ce.operator_token.length);
+    const std::string operator_name = source_text.substr(0, 0); // TODO: fix
     auto it                         = delegates.find(operator_name);
     auto delegate                   = it != delegates.end() ? it->second : fns::emit_user_defined_fn_call;
     return delegate(emitter_context, ce, emitted_args);
@@ -661,4 +665,6 @@ clobber::jit_execute(mlir::MLIRContext &context, mlir::ModuleOp &module, const T
 
     return 0;
     */
+
+    throw 0;
 }

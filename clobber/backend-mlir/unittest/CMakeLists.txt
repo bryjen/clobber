@@ -11,27 +11,26 @@ target_sources(clobber_mlir_backend_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/emitter_tests.cpp
 )
 
-target_include_directories(clobber_mlir_backend_tests
-  PUBLIC  
+target_include_directories(clobber_mlir_backend_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-
-    # $ENV{LLVM_SRC_DIR}/llvm/include  # llvm source headers
-    # $ENV{LLVM_SRC_DIR}/mlir/include  # mlir source headers
-    # $ENV{LLVM_BUILD_DIR}/include  # llvm/mlir generated headers
-    # $ENV{LLVM_BUILD_DIR}/tools/mlir/include
-
-  PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${MLIR_INCLUDE_DIRS}
 )
 
+find_package(MLIR CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+
 target_link_libraries(clobber_mlir_backend_tests PRIVATE 
     GTest::gtest GTest::gtest_main     
     spdlog::spdlog_header_only
     magic_enum::magic_enum
     clobber clobber_mlir_backend clobber_common
+)
+
+target_compile_definitions(clobber_mlir_backend_tests PRIVATE
+    ${MLIR_DEFINITIONS}
 )
 
 if (MSVC)

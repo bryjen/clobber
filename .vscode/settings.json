@@ -1,12 +1,7 @@
 {
-  "cmake.configureArgs": [
-    "-DLLVM_CONFIG=Debug",
-    "-DCLOBBER_USE_CRT=OFF",
-    "-DCLOBBER_STRICT=OFF"
-  ],
-
   "editor.formatOnSave": true,
   "cmake.ctestArgs": ["-V"],
+  "cmake.useCMakePresets": "always",
 
   "files.associations": {
     "format": "cpp",

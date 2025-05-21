@@ -55,7 +55,6 @@ dkms.conf
 .idea/
 .vs/
 cmake*/
-vcpkg_installed/
 
 out/
 
@@ -63,3 +62,10 @@ out/
 compile_commands.json
 build/
 logs/
+
+# generated bootstrap files
+vcpkg_installed/
+bootstrap/__pycache__/
+bootstrap/llvm/
+bootstrap/vcpgk/
+bootstrap/vcpkg/
