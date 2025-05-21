@@ -234,7 +234,7 @@ clobber::NumLiteralExpr::NumLiteralExpr(const NumLiteralExpr &other)
 
 clobber::Span
 clobber::NumLiteralExpr::span() const {
-    return this->token.span();
+    return this->token.span;
 }
 
 size_t
