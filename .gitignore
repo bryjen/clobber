@@ -67,6 +67,6 @@ logs/
 vcpkg_installed/
 bootstrap/__pycache__/
 bootstrap/llvm/
-bootstrap/vcpgk/
 bootstrap/vcpkg/
+bootstrap/vcpgk/
 CMakePresets.json

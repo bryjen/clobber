@@ -92,21 +92,21 @@ clobber::tokenize(const std::string &source_text) {
 
         current_idx += token_len;
 
-        token.start       = start_idx;
-        token.length      = token_len;
-        token.full_start  = full_start_idx;
-        token.full_length = spaces_len + token_len;
-        token.type        = token_type;
+        token.type             = token_type;
+        token.span.start       = start_idx;
+        token.span.length      = token_len;
+        token.full_span.start  = full_start_idx;
+        token.full_span.length = spaces_len + token_len;
 
         tokens.push_back(token);
     }
 
     clobber::Token eof_token{};
-    eof_token.full_start  = st_len;
-    eof_token.start       = st_len;
-    eof_token.full_length = 0;
-    eof_token.length      = 0;
-    eof_token.type        = clobber::Token::Type::EofToken;
+    eof_token.type             = clobber::Token::Type::EofToken;
+    eof_token.span.start       = st_len;
+    eof_token.full_span.start  = st_len;
+    eof_token.span.length      = 0;
+    eof_token.full_span.length = 0;
 
     tokens.push_back(eof_token);
 

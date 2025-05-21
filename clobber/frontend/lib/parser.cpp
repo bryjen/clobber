@@ -218,7 +218,7 @@ try_parse_char_literal_expr(ParseContext &ctx) {
 clobber::Expr *
 try_parse_identifier(ParseContext &ctx) {
     clobber::Token token                = ctx.tokens[ctx.current_idx]; // guaranteed to exist by caller
-    const std::string name              = ctx.source_text.substr(token.start, token.length);
+    const std::string name              = ctx.source_text.substr(token.span.start, token.span.length);
     clobber::IdentifierExpr *ident_expr = new clobber::IdentifierExpr(name, ctx.tokens[ctx.current_idx]);
     ctx.current_idx++;
     return ident_expr;
@@ -556,7 +556,7 @@ try_parse(ParseContext &ctx) {
     if (!parse_fn_opt) {
         const std::string token_str = std::string(magic_enum::enum_name(current_token.type));
         const std::string err_msg   = std::format("Could not find a parse function for the token type `{}`", token_str);
-        auto err                    = diag::parser::internal_err(current_token.start, current_token.length, err_msg);
+        auto err                    = diag::parser::internal_err(current_token.span.start, current_token.span.length, err_msg);
         ctx.diagnostics.push_back(err);
         recover(ctx.tokens, ctx.current_idx);
         return nullptr;

@@ -6,8 +6,6 @@
 // using custom annotations instead of comments because they stand out more 🔥.
 #if defined(__clang__) || defined(__GNUC__)
 #define USAGE_NOTE(msg) __attribute__((annotate(msg)))
-#elif defined(_MSC_VER)
-#define USAGE_NOTE(msg) __declspec(novtable) // MSVC doesn't support __attribute__((annotate))
 #else
 #define USAGE_NOTE(msg)
 #endif
@@ -18,7 +16,7 @@ const std::string default_str_metadata_tag = "default_value";
     inline clobber::Token NAME() {                                                                                                         \
         clobber::Token token{};                                                                                                            \
         token.type                               = clobber::Token::Type::NAME##Token;                                                      \
-        token.metadata[default_str_metadata_tag] = VALUE;                                                                                  \
+        token.metadata[default_str_metadata_tag] = std::string(VALUE);                                                                     \
         return token;                                                                                                                      \
     }
 
@@ -130,7 +128,7 @@ namespace SyntaxFactory {
     StringLiteralInsertDoubleQuot(std::string value) {
         clobber::Token token{};
         token.type                               = clobber::Token::Type::StringLiteralToken;
-        token.metadata[default_str_metadata_tag] = std::format("\"{}\"", value);
+        token.metadata[default_str_metadata_tag] = std::string(std::format("\"{}\"", value));
         return token;
     }
 
@@ -138,7 +136,7 @@ namespace SyntaxFactory {
     CharLiteral(const std::string &src) {
         clobber::Token token{};
         token.type                               = clobber::Token::Type::CharLiteralToken;
-        token.metadata[default_str_metadata_tag] = src;
+        token.metadata[default_str_metadata_tag] = std::string(src);
         return token;
     }
 
@@ -146,7 +144,7 @@ namespace SyntaxFactory {
     Identifier(const std::string &name) {
         clobber::Token token{};
         token.type                               = clobber::Token::Type::IdentifierToken;
-        token.metadata[default_str_metadata_tag] = name;
+        token.metadata[default_str_metadata_tag] = std::string(name);
         return token;
     }
 
@@ -156,7 +154,7 @@ namespace SyntaxFactory {
     NumericLiteral(const std::string &string_repr) {
         clobber::Token token{};
         token.type                               = clobber::Token::Type::NumericLiteralToken;
-        token.metadata[default_str_metadata_tag] = string_repr;
+        token.metadata[default_str_metadata_tag] = std::string(string_repr);
         return token;
     }
 

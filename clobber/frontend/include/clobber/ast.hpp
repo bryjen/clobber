@@ -12,6 +12,11 @@ namespace clobber {
 
 namespace clobber {
 
+    struct Span final {
+        size_t start  = 0;
+        size_t length = 0;
+    };
+
     // remarks: cheap to copy
     /* @brief Represents a token. */
     struct Token final {
@@ -97,10 +102,9 @@ namespace clobber {
             EofToken,
         };
 
-        size_t start       = 0;
-        size_t length      = 0;
-        size_t full_start  = 0; // includes trivia
-        size_t full_length = 0; // includes trivia
+        Span span;
+        Span full_span;
+
         Token::Type type;
         std::unordered_map<std::string, std::any> metadata;
 
@@ -139,6 +143,7 @@ namespace clobber {
     public:
         Expr(Expr::Type);
 
+        virtual Span span() const                   = 0;
         virtual size_t hash() const                 = 0;
         virtual std::unique_ptr<Expr> clone() const = 0;
     };
@@ -157,6 +162,7 @@ namespace clobber {
         TypeExpr(TypeExpr::Type);
         TypeExpr(const TypeExpr &);
 
+        virtual Span span() const                              = 0;
         virtual size_t hash() const                            = 0;
         virtual std::unique_ptr<Expr> clone() const            = 0;
         virtual std::unique_ptr<TypeExpr> clone_nowrap() const = 0;
@@ -171,6 +177,7 @@ namespace clobber {
         BuiltinTypeExpr(const Token &, const Token &);
         BuiltinTypeExpr(const BuiltinTypeExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
         std::unique_ptr<TypeExpr> clone_nowrap() const override;
@@ -185,6 +192,7 @@ namespace clobber {
         UserDefinedTypeExpr(const Token &, const Token &);
         UserDefinedTypeExpr(const UserDefinedTypeExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
         std::unique_ptr<TypeExpr> clone_nowrap() const override;
@@ -203,6 +211,7 @@ namespace clobber {
                               const Token &);
         ParameterizedTypeExpr(const ParameterizedTypeExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
         std::unique_ptr<TypeExpr> clone_nowrap() const override;
@@ -220,6 +229,7 @@ namespace clobber {
         ParenthesizedExpr(Expr::Type, const Token &, const Token &);
         ParenthesizedExpr(const ParenthesizedExpr &);
 
+        virtual Span span() const                   = 0;
         virtual size_t hash() const                 = 0;
         virtual std::unique_ptr<Expr> clone() const = 0;
         // virtual ~ParenthesizedExpr()                             = default;
@@ -238,6 +248,7 @@ namespace clobber {
                           const Token &, size_t);
         BindingVectorExpr(const BindingVectorExpr &);
 
+        Span span() const;
         std::unique_ptr<BindingVectorExpr> clone_nowrap() const;
     };
 
@@ -251,6 +262,7 @@ namespace clobber {
         ParameterVectorExpr(const Token &, std::vector<std::unique_ptr<IdentifierExpr>> &&, const Token &);
         ParameterVectorExpr(const ParameterVectorExpr &);
 
+        Span span() const;
         std::unique_ptr<ParameterVectorExpr> clone_nowrap() const;
     };
 
@@ -262,6 +274,7 @@ namespace clobber {
         NumLiteralExpr(const Token &);
         NumLiteralExpr(const NumLiteralExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -275,6 +288,7 @@ namespace clobber {
         StringLiteralExpr(const std::string &, const Token &);
         StringLiteralExpr(const StringLiteralExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -291,6 +305,7 @@ namespace clobber {
         CharLiteralExpr(const std::string &, const Token &);
         CharLiteralExpr(const CharLiteralExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -306,6 +321,7 @@ namespace clobber {
 
         std::unique_ptr<IdentifierExpr> clone_nowrap();
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -320,6 +336,7 @@ namespace clobber {
         LetExpr(const Token &, const Token &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         LetExpr(const LetExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -334,6 +351,7 @@ namespace clobber {
         FnExpr(const Token &, const Token &, std::unique_ptr<ParameterVectorExpr>, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         FnExpr(const FnExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -348,6 +366,7 @@ namespace clobber {
         DefExpr(const Token &, const Token &, std::unique_ptr<IdentifierExpr>, std::unique_ptr<Expr>, const Token &);
         DefExpr(const DefExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -361,6 +380,7 @@ namespace clobber {
         DoExpr(const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         DoExpr(const DoExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -374,6 +394,7 @@ namespace clobber {
         CallExpr(const Token &, std::unique_ptr<Expr> operator_expr, std::vector<std::unique_ptr<Expr>> &&, const Token &);
         CallExpr(const CallExpr &);
 
+        Span span() const override;
         size_t hash() const override;
         std::unique_ptr<Expr> clone() const override;
     };
@@ -394,6 +415,7 @@ namespace clobber {
                       const Token &);
             AccelExpr(const AccelExpr &);
 
+            Span span() const override;
             size_t hash() const override;
             std::unique_ptr<Expr> clone() const override;
         };
@@ -408,6 +430,7 @@ namespace clobber {
             MatMulExpr(const Token &, const Token &, std::unique_ptr<Expr>, std::unique_ptr<Expr>, const Token &);
             MatMulExpr(const MatMulExpr &);
 
+            Span span() const override;
             size_t hash() const override;
             std::unique_ptr<Expr> clone() const override;
         };
@@ -421,6 +444,7 @@ namespace clobber {
             RelUExpr(const Token &, const Token &, std::unique_ptr<Expr>, const Token &);
             RelUExpr(const RelUExpr &);
 
+            Span span() const override;
             size_t hash() const override;
             std::unique_ptr<Expr> clone() const override;
         };

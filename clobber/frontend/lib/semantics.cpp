@@ -230,7 +230,7 @@ type_infer_num_literal_expr(SemanticContext &context, const clobber::Expr &expr)
     const std::string source_text               = context.compilation_unit.source_text;
     const clobber::NumLiteralExpr &num_lit_expr = static_cast<const clobber::NumLiteralExpr &>(expr);
 
-    std::string value_string = source_text.substr(num_lit_expr.token.start, num_lit_expr.token.length);
+    std::string value_string = source_text.substr(num_lit_expr.token.span.start, num_lit_expr.token.span.length);
     std::string value_string_no_postfix =
         (value_string.back() == 'd' || value_string.back() == 'f') ? value_string.substr(0, value_string.size() - 1) : value_string;
 
