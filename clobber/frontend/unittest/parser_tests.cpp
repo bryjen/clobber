@@ -12,7 +12,7 @@
 #include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
 
-#include <clobber/ast.hpp>
+#include <clobber/ast/ast.hpp>
 #include <clobber/parser.hpp>
 
 using namespace ParserTestsHelpers;
@@ -112,6 +112,13 @@ TEST_P(ParserTests, ParserTests) {
 
     spdlog::info("\nactual tree:");
     print_tree_vis(source_text, get_raw_ptrs(cu->exprs));
+    spdlog::info("\nreconstructed:");
+    for (const auto &expr : cu->exprs) {
+        spdlog::info(expr_tostring(source_text, *expr));
+    }
+
+    auto actual_exprs = get_raw_ptrs(cu->exprs);
+    EXPECT_TRUE(are_compilation_units_equivalent(source_text, expected_exprs, actual_exprs, true));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {

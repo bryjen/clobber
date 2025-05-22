@@ -3,11 +3,13 @@
 
 #include <magic_enum/magic_enum.hpp>
 
-#include <clobber/ast.hpp>
+#include <clobber/ast/ast.hpp>
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
 #include <clobber/common/utils.hpp>
+
+using namespace str_utils;
 
 namespace {
     std::string
@@ -23,11 +25,6 @@ namespace {
     inline std::string
     tt_tostring(clobber::Token::Type token_type) {
         return std::string(magic_enum::enum_name(token_type));
-    }
-
-    std::string
-    norm(const std::string &str) {
-        return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
     }
 
     std::string
@@ -52,7 +49,207 @@ namespace {
     }
 }; // namespace
 
-class ToString final : public clobber::AstWalker {
+class ImmutableTreeVisualizer final : public clobber::AstWalker {
+public:
+    static std::string
+    visualize(const std::string &source_text, clobber::Expr &expr) {
+        ImmutableTreeVisualizer itv(source_text);
+        itv.walk(expr);
+        return str_utils::join("\n", itv.lines);
+    }
+
+private:
+    const bool print_tokens = true;
+    const std::string &source_text;
+    size_t current_indentation;
+    std::vector<std::string> lines;
+
+    ImmutableTreeVisualizer(const std::string &source_text)
+        : print_tokens(true)
+        , source_text(source_text)
+        , current_indentation(0)
+        , lines({}) {}
+
+protected:
+    void
+    on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
+        clobber::Span span       = pve.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(pve.metadata);
+        std::string str          = indent(current_indentation, std::format("[ParameterVectorExpr] `{}` {}", full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_binding_vector_expr(const clobber::BindingVectorExpr &bve) {
+        clobber::Span span       = bve.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(bve.metadata);
+        std::string str          = indent(current_indentation, std::format("[BindingVectorExpr] `{}` {}", full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
+        std::string full_text    = norm(expr_tostring(source_text, nle));
+        std::string str_metadata = format_string_metadata(nle.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(nle.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_string_literal_expr(const clobber::StringLiteralExpr &sle) override {
+        std::string full_text    = norm(expr_tostring(source_text, sle));
+        std::string str_metadata = format_string_metadata(sle.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(sle.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_char_literal_expr(const clobber::CharLiteralExpr &cle) override {
+        std::string full_text    = norm(expr_tostring(source_text, cle));
+        std::string str_metadata = format_string_metadata(cle.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(cle.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_identifier_expr(const clobber::IdentifierExpr &ie) override {
+        std::string full_text    = norm(expr_tostring(source_text, ie));
+        std::string str_metadata = format_string_metadata(ie.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ie.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_let_expr(const clobber::LetExpr &le) override {
+        std::string full_text    = norm(expr_tostring(source_text, le));
+        std::string str_metadata = format_string_metadata(le.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(le.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(le.let_token);
+        on_binding_vector_expr(*le.binding_vector_expr);
+    }
+
+    void
+    on_fn_expr(const clobber::FnExpr &fe) override {
+        std::string full_text    = norm(expr_tostring(source_text, fe));
+        std::string str_metadata = format_string_metadata(fe.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(fe.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(fe.fn_token);
+        on_parameter_vector_expr(*fe.parameter_vector_expr);
+    }
+
+    void
+    on_def_expr(const clobber::DefExpr &de) override {
+        std::string full_text    = norm(expr_tostring(source_text, de));
+        std::string str_metadata = format_string_metadata(de.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(de.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(de.def_token);
+    }
+
+    void
+    on_do_expr(const clobber::DoExpr &de) override {
+        std::string full_text    = norm(expr_tostring(source_text, de));
+        std::string str_metadata = format_string_metadata(de.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(de.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(de.do_token);
+    }
+
+    void
+    on_call_expr(const clobber::CallExpr &ce) override {
+        std::string full_text    = norm(expr_tostring(source_text, ce));
+        std::string str_metadata = format_string_metadata(ce.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ce.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_accel_expr(const clobber::accel::AccelExpr &ae) override {
+        std::string full_text    = norm(expr_tostring(source_text, ae));
+        std::string str_metadata = format_string_metadata(ae.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ae.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(ae.accel_token);
+    }
+
+    void
+    on_mat_mul_expr(const clobber::accel::MatMulExpr &mme) override {
+        std::string full_text    = norm(expr_tostring(source_text, mme));
+        std::string str_metadata = format_string_metadata(mme.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(mme.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(mme.mat_mul_token);
+    }
+
+    void
+    on_relu_expr(const clobber::accel::RelUExpr &re) override {
+        std::string full_text    = norm(expr_tostring(source_text, re));
+        std::string str_metadata = format_string_metadata(re.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(re.type), full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_token(re.relu_token);
+    }
+
+    void
+    on_descent_callback() override {
+        inc_indentation();
+    }
+
+    virtual void
+    on_ascent_callback() override {
+        dec_indentation();
+    }
+
+    void
+    inc_indentation() {
+        current_indentation = std::max((size_t)0, current_indentation + 4);
+    }
+
+    void
+    dec_indentation() {
+        current_indentation = std::max((size_t)0, current_indentation - 4);
+    }
+
+    /* @brief Syntactic sugar that increments indentation, and decrements when it goes out of scope. */
+    struct IndentationGuard {
+        ImmutableTreeVisualizer &itv;
+        IndentationGuard(ImmutableTreeVisualizer &itv)
+            : itv(itv) {
+            itv.inc_indentation();
+        }
+
+        ~IndentationGuard() { itv.dec_indentation(); }
+    };
+
+    void
+    on_token(const clobber::Token &token) {
+        std::string full_text    = norm(token.ExtractFullText(source_text));
+        std::string str_metadata = format_string_metadata(token.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", tt_tostring(token.type), full_text, str_metadata));
+        lines.push_back(str);
+    }
+};
+
+#pragma region deprecated
+class [[deprecated]] ToString final : public clobber::AstRewriter {
 public:
     std::string
     walk(const std::string &source_text, clobber::Expr &expr) {
@@ -121,7 +318,7 @@ protected:
     clobber::BindingVectorExpr *
     on_binding_vector_expr(clobber::BindingVectorExpr *bve) override {
         this->on_token(bve->open_bracket_token);
-        auto _ = clobber::AstWalker::on_binding_vector_expr(bve);
+        auto _ = clobber::AstRewriter::on_binding_vector_expr(bve);
         this->on_token(bve->close_bracket_token);
         return bve;
     }
@@ -129,7 +326,7 @@ protected:
     clobber::ParameterVectorExpr *
     on_parameter_vector_expr(clobber::ParameterVectorExpr *pve) override {
         this->on_token(pve->open_bracket_token);
-        auto _ = clobber::AstWalker::on_parameter_vector_expr(pve);
+        auto _ = clobber::AstRewriter::on_parameter_vector_expr(pve);
         this->on_token(pve->close_bracket_token);
         return pve;
     }
@@ -138,7 +335,7 @@ protected:
     on_let_expr(clobber::LetExpr *le) override {
         this->on_token(le->open_paren_token);
         this->on_token(le->let_token);
-        auto _ = clobber::AstWalker::on_let_expr(le);
+        auto _ = clobber::AstRewriter::on_let_expr(le);
         this->on_token(le->close_paren_token);
         return le;
     }
@@ -147,7 +344,7 @@ protected:
     on_fn_expr(clobber::FnExpr *fe) override {
         this->on_token(fe->open_paren_token);
         this->on_token(fe->fn_token);
-        auto _ = clobber::AstWalker::on_fn_expr(fe);
+        auto _ = clobber::AstRewriter::on_fn_expr(fe);
         this->on_token(fe->close_paren_token);
         return fe;
     }
@@ -156,7 +353,7 @@ protected:
     on_def_expr(clobber::DefExpr *de) override {
         this->on_token(de->open_paren_token);
         this->on_token(de->def_token);
-        auto _ = clobber::AstWalker::on_def_expr(de);
+        auto _ = clobber::AstRewriter::on_def_expr(de);
         this->on_token(de->close_paren_token);
         return de;
     }
@@ -165,7 +362,7 @@ protected:
     on_do_expr(clobber::DoExpr *de) override {
         this->on_token(de->open_paren_token);
         this->on_token(de->do_token);
-        auto _ = clobber::AstWalker::on_do_expr(de);
+        auto _ = clobber::AstRewriter::on_do_expr(de);
         this->on_token(de->close_paren_token);
         return de;
     }
@@ -174,7 +371,7 @@ protected:
     on_call_expr(clobber::CallExpr *ce) override {
         this->on_token(ce->open_paren_token);
         this->on_expr(ce->operator_expr.get());
-        auto _ = clobber::AstWalker::on_call_expr(ce);
+        auto _ = clobber::AstRewriter::on_call_expr(ce);
         this->on_token(ce->close_paren_token);
         return ce;
     }
@@ -183,7 +380,7 @@ protected:
     on_accel_expr(clobber::accel::AccelExpr *ae) override {
         this->on_token(ae->open_paren_token);
         this->on_token(ae->accel_token);
-        auto _ = clobber::AstWalker::on_accel_expr(ae);
+        auto _ = clobber::AstRewriter::on_accel_expr(ae);
         this->on_token(ae->close_paren_token);
         return ae;
     }
@@ -192,7 +389,7 @@ protected:
     on_mat_mul_expr(clobber::accel::MatMulExpr *mme) override {
         this->on_token(mme->open_paren_token);
         this->on_token(mme->mat_mul_token);
-        auto _ = clobber::AstWalker::on_mat_mul_expr(mme);
+        auto _ = clobber::AstRewriter::on_mat_mul_expr(mme);
         this->on_token(mme->close_paren_token);
         return mme;
     }
@@ -201,7 +398,7 @@ protected:
     on_relu_expr(clobber::accel::RelUExpr *re) override {
         this->on_token(re->open_paren_token);
         this->on_token(re->relu_token);
-        auto _ = clobber::AstWalker::on_relu_expr(re);
+        auto _ = clobber::AstRewriter::on_relu_expr(re);
         this->on_token(re->close_paren_token);
         return re;
     }
@@ -211,7 +408,7 @@ private:
     std::vector<std::string> lines;
 };
 
-class TreeVisualizer final : public clobber::AstWalker {
+class [[deprecated]] TreeVisualizer final : public clobber::AstRewriter {
 public:
     std::string
     walk(const std::string &source_text, clobber::Expr &expr) {
@@ -559,16 +756,17 @@ private:
     std::vector<std::string> lines;
 };
 
+#pragma endregion
+
 std::string
-expr_tostring(const std::string &source_text, clobber::Expr &expr) {
-    ToString to_string{};
-    return to_string.walk(source_text, expr);
+expr_tostring(const std::string &source_text, const clobber::Expr &expr) {
+    clobber::Span span = expr.span();
+    return source_text.substr(span.start, span.length);
 }
 
 std::string
 expr_visualize_tree(const std::string &source_text, clobber::Expr &expr) {
-    TreeVisualizer tv{};
-    return tv.walk(source_text, expr);
+    return ImmutableTreeVisualizer::visualize(source_text, expr);
 }
 
 std::string

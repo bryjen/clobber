@@ -4,7 +4,7 @@
 #include "helpers/helpers.hpp"
 #include "helpers/syntax_factory.hpp"
 
-#include <clobber/ast.hpp>
+#include <clobber/ast/ast.hpp>
 #include <clobber/parser.hpp>
 
 using path = std::filesystem::path;

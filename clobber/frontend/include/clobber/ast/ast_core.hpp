@@ -1,17 +1,15 @@
 #pragma once
 
-#include <variant>
+#include <clobber/common/debug.hpp>
 
-#include <clobber/common/debug.hpp> // common debug header
+#include "clobber/pch.hpp"
 
-#include "pch.hpp"
-
+// fwd decs
 namespace clobber {
     struct Diagnostic; // clobber/common/diagnostic.hpp
 };
 
 namespace clobber {
-
     struct Span final {
         size_t start  = 0;
         size_t length = 0;
@@ -402,57 +400,6 @@ namespace clobber {
         std::unique_ptr<Expr> clone() const override;
     };
 
-    namespace accel {
-        // --- Accel specific AST nodes
-        // We don't define a separate AST for hardware accelerated syntax for ease on the parser side. This check is instead offloaded
-        // during semantic analysis.
-
-        /* @brief Represents a hardware accelerated code block. */
-        struct AccelExpr final : ParenthesizedExpr {
-            Token accel_token;
-            std::unique_ptr<BindingVectorExpr> binding_vector_expr;
-            std::vector<std::unique_ptr<Expr>> body_exprs;
-
-        public:
-            AccelExpr(const Token &, const Token &, std::unique_ptr<BindingVectorExpr>, std::vector<std::unique_ptr<Expr>> &&,
-                      const Token &);
-            AccelExpr(const AccelExpr &);
-
-            Span span() const override;
-            size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
-        };
-
-        /* @brief Represents a matrix multiply expression. */
-        struct MatMulExpr final : ParenthesizedExpr {
-            Token mat_mul_token;
-            std::unique_ptr<Expr> fst_operand;
-            std::unique_ptr<Expr> snd_operand;
-
-        public:
-            MatMulExpr(const Token &, const Token &, std::unique_ptr<Expr>, std::unique_ptr<Expr>, const Token &);
-            MatMulExpr(const MatMulExpr &);
-
-            Span span() const override;
-            size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
-        };
-
-        /* @brief Represents a RelU expression. */
-        struct RelUExpr final : ParenthesizedExpr {
-            Token relu_token;
-            std::unique_ptr<Expr> operand;
-
-        public:
-            RelUExpr(const Token &, const Token &, std::unique_ptr<Expr>, const Token &);
-            RelUExpr(const RelUExpr &);
-
-            Span span() const override;
-            size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
-        };
-    }; // namespace accel
-
     /* @brief Represents a clobber compilation unit. Usually contains all the contents of a source file. */
     struct CompilationUnit {
         const std::string &source_text;
@@ -466,31 +413,4 @@ namespace clobber {
         size_t hash() const;
         std::unique_ptr<CompilationUnit> clone() const;
     };
-
-    class AstWalker {
-    protected:
-        virtual Expr *on_expr(Expr *);
-
-        // 'leaf' exprs
-        virtual NumLiteralExpr *on_num_literal_expr(NumLiteralExpr *);
-        virtual StringLiteralExpr *on_string_literal_expr(StringLiteralExpr *);
-        virtual CharLiteralExpr *on_char_literal_expr(CharLiteralExpr *);
-        virtual IdentifierExpr *on_identifier_expr(IdentifierExpr *);
-
-        // 'node' exprs
-        virtual ParenthesizedExpr *on_paren_expr(ParenthesizedExpr *);
-        virtual BindingVectorExpr *on_binding_vector_expr(BindingVectorExpr *);
-        virtual ParameterVectorExpr *on_parameter_vector_expr(ParameterVectorExpr *);
-        virtual LetExpr *on_let_expr(LetExpr *);
-        virtual FnExpr *on_fn_expr(FnExpr *);
-        virtual DefExpr *on_def_expr(DefExpr *);
-        virtual DoExpr *on_do_expr(DoExpr *);
-        virtual CallExpr *on_call_expr(CallExpr *);
-
-        // hardware acceleration exprs
-        virtual accel::AccelExpr *on_accel_expr(accel::AccelExpr *);
-        virtual accel::MatMulExpr *on_mat_mul_expr(accel::MatMulExpr *);
-        virtual accel::RelUExpr *on_relu_expr(accel::RelUExpr *);
-    };
-
 }; // namespace clobber

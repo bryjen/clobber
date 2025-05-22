@@ -5,7 +5,7 @@
 #include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
 
-#include "clobber/ast.hpp"
+#include "clobber/ast/ast.hpp"
 #include "clobber/parser.hpp"
 
 #include "clobber/internal/diagnostic_factory.hpp"

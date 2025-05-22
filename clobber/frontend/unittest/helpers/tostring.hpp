@@ -31,7 +31,7 @@ namespace clobber {
 }; // namespace clobber
 
 /* @brief Gets the text encompassed by the passed expr as represented in the source text. */
-std::string expr_tostring(const std::string &source_text, clobber::Expr &expr);
+std::string expr_tostring(const std::string &source_text, const clobber::Expr &expr);
 
 /* @brief Gets the string representation of a clobber type. */
 std::string type_tostring(const clobber::Type &);

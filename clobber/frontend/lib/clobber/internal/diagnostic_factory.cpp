@@ -2,7 +2,7 @@
 
 #include <clobber/common/diagnostic.hpp>
 
-#include <clobber/ast.hpp>
+#include <clobber/ast/ast.hpp>
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 

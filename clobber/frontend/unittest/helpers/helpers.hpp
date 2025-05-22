@@ -61,7 +61,8 @@ namespace ParserTestsHelpers {
     /* @brief Converts a list of parse errors equivalent to a list of pretty formatted error messages. */
     std::vector<std::string> get_error_msgs(const std::string &, const std::string &, const std::vector<clobber::Diagnostic> &);
 
-    ::testing::AssertionResult are_compilation_units_equivalent(std::vector<clobber::Expr *> expected, std::vector<clobber::Expr *> actual);
+    ::testing::AssertionResult are_compilation_units_equivalent(const std::string &source_text, std::vector<clobber::Expr *> expected,
+                                                                std::vector<clobber::Expr *> actual, bool print);
 } // namespace ParserTestsHelpers
 
 namespace SemanticTestsHelpers {

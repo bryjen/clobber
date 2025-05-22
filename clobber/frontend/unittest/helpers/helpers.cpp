@@ -1,21 +1,23 @@
 #include "pch.hpp"
 
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
 #include "helpers.hpp"
+#include "syntax_factory.hpp"
 #include "tostring.hpp"
 
 #include <clobber/common/diagnostic.hpp>
 #include <clobber/common/utils.hpp>
 
-#include <clobber/ast.hpp>
+#include <clobber/ast/ast.hpp>
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
-namespace {
-    std::string
-    normalize(const std::string &str) {
-        return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
-    }
+using namespace str_utils;
 
+namespace {
     std::string
     read_all_text(const std::string &path) {
         std::ifstream file(path, std::ios::in | std::ios::binary);
@@ -38,7 +40,7 @@ namespace {
 
     std::string
     clobber_token_tostring(const std::string &source_text, const clobber::Token &token, bool use_alignment = true) {
-        std::string value_str      = normalize(token.ExtractFullText(source_text));
+        std::string value_str      = norm(token.ExtractFullText(source_text));
         std::string token_type_str = std::string(magic_enum::enum_name(token.type));
         if (use_alignment) { // cannot reduce to conditional due to `std::format` constexpr constraint
             return std::format("(tt: {:>20.20} (val: `{}`)", token_type_str, value_str);
@@ -165,9 +167,9 @@ namespace TokenizerTestsHelpers {
 
     ::testing::AssertionResult
     is_roundtrippable(const std::string &source_text, const std::vector<clobber::Token> &actual_tokens) {
-        const std::string source_text_norm   = normalize(source_text);
+        const std::string source_text_norm   = norm(source_text);
         const std::string reconstructed      = reconstruct_source_text_from_tokens(source_text, actual_tokens);
-        const std::string reconstructed_norm = normalize(reconstructed);
+        const std::string reconstructed_norm = norm(reconstructed);
         if (source_text_norm == reconstructed_norm) {
             return ::testing::AssertionSuccess();
         } else {
@@ -182,6 +184,208 @@ are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber
 }
 
 namespace ParserTestsHelpers {
+
+    class TreeReprFlattener final : public clobber::AstWalker {
+    public:
+        static std::vector<std::string>
+        flatten_expr(const std::string &source_text, std::function<std::string(const clobber::Token &)> token_get_repr,
+                     std::function<std::string(const clobber::Expr &)> expr_get_repr, const clobber::Expr &expr) {
+            auto pa_expr_get_repr  = [&expr_get_repr](const clobber::Expr &expr) { return norm(expr_get_repr(expr)); };
+            auto pa_token_get_repr = [&token_get_repr](const clobber::Token &token) { return norm(token_get_repr(token)); };
+
+            TreeReprFlattener trf(source_text, pa_expr_get_repr, pa_token_get_repr);
+            trf.walk(expr);
+            return trf.strs;
+        }
+
+    private:
+        const std::string &source_text;
+        const std::function<std::string(const clobber::Expr &)> expr_get_repr   = 0;
+        const std::function<std::string(const clobber::Token &)> token_get_repr = 0;
+        std::vector<std::string> strs;
+
+        TreeReprFlattener(const std::string &source_text, std::function<std::string(const clobber::Expr &)> expr_get_repr,
+                          std::function<std::string(const clobber::Token &)> token_get_repr)
+            : source_text(source_text)
+            , expr_get_repr(expr_get_repr)
+            , token_get_repr(token_get_repr)
+            , strs({}) {}
+
+    protected:
+        void
+        on_token(const clobber::Token &token) {
+            strs.push_back(token_get_repr(token));
+        }
+
+        void
+        on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
+            clobber::Span span = pve.span();
+            strs.push_back(norm(source_text.substr(span.start, span.length)));
+
+            on_token(pve.open_bracket_token);
+            for (const auto &id : pve.identifiers) {
+                on_identifier_expr(*id);
+            }
+            on_token(pve.close_bracket_token);
+        }
+
+        void
+        on_binding_vector_expr(const clobber::BindingVectorExpr &bve) {
+            clobber::Span span = bve.span();
+            strs.push_back(norm(source_text.substr(span.start, span.length)));
+
+            on_token(bve.open_bracket_token);
+            for (size_t i = 0; i < bve.num_bindings; i++) {
+                on_identifier_expr(*bve.identifiers[i]);
+                walk(*bve.identifiers[i]);
+            }
+            on_token(bve.close_bracket_token);
+        }
+
+        void
+        on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
+            strs.push_back(expr_get_repr(nle));
+            on_token(nle.token);
+        }
+
+        void
+        on_string_literal_expr(const clobber::StringLiteralExpr &sle) override {
+            strs.push_back(expr_get_repr(sle));
+            on_token(sle.token);
+        }
+
+        void
+        on_char_literal_expr(const clobber::CharLiteralExpr &cle) override {
+            strs.push_back(expr_get_repr(cle));
+            on_token(cle.token);
+        }
+
+        void
+        on_identifier_expr(const clobber::IdentifierExpr &ie) override {
+            strs.push_back(expr_get_repr(ie));
+            on_token(ie.token);
+        }
+
+        void
+        on_let_expr(const clobber::LetExpr &le) override {
+            strs.push_back(expr_get_repr(le));
+
+            on_token(le.open_paren_token);
+            on_token(le.let_token);
+            on_binding_vector_expr(*le.binding_vector_expr);
+            for (const auto &body_expr : le.body_exprs) {
+                walk(*body_expr);
+            }
+            on_token(le.close_paren_token);
+        }
+
+        void
+        on_fn_expr(const clobber::FnExpr &fe) override {
+            strs.push_back(expr_get_repr(fe));
+
+            on_token(fe.open_paren_token);
+            on_token(fe.fn_token);
+            on_parameter_vector_expr(*fe.parameter_vector_expr);
+            for (const auto &body_expr : fe.body_exprs) {
+                walk(*body_expr);
+            }
+            on_token(fe.close_paren_token);
+        }
+
+        void
+        on_def_expr(const clobber::DefExpr &de) override {
+            strs.push_back(expr_get_repr(de));
+
+            on_token(de.open_paren_token);
+            on_token(de.def_token);
+            on_identifier_expr(*de.identifier);
+            walk(*de.value);
+            on_token(de.close_paren_token);
+        }
+
+        void
+        on_do_expr(const clobber::DoExpr &de) override {
+            strs.push_back(expr_get_repr(de));
+
+            on_token(de.open_paren_token);
+            on_token(de.do_token);
+            for (const auto &body_expr : de.body_exprs) {
+                walk(*body_expr);
+            }
+            on_token(de.close_paren_token);
+        }
+
+        void
+        on_call_expr(const clobber::CallExpr &ce) override {
+            strs.push_back(expr_get_repr(ce));
+
+            on_token(ce.open_paren_token);
+            walk(*ce.operator_expr);
+            for (const auto &arg : ce.arguments) {
+                walk(*arg);
+            }
+            on_token(ce.close_paren_token);
+        }
+
+        void
+        on_accel_expr(const clobber::accel::AccelExpr &ae) override {
+            strs.push_back(expr_get_repr(ae));
+
+            on_token(ae.open_paren_token);
+            on_token(ae.accel_token);
+            on_binding_vector_expr(*ae.binding_vector_expr);
+            for (const auto &body_expr : ae.body_exprs) {
+                walk(*body_expr);
+            }
+            on_token(ae.close_paren_token);
+        }
+
+        void
+        on_mat_mul_expr(const clobber::accel::MatMulExpr &mme) override {
+            strs.push_back(expr_get_repr(mme));
+
+            on_token(mme.open_paren_token);
+            on_token(mme.mat_mul_token);
+            walk(*mme.fst_operand);
+            walk(*mme.snd_operand);
+            on_token(mme.close_paren_token);
+        }
+
+        void
+        on_relu_expr(const clobber::accel::RelUExpr &re) override {
+            strs.push_back(expr_get_repr(re));
+
+            on_token(re.open_paren_token);
+            on_token(re.relu_token);
+            walk(*re.operand);
+            on_token(re.close_paren_token);
+        }
+
+        void
+        on_descent_callback() override {
+            return;
+        }
+
+        virtual void
+        on_ascent_callback() override {
+            return;
+        }
+    };
+
+    void
+    print_flattened_asts(const std::vector<std::string> expected_flattened, const std::vector<std::string> actual_flattened) {
+        auto eft = expected_flattened | std::views::transform([](auto &s) { return std::format("`{}`", s); });
+        std::vector<std::string> expected_modified(eft.begin(), eft.end());
+        const std::string expected_str = std::format("[ {} ]", str_utils::join(", ", expected_modified));
+
+        auto aft = actual_flattened | std::views::transform([](auto &s) { return std::format("`{}`", s); });
+        std::vector<std::string> actual_modified(eft.begin(), eft.end());
+        const std::string actual_str = std::format("[ {} ]", str_utils::join(", ", actual_modified));
+
+        spdlog::info(std::format("Expected:\n{}", expected_str));
+        spdlog::info(std::format("Actual:\n{}", actual_str));
+    }
+
     std::vector<std::string>
     get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<clobber::Diagnostic> &diagnostics) {
         std::vector<std::string> errs;
@@ -196,7 +400,53 @@ namespace ParserTestsHelpers {
     }
 
     ::testing::AssertionResult
-    are_compilation_units_equivalent(std::vector<clobber::Expr *> expected, std::vector<clobber::Expr *> actual) {
+    are_compilation_units_equivalent(const std::string &source_text, std::vector<clobber::Expr *> expected,
+                                     std::vector<clobber::Expr *> actual, bool print) {
+        // we compare by getting the string representations of each node and flattening them to an array.
+        // compare each value in the array to assert the compilation units are equivalent with regards to their asts.
+
+        // remember: asts from the parsers have spans that refer directly to the source text.
+        // asts generated from the syntax factory have expected strings as metadata.
+        // we pass callbacks to the flattener to handle the above case.
+
+        // expected callbacks
+        std::function<std::string(const clobber::Expr &)> expected_expr_get_repr = [](const clobber::Expr &expr) {
+            return std::any_cast<std::string>(expr.metadata.at(default_str_metadata_tag));
+        };
+
+        std::function<std::string(const clobber::Token &)> expected_token_get_repr = [](const clobber::Token &token) {
+            return std::any_cast<std::string>(token.metadata.at(default_str_metadata_tag));
+        };
+
+        // actual callbacks
+        std::function<std::string(const clobber::Expr &)> actual_expr_get_repr = [&source_text](const clobber::Expr &expr) {
+            clobber::Span span = expr.span();
+            return source_text.substr(span.start, span.length);
+        };
+
+        std::function<std::string(const clobber::Token &)> actual_token_get_repr = [&source_text](const clobber::Token &token) {
+            clobber::Span span = token.full_span;
+            return source_text.substr(span.start, span.length);
+        };
+
+        std::vector<std::string> expected_flattened;
+        for (const auto &expr : expected) {
+            std::vector<std::string> flattened =
+                TreeReprFlattener::flatten_expr(source_text, expected_token_get_repr, expected_expr_get_repr, *expr);
+            expected_flattened.insert(expected_flattened.end(), flattened.begin(), flattened.end());
+        }
+
+        std::vector<std::string> actual_flattened;
+        for (const auto &expr : actual) {
+            std::vector<std::string> flattened =
+                TreeReprFlattener::flatten_expr(source_text, actual_token_get_repr, actual_expr_get_repr, *expr);
+            actual_flattened.insert(actual_flattened.end(), flattened.begin(), flattened.end());
+        }
+
+        if (print) {
+            print_flattened_asts(expected_flattened, actual_flattened);
+        }
+
         return ::testing::AssertionSuccess();
     }
 }; // namespace ParserTestsHelpers
@@ -222,7 +472,7 @@ namespace SemanticTestsHelpers {
         size_t hash          = nle_expr.hash();
         auto it              = semantic_model.type_map->find(hash);
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(hash), type_str, normalize(expr_tostring(SRC_TXT, nle_expr))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(hash), type_str, norm(expr_tostring(SRC_TXT, nle_expr))));
         return strs;
     }
 
@@ -233,7 +483,7 @@ namespace SemanticTestsHelpers {
 
         auto it              = semantic_model.type_map->find(sle.hash());
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(sle.hash()), type_str, normalize(expr_tostring(SRC_TXT, sle))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(sle.hash()), type_str, norm(expr_tostring(SRC_TXT, sle))));
         return strs;
     }
 
@@ -244,7 +494,7 @@ namespace SemanticTestsHelpers {
 
         auto it              = semantic_model.type_map->find(cle.hash());
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(cle.hash()), type_str, normalize(expr_tostring(SRC_TXT, cle))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(cle.hash()), type_str, norm(expr_tostring(SRC_TXT, cle))));
         return strs;
     }
 
@@ -255,7 +505,7 @@ namespace SemanticTestsHelpers {
 
         auto it              = semantic_model.type_map->find(iden_expr.hash());
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(iden_expr.hash()), type_str, normalize(expr_tostring(SRC_TXT, iden_expr))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(iden_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, iden_expr))));
         return strs;
     }
 
@@ -266,7 +516,7 @@ namespace SemanticTestsHelpers {
 
         auto it              = semantic_model.type_map->find(let_expr.hash());
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(let_expr.hash()), type_str, normalize(expr_tostring(SRC_TXT, let_expr))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(let_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, let_expr))));
 
         // auto body_expr_views = ptr_utils::get_expr_views(let_expr.body_exprs);
         for (const auto &body_expr_view : let_expr.body_exprs) {
@@ -299,7 +549,7 @@ namespace SemanticTestsHelpers {
 
         auto it              = semantic_model.type_map->find(call_expr.hash());
         std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
-        strs.push_back(std::format("{}: {} `{}`", fmt_hash(call_expr.hash()), type_str, normalize(expr_tostring(SRC_TXT, call_expr))));
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(call_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, call_expr))));
 
         // auto argument_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
         for (const auto &argument_expr_view : call_expr.arguments) {

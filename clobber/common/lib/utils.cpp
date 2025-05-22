@@ -77,6 +77,11 @@ StringUtils::normalize_whitespace(const std::string &input) {
     return result;
 }
 
+std::string
+StringUtils::norm(const std::string &str) {
+    return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
+}
+
 std::optional<int>
 StringUtils::try_stoi(const std::string &s) {
     try {

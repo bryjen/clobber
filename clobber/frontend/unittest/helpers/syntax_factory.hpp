@@ -1,6 +1,6 @@
 #pragma once
 
-#include "clobber/ast.hpp"
+#include "clobber/ast/ast.hpp"
 
 // defining annotations to help remember which syntax factory functions are meant to be used where.
 // using custom annotations instead of comments because they stand out more 🔥.
