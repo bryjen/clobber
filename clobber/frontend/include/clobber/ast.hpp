@@ -17,7 +17,6 @@ namespace clobber {
         size_t length = 0;
     };
 
-    // remarks: cheap to copy
     /* @brief Represents a token. */
     struct Token final {
         enum class Type {
@@ -243,6 +242,8 @@ namespace clobber {
         Token close_bracket_token;
         size_t num_bindings;
 
+        std::unordered_map<std::string, std::any> metadata;
+
     public:
         BindingVectorExpr(const Token &, std::vector<std::unique_ptr<IdentifierExpr>> &&, std::vector<std::unique_ptr<Expr>> &&,
                           const Token &, size_t);
@@ -257,6 +258,8 @@ namespace clobber {
         Token open_bracket_token;
         std::vector<std::unique_ptr<IdentifierExpr>> identifiers;
         Token close_bracket_token;
+
+        std::unordered_map<std::string, std::any> metadata;
 
     public:
         ParameterVectorExpr(const Token &, std::vector<std::unique_ptr<IdentifierExpr>> &&, const Token &);

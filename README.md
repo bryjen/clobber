@@ -6,9 +6,7 @@
         <br/>
 	Clojure inspired Lisp dialect with native hardware acceleration support.
 	<br/>
-	<b>SAMPLE README</b>
-	<br/>
-	<b>Active under development.</b>
+	<b>WIP</b>
     </p>
 </div>
 
@@ -16,18 +14,6 @@
 &nbsp;
 Clobber is a statically typed, general purpose language combining the robustness and expressivity of Lisp languages with the speed of hardware accelerated code - all in one package.
 
-
-&nbsp;
-#### Easy to install
-
-``` pwsh
-# windows 
-choco install bryjen-clobber
-
-# linux/macos
-brew install bryjen-clobber
-```
-No bootstrapping or building from source required, a compatible package manager is all you need.
 
 &nbsp;
 #### Native Hardware Acceleration
@@ -45,15 +31,3 @@ No bootstrapping or building from source required, a compatible package manager 
 ```
 Clobber provides bindings to interface with various low-level APIs such as Vulkan or specialized runtimes such as the ONNX Runtime.
 This is done by defining acceleration blocks and defining tensor operations, which gets parsed into MLIR TOSA, which is then emitted as target-specific, lower-level IR.
-
-&nbsp;
-#### Development experience first
-```
-error: Invalid generic type.
-  ┌─ C:\Users\Public\Program.mk:1:22
-  |
-0 | Result<string, System.Collections.Generic.List<string>>
-  |                      ^ Expected a Comma ',', or a GreaterThan '>''.
-```
-~~Inspired by the error handling and error messages of modern functional languages (OCaml, F#, Rust, Gleam, etc.), the toolchain is developed to make writing and debugging as stress-free and predictable as possible.~~
-

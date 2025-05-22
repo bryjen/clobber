@@ -35,10 +35,12 @@ namespace clobber {
 
 namespace clobber {}; // namespace clobber
 
-std::string get_executable_directory();
-std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
-std::string read_all_text(const std::string &);
-std::string reconstruct_source_text_from_tokens(const std::string &, const std::vector<clobber::Token> &);
+namespace {
+    std::string get_executable_directory();
+    std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
+    std::string read_all_text(const std::string &);
+    std::string reconstruct_source_text_from_tokens(const std::string &, const std::vector<clobber::Token> &);
+} // namespace
 
 namespace Logging {
     void init_logger(const std::string &logger_name, const std::string &out_log_path);
@@ -59,7 +61,7 @@ namespace ParserTestsHelpers {
     /* @brief Converts a list of parse errors equivalent to a list of pretty formatted error messages. */
     std::vector<std::string> get_error_msgs(const std::string &, const std::string &, const std::vector<clobber::Diagnostic> &);
 
-    ::testing::AssertionResult are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber::CompilationUnit &);
+    ::testing::AssertionResult are_compilation_units_equivalent(std::vector<clobber::Expr *> expected, std::vector<clobber::Expr *> actual);
 } // namespace ParserTestsHelpers
 
 namespace SemanticTestsHelpers {

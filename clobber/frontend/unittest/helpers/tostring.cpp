@@ -240,8 +240,9 @@ protected:
     clobber::NumLiteralExpr *
     on_num_literal_expr(clobber::NumLiteralExpr *nle) override {
         ToString ts{};
-        std::string full_text = norm(ts.walk(*source_text, *nle));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(nle->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *nle));
+        std::string str_metadata = format_string_metadata(nle->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(nle->type), full_text, str_metadata));
         lines.push_back(str);
         return nle;
     }
@@ -249,8 +250,9 @@ protected:
     clobber::StringLiteralExpr *
     on_string_literal_expr(clobber::StringLiteralExpr *sle) override {
         ToString ts{};
-        std::string full_text = norm(ts.walk(*source_text, *sle));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(sle->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *sle));
+        std::string str_metadata = format_string_metadata(sle->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(sle->type), full_text, str_metadata));
         lines.push_back(str);
         return sle;
     }
@@ -258,8 +260,9 @@ protected:
     clobber::CharLiteralExpr *
     on_char_literal_expr(clobber::CharLiteralExpr *cle) override {
         ToString ts{};
-        std::string full_text = norm(ts.walk(*source_text, *cle));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(cle->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *cle));
+        std::string str_metadata = format_string_metadata(cle->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(cle->type), full_text, str_metadata));
         lines.push_back(str);
         return cle;
     }
@@ -267,8 +270,9 @@ protected:
     clobber::IdentifierExpr *
     on_identifier_expr(clobber::IdentifierExpr *ie) override {
         ToString ts{};
-        std::string full_text = norm(ts.walk(*source_text, *ie));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(ie->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *ie));
+        std::string str_metadata = format_string_metadata(ie->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ie->type), full_text, str_metadata));
         lines.push_back(str);
         return ie;
     }
@@ -278,9 +282,9 @@ protected:
         ToString ts{};
 
         // TODO: see what you can do about this:
-        std::string full_text = norm(ts.walk_bve(*source_text, *bve));
-        // std::string full_text = norm(ExprToString::binding_vector_expr(*source_text, *bve));
-        std::string str = indent(current_indentation, std::format("[BindingVector] `{}`", full_text));
+        std::string full_text    = norm(ts.walk_bve(*source_text, *bve));
+        std::string str_metadata = format_string_metadata(bve->metadata);
+        std::string str          = indent(current_indentation, std::format("[BindingVector] `{}` {}", full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -311,9 +315,9 @@ protected:
         ToString ts{};
 
         // TODO: see what you can do about this:
-        std::string full_text = norm(ts.walk_pve(*source_text, *pve));
-        // std::string full_text = norm(ExprToString::parameter_vector_expr(*source_text, *pve));
-        std::string str = indent(current_indentation, std::format("[ParameterVector] `{}`", full_text));
+        std::string full_text    = norm(ts.walk_pve(*source_text, *pve));
+        std::string str_metadata = format_string_metadata(pve->metadata);
+        std::string str          = indent(current_indentation, std::format("[ParameterVector] `{}` {}", full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -333,8 +337,9 @@ protected:
     on_let_expr(clobber::LetExpr *le) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *le));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(le->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *le));
+        std::string str_metadata = format_string_metadata(le->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(le->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -365,8 +370,9 @@ protected:
     on_fn_expr(clobber::FnExpr *fe) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *fe));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(fe->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *fe));
+        std::string str_metadata = format_string_metadata(fe->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(fe->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -397,8 +403,9 @@ protected:
     on_def_expr(clobber::DefExpr *de) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *de));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(de->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *de));
+        std::string str_metadata = format_string_metadata(de->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(de->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -422,8 +429,9 @@ protected:
     on_do_expr(clobber::DoExpr *de) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *de));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(de->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *de));
+        std::string str_metadata = format_string_metadata(de->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(de->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -452,8 +460,9 @@ protected:
     on_call_expr(clobber::CallExpr *ce) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *ce));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(ce->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *ce));
+        std::string str_metadata = format_string_metadata(ce->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ce->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -482,8 +491,9 @@ protected:
     on_accel_expr(clobber::accel::AccelExpr *ae) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *ae));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(ae->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *ae));
+        std::string str_metadata = format_string_metadata(ae->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(ae->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -503,8 +513,9 @@ protected:
     on_mat_mul_expr(clobber::accel::MatMulExpr *mme) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *mme));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(mme->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *mme));
+        std::string str_metadata = format_string_metadata(mme->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(mme->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();
@@ -519,8 +530,9 @@ protected:
     on_relu_expr(clobber::accel::RelUExpr *re) override {
         ToString ts{};
 
-        std::string full_text = norm(ts.walk(*source_text, *re));
-        std::string str       = indent(current_indentation, std::format("[{}] `{}`", expr_type_tostring(re->type), full_text));
+        std::string full_text    = norm(ts.walk(*source_text, *re));
+        std::string str_metadata = format_string_metadata(re->metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", expr_type_tostring(re->type), full_text, str_metadata));
         lines.push_back(str);
 
         inc_indentation();

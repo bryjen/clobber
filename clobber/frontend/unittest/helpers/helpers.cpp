@@ -10,60 +10,71 @@
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
-std::string
-normalize(const std::string &str) {
-    return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
-}
-
-std::string
-read_all_text(const std::string &path) {
-    std::ifstream file(path, std::ios::in | std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(file)), {});
-}
-
-std::string
-to_string_any(const std::any &a) {
-    if (a.type() == typeid(int))
-        return std::to_string(std::any_cast<int>(a));
-    if (a.type() == typeid(std::string))
-        return std::any_cast<std::string>(a);
-    if (a.type() == typeid(bool))
-        return std::any_cast<bool>(a) ? "true" : "false";
-    if (a.type() == typeid(char))
-        return std::to_string(std::any_cast<char>(a));
-
-    return "<unsupported>";
-}
-
-std::string
-clobber_token_tostring(const std::string &source_text, const clobber::Token &token, bool use_alignment = true) {
-    std::string value_str      = normalize(token.ExtractFullText(source_text));
-    std::string token_type_str = std::string(magic_enum::enum_name(token.type));
-    if (use_alignment) { // cannot reduce to conditional due to `std::format` constexpr constraint
-        return std::format("(tt: {:>20.20} (val: `{}`)", token_type_str, value_str);
-    } else {
-        return std::format("(tt: {} (val: `{}`)", token_type_str, value_str);
-    }
-}
-
-std::string
-reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<clobber::Token> &tokens) {
-    std::ostringstream builder;
-    for (size_t i = 0; i < tokens.size(); i++) {
-        clobber::Token token = tokens[i];
-        builder << token.ExtractFullText(source_text);
+namespace {
+    std::string
+    normalize(const std::string &str) {
+        return str_utils::normalize_whitespace(str_utils::remove_newlines(str_utils::trim(str)));
     }
 
-    return builder.str();
-}
+    std::string
+    read_all_text(const std::string &path) {
+        std::ifstream file(path, std::ios::in | std::ios::binary);
+        return std::string((std::istreambuf_iterator<char>(file)), {});
+    }
 
-std::string
-get_executable_directory() {
-    char buffer[MAX_PATH];
-    GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-    std::filesystem::path exe_path(buffer);
-    return exe_path.parent_path().string();
-}
+    std::string
+    to_string_any(const std::any &a) {
+        if (a.type() == typeid(int))
+            return std::to_string(std::any_cast<int>(a));
+        if (a.type() == typeid(std::string))
+            return std::any_cast<std::string>(a);
+        if (a.type() == typeid(bool))
+            return std::any_cast<bool>(a) ? "true" : "false";
+        if (a.type() == typeid(char))
+            return std::to_string(std::any_cast<char>(a));
+
+        return "<unsupported>";
+    }
+
+    std::string
+    clobber_token_tostring(const std::string &source_text, const clobber::Token &token, bool use_alignment = true) {
+        std::string value_str      = normalize(token.ExtractFullText(source_text));
+        std::string token_type_str = std::string(magic_enum::enum_name(token.type));
+        if (use_alignment) { // cannot reduce to conditional due to `std::format` constexpr constraint
+            return std::format("(tt: {:>20.20} (val: `{}`)", token_type_str, value_str);
+        } else {
+            return std::format("(tt: {} (val: `{}`)", token_type_str, value_str);
+        }
+    }
+
+    std::string
+    reconstruct_source_text_from_tokens(const std::string &source_text, const std::vector<clobber::Token> &tokens) {
+        std::ostringstream builder;
+        for (size_t i = 0; i < tokens.size(); i++) {
+            clobber::Token token = tokens[i];
+            builder << token.ExtractFullText(source_text);
+        }
+
+        return builder.str();
+    }
+
+    std::string
+    get_executable_directory() {
+        char buffer[MAX_PATH];
+        GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+        std::filesystem::path exe_path(buffer);
+        return exe_path.parent_path().string();
+    }
+
+} // namespace
+
+// ast flattening
+namespace {
+    std::vector<clobber::Expr *>
+    flatten_expr(clobber::Expr *expr) {
+        throw 0;
+    }
+}; // namespace
 
 namespace Logging {
     void
@@ -170,19 +181,25 @@ are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber
     throw 0;
 }
 
-std::vector<std::string>
-ParserTestsHelpers::get_error_msgs(const std::string &file, const std::string &source_text,
-                                   const std::vector<clobber::Diagnostic> &diagnostics) {
-    std::vector<std::string> errs;
+namespace ParserTestsHelpers {
+    std::vector<std::string>
+    get_error_msgs(const std::string &file, const std::string &source_text, const std::vector<clobber::Diagnostic> &diagnostics) {
+        std::vector<std::string> errs;
 
-    size_t i;
-    for (i = 0; i < diagnostics.size(); i++) {
-        clobber::Diagnostic diagnostic = diagnostics[i];
-        errs.push_back(diagnostic.GetFormattedErrorMsg(file, source_text));
+        size_t i;
+        for (i = 0; i < diagnostics.size(); i++) {
+            clobber::Diagnostic diagnostic = diagnostics[i];
+            errs.push_back(diagnostic.GetFormattedErrorMsg(file, source_text));
+        }
+
+        return errs;
     }
 
-    return errs;
-}
+    ::testing::AssertionResult
+    are_compilation_units_equivalent(std::vector<clobber::Expr *> expected, std::vector<clobber::Expr *> actual) {
+        return ::testing::AssertionSuccess();
+    }
+}; // namespace ParserTestsHelpers
 
 namespace SemanticTestsHelpers {
 

@@ -10,7 +10,7 @@
 #define USAGE_NOTE(msg)
 #endif
 
-const std::string default_str_metadata_tag = "default_value";
+const std::string default_str_metadata_tag = "expected_repr";
 
 #define DEFINE_TOKEN_FUNC(NAME, VALUE)                                                                                                     \
     inline clobber::Token NAME() {                                                                                                         \

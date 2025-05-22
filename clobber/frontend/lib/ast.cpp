@@ -271,7 +271,7 @@ clobber::StringLiteralExpr::hash() const {
 
 clobber::Span
 clobber::StringLiteralExpr::span() const {
-    throw 0;
+    return this->token.span;
 }
 
 std::unique_ptr<clobber::Expr>
@@ -291,7 +291,7 @@ clobber::CharLiteralExpr::CharLiteralExpr(const CharLiteralExpr &other)
 
 clobber::Span
 clobber::CharLiteralExpr::span() const {
-    throw 0;
+    return this->token.span;
 }
 
 size_t
@@ -320,7 +320,7 @@ clobber::IdentifierExpr::IdentifierExpr(const IdentifierExpr &other)
 
 clobber::Span
 clobber::IdentifierExpr::span() const {
-    throw 0;
+    return this->token.span;
 }
 
 size_t
@@ -360,7 +360,16 @@ clobber::BindingVectorExpr::BindingVectorExpr(const BindingVectorExpr &other)
 
 clobber::Span
 clobber::BindingVectorExpr::span() const {
-    throw 0;
+    size_t start = this->open_bracket_token.span.start;
+    size_t len   = this->open_bracket_token.span.length;
+
+    for (size_t i = 0; i < this->num_bindings; i++) {
+        len += this->identifiers[i]->span().length;
+        len += this->exprs[i]->span().length;
+    }
+
+    len += this->close_bracket_token.span.length;
+    return Span{start, len};
 }
 
 std::unique_ptr<clobber::BindingVectorExpr>
@@ -382,7 +391,15 @@ clobber::ParameterVectorExpr::ParameterVectorExpr(const ParameterVectorExpr &oth
 
 clobber::Span
 clobber::ParameterVectorExpr::span() const {
-    throw 0;
+    size_t start = this->open_bracket_token.span.start;
+    size_t len   = this->open_bracket_token.span.length;
+
+    for (const auto &identifier : this->identifiers) {
+        len += identifier->span().length;
+    }
+
+    len += this->close_bracket_token.span.length;
+    return Span{start, len};
 }
 
 std::unique_ptr<clobber::ParameterVectorExpr>
@@ -405,7 +422,17 @@ clobber::LetExpr::LetExpr(const LetExpr &other)
 
 clobber::Span
 clobber::LetExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+
+    len += this->let_token.span.length;
+    len += this->binding_vector_expr->span().start;
+    for (const auto &expr : this->body_exprs) {
+        len += expr->span().length;
+    }
+
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
@@ -458,7 +485,17 @@ clobber::FnExpr::hash() const {
 
 clobber::Span
 clobber::FnExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+
+    len += this->fn_token.span.length;
+    len += this->parameter_vector_expr->span().length;
+    for (const auto &expr : this->body_exprs) {
+        len += expr->span().length;
+    }
+
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 std::unique_ptr<clobber::Expr>
@@ -481,7 +518,12 @@ clobber::DefExpr::DefExpr(const DefExpr &other)
 
 clobber::Span
 clobber::DefExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+    len += this->def_token.span.length;
+    len += this->value->span().length;
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
@@ -514,7 +556,16 @@ clobber::DoExpr::DoExpr(const DoExpr &other)
 
 clobber::Span
 clobber::DoExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+
+    len += this->do_token.span.length;
+    for (const auto &expr : this->body_exprs) {
+        len += expr->span().length;
+    }
+
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
@@ -550,7 +601,16 @@ clobber::CallExpr::CallExpr(const CallExpr &other)
 
 clobber::Span
 clobber::CallExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+
+    len += this->operator_expr->span().start;
+    for (const auto &argument : this->arguments) {
+        len += argument->span().length;
+    }
+
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
@@ -589,7 +649,17 @@ clobber::accel::AccelExpr::AccelExpr(const AccelExpr &other)
 
 clobber::Span
 clobber::accel::AccelExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+
+    len += this->accel_token.span.length;
+    len += this->binding_vector_expr->span().length;
+    for (const auto &expr : this->body_exprs) {
+        len += expr->span().length;
+    }
+
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
@@ -639,7 +709,13 @@ clobber::accel::MatMulExpr::hash() const {
 
 clobber::Span
 clobber::accel::MatMulExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+    len += this->mat_mul_token.span.length;
+    len += this->fst_operand->span().length;
+    len += this->snd_operand->span().length;
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 std::unique_ptr<clobber::Expr>
@@ -660,7 +736,12 @@ clobber::accel::RelUExpr::RelUExpr(const RelUExpr &other)
 
 clobber::Span
 clobber::accel::RelUExpr::span() const {
-    throw 0;
+    size_t start = this->open_paren_token.span.start;
+    size_t len   = this->open_paren_token.span.length;
+    len += this->relu_token.span.length;
+    len += this->operand->span().length;
+    len += this->close_paren_token.span.length;
+    return Span{start, len};
 }
 
 size_t
