@@ -184,31 +184,36 @@ are_compilation_units_equivalent(const clobber::CompilationUnit &, const clobber
 }
 
 namespace ParserTestsHelpers {
-
     class TreeReprFlattener final : public clobber::AstWalker {
     public:
-        static std::vector<std::string>
-        flatten_expr(const std::string &source_text, std::function<std::string(const clobber::Token &)> token_get_repr,
-                     std::function<std::string(const clobber::Expr &)> expr_get_repr, const clobber::Expr &expr) {
-            auto pa_expr_get_repr  = [&expr_get_repr](const clobber::Expr &expr) { return norm(expr_get_repr(expr)); };
-            auto pa_token_get_repr = [&token_get_repr](const clobber::Token &token) { return norm(token_get_repr(token)); };
+        struct FlattenerCallbacks final {
+            const std::function<std::string(const clobber::Expr &)> expr_get_repr               = 0;
+            const std::function<std::string(const clobber::Token &)> token_get_repr             = 0;
+            const std::function<std::string(const clobber::BindingVectorExpr &)> bve_get_repr   = 0;
+            const std::function<std::string(const clobber::ParameterVectorExpr &)> pve_get_repr = 0;
+        };
 
-            TreeReprFlattener trf(source_text, pa_expr_get_repr, pa_token_get_repr);
+        static std::vector<std::string>
+        flatten_expr(const std::string &source_text, const FlattenerCallbacks &callbacks, const clobber::Expr &expr) {
+            TreeReprFlattener trf(source_text, callbacks);
             trf.walk(expr);
             return trf.strs;
         }
 
     private:
-        const std::string &source_text;
-        const std::function<std::string(const clobber::Expr &)> expr_get_repr   = 0;
-        const std::function<std::string(const clobber::Token &)> token_get_repr = 0;
         std::vector<std::string> strs;
+        const std::string &source_text;
+        const std::function<std::string(const clobber::Expr &)> expr_get_repr               = 0;
+        const std::function<std::string(const clobber::Token &)> token_get_repr             = 0;
+        const std::function<std::string(const clobber::BindingVectorExpr &)> bve_get_repr   = 0;
+        const std::function<std::string(const clobber::ParameterVectorExpr &)> pve_get_repr = 0;
 
-        TreeReprFlattener(const std::string &source_text, std::function<std::string(const clobber::Expr &)> expr_get_repr,
-                          std::function<std::string(const clobber::Token &)> token_get_repr)
+        TreeReprFlattener(const std::string &source_text, const FlattenerCallbacks &callbacks)
             : source_text(source_text)
-            , expr_get_repr(expr_get_repr)
-            , token_get_repr(token_get_repr)
+            , expr_get_repr(callbacks.expr_get_repr)
+            , token_get_repr(callbacks.token_get_repr)
+            , bve_get_repr(callbacks.bve_get_repr)
+            , pve_get_repr(callbacks.pve_get_repr)
             , strs({}) {}
 
     protected:
@@ -220,7 +225,7 @@ namespace ParserTestsHelpers {
         void
         on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
             clobber::Span span = pve.span();
-            strs.push_back(norm(source_text.substr(span.start, span.length)));
+            strs.push_back(pve_get_repr(pve));
 
             on_token(pve.open_bracket_token);
             for (const auto &id : pve.identifiers) {
@@ -232,7 +237,7 @@ namespace ParserTestsHelpers {
         void
         on_binding_vector_expr(const clobber::BindingVectorExpr &bve) {
             clobber::Span span = bve.span();
-            strs.push_back(norm(source_text.substr(span.start, span.length)));
+            strs.push_back(bve_get_repr(bve));
 
             on_token(bve.open_bracket_token);
             for (size_t i = 0; i < bve.num_bindings; i++) {
@@ -379,7 +384,7 @@ namespace ParserTestsHelpers {
         const std::string expected_str = std::format("[ {} ]", str_utils::join(", ", expected_modified));
 
         auto aft = actual_flattened | std::views::transform([](auto &s) { return std::format("`{}`", s); });
-        std::vector<std::string> actual_modified(eft.begin(), eft.end());
+        std::vector<std::string> actual_modified(aft.begin(), aft.end());
         const std::string actual_str = std::format("[ {} ]", str_utils::join(", ", actual_modified));
 
         spdlog::info(std::format("Expected:\n{}", expected_str));
@@ -401,7 +406,7 @@ namespace ParserTestsHelpers {
 
     ::testing::AssertionResult
     are_compilation_units_equivalent(const std::string &source_text, std::vector<clobber::Expr *> expected,
-                                     std::vector<clobber::Expr *> actual, bool print) {
+                                     std::vector<clobber::Expr *> actual) {
         // we compare by getting the string representations of each node and flattening them to an array.
         // compare each value in the array to assert the compilation units are equivalent with regards to their asts.
 
@@ -410,41 +415,93 @@ namespace ParserTestsHelpers {
         // we pass callbacks to the flattener to handle the above case.
 
         // expected callbacks
-        std::function<std::string(const clobber::Expr &)> expected_expr_get_repr = [](const clobber::Expr &expr) {
-            return std::any_cast<std::string>(expr.metadata.at(default_str_metadata_tag));
+        auto expected_expr_get_repr = [](const clobber::Expr &expr) {
+            return norm(std::any_cast<std::string>(expr.metadata.at(default_str_metadata_tag)));
         };
 
-        std::function<std::string(const clobber::Token &)> expected_token_get_repr = [](const clobber::Token &token) {
-            return std::any_cast<std::string>(token.metadata.at(default_str_metadata_tag));
+        auto expected_token_get_repr = [](const clobber::Token &token) {
+            return norm(std::any_cast<std::string>(token.metadata.at(default_str_metadata_tag)));
         };
+
+        auto expected_bve_get_repr = [&source_text](const clobber::BindingVectorExpr &bve) {
+            return norm(std::any_cast<std::string>(bve.metadata.at(default_str_metadata_tag)));
+        };
+
+        auto expected_pve_get_repr = [&source_text](const clobber::ParameterVectorExpr &pve) {
+            return norm(std::any_cast<std::string>(pve.metadata.at(default_str_metadata_tag)));
+        };
+        // clang-format off
+        TreeReprFlattener::FlattenerCallbacks expected_callbacks{
+            .expr_get_repr = expected_expr_get_repr,
+            .token_get_repr = expected_token_get_repr,
+            .bve_get_repr = expected_bve_get_repr,
+            .pve_get_repr = expected_pve_get_repr
+        };
+        // clang-format on
 
         // actual callbacks
-        std::function<std::string(const clobber::Expr &)> actual_expr_get_repr = [&source_text](const clobber::Expr &expr) {
+        auto actual_expr_get_repr = [&source_text](const clobber::Expr &expr) {
             clobber::Span span = expr.span();
-            return source_text.substr(span.start, span.length);
+            return norm(source_text.substr(span.start, span.length));
         };
 
-        std::function<std::string(const clobber::Token &)> actual_token_get_repr = [&source_text](const clobber::Token &token) {
+        auto actual_token_get_repr = [&source_text](const clobber::Token &token) {
             clobber::Span span = token.full_span;
-            return source_text.substr(span.start, span.length);
+            return norm(source_text.substr(span.start, span.length));
+        };
+
+        auto actual_bve_get_repr = [&source_text](const clobber::BindingVectorExpr &bve) {
+            clobber::Span span = bve.span();
+            return norm(source_text.substr(span.start, span.length));
+        };
+
+        auto actual_pve_get_repr = [&source_text](const clobber::ParameterVectorExpr &pve) {
+            clobber::Span span = pve.span();
+            return norm(source_text.substr(span.start, span.length));
+        };
+        // clang-format off
+        TreeReprFlattener::FlattenerCallbacks actual_callbacks{
+            .expr_get_repr = actual_expr_get_repr,
+            .token_get_repr = actual_token_get_repr,
+            .bve_get_repr = actual_bve_get_repr,
+            .pve_get_repr = actual_pve_get_repr
         };
 
         std::vector<std::string> expected_flattened;
         for (const auto &expr : expected) {
             std::vector<std::string> flattened =
-                TreeReprFlattener::flatten_expr(source_text, expected_token_get_repr, expected_expr_get_repr, *expr);
+                TreeReprFlattener::flatten_expr(source_text, expected_callbacks, *expr);
             expected_flattened.insert(expected_flattened.end(), flattened.begin(), flattened.end());
         }
 
         std::vector<std::string> actual_flattened;
         for (const auto &expr : actual) {
             std::vector<std::string> flattened =
-                TreeReprFlattener::flatten_expr(source_text, actual_token_get_repr, actual_expr_get_repr, *expr);
+                TreeReprFlattener::flatten_expr(source_text, actual_callbacks, *expr);
             actual_flattened.insert(actual_flattened.end(), flattened.begin(), flattened.end());
         }
 
-        if (print) {
-            print_flattened_asts(expected_flattened, actual_flattened);
+#if defined(ENABLE_DEBUG_OUTPUT) && defined(SHOW_FLATTENED_ASTS)
+        print_flattened_asts(expected_flattened, actual_flattened);
+#endif
+
+        if (expected_flattened.size() != actual_flattened.size()) {
+            const std::string err_msg = std::format(
+                "Actual flattened length `{}` does not match expected flattened length `{}`, the expected and actual ASTs differ.",
+                actual_flattened.size(), expected_flattened.size());
+            return ::testing::AssertionFailure() << err_msg;
+        }
+
+        size_t size = std::min(expected_flattened.size(), actual_flattened.size());
+        for (size_t i = 0; i < size; i++) {
+            const std::string expected = expected_flattened[i];
+            const std::string actual   = actual_flattened[i];
+            if (expected != actual) {
+                const std::string err_msg = std::format(
+                    "Actual expected value `{}` does not match expected flattened value `{}`, the expected and actual ASTs differ.", actual,
+                    expected);
+                return ::testing::AssertionFailure() << err_msg;
+            }
         }
 
         return ::testing::AssertionSuccess();

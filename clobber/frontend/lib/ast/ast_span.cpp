@@ -93,7 +93,7 @@ clobber::LetExpr::span() const {
     size_t len   = this->open_paren_token.full_span.length;
 
     len += this->let_token.span.length;
-    len += this->binding_vector_expr->span().start;
+    len += this->binding_vector_expr->span().length;
     for (const auto &expr : this->body_exprs) {
         len += expr->span().length;
     }

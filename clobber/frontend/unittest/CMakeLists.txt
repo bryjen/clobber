@@ -45,6 +45,9 @@ include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_tests)
 
 target_compile_definitions(clobber_tests PRIVATE
+    ENABLE_DEBUG_OUTPUT
+    # SHOW_FLATTENED_ASTS  # display the flattened asts when comparing compilation units
+
     # ENABLE_TOKENIZER_TESTS
     ENABLE_PARSER_TESTS
     # ENABLE_SEMANTICS_TESTS

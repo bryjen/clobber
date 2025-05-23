@@ -27,8 +27,23 @@ namespace clobber {
             std::unique_ptr<Expr> clone() const override;
         };
 
+        // rationale:
+        // MLIR TOSA ops can be represented as basically a function call.
+        // We parse them as regular call expressions and validate them later during semantic analysis.
+        // Use our own type for it to separate it from regular function calls.
+        /* @brief Represents a MLIR TOSA operation. */
+        struct TOSAOpExpr final : ParenthesizedExpr {
+            Token op_token;
+            std::vector<std::unique_ptr<Expr>> arguments;
+
+        public:
+            Span span() const override;
+            size_t hash() const override;
+            std::unique_ptr<Expr> clone() const override;
+        };
+
         /* @brief Represents a matrix multiply expression. */
-        struct MatMulExpr final : ParenthesizedExpr {
+        struct [[deprecated]] MatMulExpr final : ParenthesizedExpr {
             Token mat_mul_token;
             std::unique_ptr<Expr> fst_operand;
             std::unique_ptr<Expr> snd_operand;
@@ -43,7 +58,7 @@ namespace clobber {
         };
 
         /* @brief Represents a RelU expression. */
-        struct RelUExpr final : ParenthesizedExpr {
+        struct [[deprecated]] RelUExpr final : ParenthesizedExpr {
             Token relu_token;
             std::unique_ptr<Expr> operand;
 

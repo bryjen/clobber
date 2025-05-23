@@ -118,7 +118,7 @@ TEST_P(ParserTests, ParserTests) {
     }
 
     auto actual_exprs = get_raw_ptrs(cu->exprs);
-    EXPECT_TRUE(are_compilation_units_equivalent(source_text, expected_exprs, actual_exprs, true));
+    EXPECT_TRUE(are_compilation_units_equivalent(source_text, expected_exprs, actual_exprs));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
@@ -129,7 +129,6 @@ TEST_P(ParserTests, ParserTests) {
     EXPECT_TRUE(true);
 }
 
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3, 4));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 4));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(1));
 // INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));

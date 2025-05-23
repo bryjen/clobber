@@ -225,7 +225,7 @@ namespace SyntaxFactory {
         }
 
         strs.push_back(")");
-        auto fe = new clobber::FnExpr(OpenParen(), LetKeyword(), std::move(pve_uptr), std::move(body_expr_uptrs), CloseParen());
+        auto fe = new clobber::FnExpr(OpenParen(), FnKeyword(), std::move(pve_uptr), std::move(body_expr_uptrs), CloseParen());
         fe->metadata[default_str_metadata_tag] = std::string(str_utils::join("", strs));
         return fe;
     }

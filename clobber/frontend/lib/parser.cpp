@@ -1,3 +1,5 @@
+#include <expected>
+
 #include <magic_enum/magic_enum.hpp>
 
 #include "clobber/pch.hpp"
@@ -18,10 +20,13 @@ struct ParseContext {
     std::vector<clobber::Diagnostic> &diagnostics;
 };
 
-template <typename T> using Option = std::optional<T>;
+// TODO: Replace all nullptr instances
 
-using ParseDelegate = std::unique_ptr<clobber::Expr> (*)(ParseContext &);
-#define PARSE_DELEGATE_FN(FN_NAME) std::unique_ptr<clobber::Expr> FN_NAME(ParseContext &);
+template <typename T> using Option = std::optional<T>;
+using clobber::Diagnostic;
+using ParseResult   = std::expected<std::unique_ptr<clobber::Expr>, Diagnostic>;
+using ParseDelegate = ParseResult (*)(ParseContext &);
+#define PARSE_DELEGATE_FN(FN_NAME) ParseResult FN_NAME(ParseContext &);
 
 PARSE_DELEGATE_FN(try_parse)
 PARSE_DELEGATE_FN(try_parse_call_expr)
@@ -95,13 +100,14 @@ try_get_parse_fun(clobber::Token::Type token_type) {
     }
 }
 
-std::unique_ptr<clobber::TypeExpr> try_parse_builtin_type_expr(const clobber::Token &, ParseContext &);
-std::unique_ptr<clobber::TypeExpr> try_parse_user_defined_type_expr(const clobber::Token &, ParseContext &);
-std::unique_ptr<clobber::TypeExpr> try_parse_parameterized_type_expr(std::unique_ptr<clobber::TypeExpr>, ParseContext &);
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic> try_parse_builtin_type_expr(const clobber::Token &, ParseContext &);
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic> try_parse_user_defined_type_expr(const clobber::Token &, ParseContext &);
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic> try_parse_parameterized_type_expr(std::unique_ptr<clobber::TypeExpr>,
+                                                                                                ParseContext &);
 
 // remarks:
 // assumes that the current char is the caret token.
-std::unique_ptr<clobber::TypeExpr>
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic>
 try_parse_type_expr(ParseContext &ctx) {
     auto is_type_keyword_token = [](const clobber::Token::Type &type) {
         // clang-format off
@@ -125,7 +131,7 @@ try_parse_type_expr(ParseContext &ctx) {
     clobber::Token caret_token   = ctx.tokens[ctx.current_idx++];
     clobber::Token current_token = ctx.tokens[ctx.current_idx];
 
-    std::unique_ptr<clobber::TypeExpr> type_expr;
+    std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic> type_expr;
     if (is_type_keyword_token(current_token.type)) {
         type_expr = try_parse_builtin_type_expr(caret_token, ctx);
     } else if (current_token.type == clobber::Token::Type::IdentifierToken) {
@@ -135,37 +141,41 @@ try_parse_type_expr(ParseContext &ctx) {
         return nullptr;
     }
 
+    if (!type_expr) {
+        return type_expr; // return error type
+    }
+
     current_token = ctx.tokens[ctx.current_idx];
     return ctx.tokens[ctx.current_idx].type == clobber::Token::Type::LessThanToken
-               ? try_parse_parameterized_type_expr(std::move(type_expr), ctx)
+               ? try_parse_parameterized_type_expr(std::move(type_expr.value()), ctx)
                : std::move(type_expr);
 }
 
-std::unique_ptr<clobber::TypeExpr>
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic>
 try_parse_builtin_type_expr(const clobber::Token &caret_token, ParseContext &ctx) {
     clobber::Token type_keyword_token = ctx.tokens[ctx.current_idx++]; // asserted by caller
     return std::make_unique<clobber::BuiltinTypeExpr>(caret_token, type_keyword_token);
 }
 
-std::unique_ptr<clobber::TypeExpr>
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic>
 try_parse_user_defined_type_expr(const clobber::Token &caret_token, ParseContext &ctx) {
     clobber::Token identifier_token = ctx.tokens[ctx.current_idx++]; // asserted by caller
     return std::make_unique<clobber::UserDefinedTypeExpr>(caret_token, identifier_token);
 }
 
-std::unique_ptr<clobber::TypeExpr>
+std::expected<std::unique_ptr<clobber::TypeExpr>, Diagnostic>
 try_parse_parameterized_type_expr(std::unique_ptr<clobber::TypeExpr> type_expr, ParseContext &ctx) {
     clobber::Token lt_token = ctx.tokens[ctx.current_idx++];
 
     std::vector<std::unique_ptr<clobber::Expr>> pvalues;
     std::vector<clobber::Token> commas;
     while (ctx.current_idx < ctx.tokens.size()) {
-        std::unique_ptr<clobber::Expr> param_value = try_parse(ctx);
+        ParseResult param_value = try_parse(ctx);
         if (!param_value) {
             return nullptr;
         }
 
-        pvalues.push_back(std::move(param_value));
+        pvalues.push_back(std::move(param_value.value()));
 
         clobber::Token current_token = ctx.tokens[ctx.current_idx];
         if (current_token.type == clobber::Token::Type::GreaterThanToken) {
@@ -182,13 +192,13 @@ try_parse_parameterized_type_expr(std::unique_ptr<clobber::TypeExpr> type_expr, 
     }
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_numeric_literal_expr(ParseContext &ctx) {
     return std::make_unique<clobber::NumLiteralExpr>(
         ctx.tokens[ctx.current_idx++]); // no bounds check, current token exists, asserted by caller
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_string_literal_expr(ParseContext &ctx) {
     clobber::Token token = ctx.tokens[ctx.current_idx];
     std::string str      = token.ExtractText(ctx.source_text);
@@ -199,7 +209,7 @@ try_parse_string_literal_expr(ParseContext &ctx) {
     return std::make_unique<clobber::StringLiteralExpr>(str, ctx.tokens[ctx.current_idx++]);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_char_literal_expr(ParseContext &ctx) {
     clobber::Token token = ctx.tokens[ctx.current_idx];
     std::string str      = token.ExtractText(ctx.source_text);
@@ -211,14 +221,14 @@ try_parse_char_literal_expr(ParseContext &ctx) {
         str, ctx.tokens[ctx.current_idx++]); // no bounds check, current token exists, asserted by caller
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_identifier(ParseContext &ctx) {
     clobber::Token token   = ctx.tokens[ctx.current_idx]; // guaranteed to exist by caller
     const std::string name = ctx.source_text.substr(token.span.start, token.span.length);
     return std::make_unique<clobber::IdentifierExpr>(name, ctx.tokens[ctx.current_idx++]);
 }
 
-std::unique_ptr<clobber::BindingVectorExpr>
+std::expected<std::unique_ptr<clobber::BindingVectorExpr>, Diagnostic>
 try_parse_binding_vector_expr(ParseContext &ctx) {
     clobber::Token open_bracket_token;
     std::vector<std::unique_ptr<clobber::IdentifierExpr>> identifiers;
@@ -235,17 +245,18 @@ try_parse_binding_vector_expr(ParseContext &ctx) {
             break;
         }
 
-        std::unique_ptr<clobber::Expr> ident_expr_base = try_parse_identifier(ctx);
-        if (ident_expr_base) {
+        ParseResult ident_expr_base_result = try_parse_identifier(ctx);
+        if (ident_expr_base_result) {
+            std::unique_ptr<clobber::Expr> ident_expr_base = std::move(ident_expr_base_result.value());
             if (auto *raw = dynamic_cast<clobber::IdentifierExpr *>(ident_expr_base.get())) {
                 std::unique_ptr<clobber::IdentifierExpr> ident_expr(static_cast<clobber::IdentifierExpr *>(ident_expr_base.release()));
                 identifiers.push_back(std::move(ident_expr));
             }
         }
 
-        std::unique_ptr<clobber::Expr> value_expr = try_parse(ctx);
+        ParseResult value_expr = try_parse(ctx);
         if (value_expr) {
-            exprs.push_back(std::move(value_expr));
+            exprs.push_back(std::move(value_expr.value()));
         }
 
         num_bindings++;
@@ -256,7 +267,7 @@ try_parse_binding_vector_expr(ParseContext &ctx) {
                                                         num_bindings);
 }
 
-std::unique_ptr<clobber::ParameterVectorExpr>
+std::expected<std::unique_ptr<clobber::ParameterVectorExpr>, Diagnostic>
 try_parse_parameter_vector_expr(ParseContext &ctx) {
     clobber::Token open_bracket_token;
     std::vector<std::unique_ptr<clobber::IdentifierExpr>> identifiers;
@@ -271,8 +282,9 @@ try_parse_parameter_vector_expr(ParseContext &ctx) {
             break;
         }
 
-        std::unique_ptr<clobber::Expr> ident_expr_base = try_parse_identifier(ctx);
-        if (ident_expr_base) {
+        ParseResult ident_expr_base_result = try_parse_identifier(ctx);
+        if (ident_expr_base_result) {
+            std::unique_ptr<clobber::Expr> ident_expr_base = std::move(ident_expr_base_result.value());
             if (auto *raw = dynamic_cast<clobber::IdentifierExpr *>(ident_expr_base.get())) {
                 std::unique_ptr<clobber::IdentifierExpr> ident_expr(static_cast<clobber::IdentifierExpr *>(ident_expr_base.release()));
                 identifiers.push_back(std::move(ident_expr));
@@ -284,7 +296,7 @@ try_parse_parameter_vector_expr(ParseContext &ctx) {
     return std::make_unique<clobber::ParameterVectorExpr>(open_bracket_token, std::move(identifiers), close_bracket_token);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_call_expr_or_special_form(ParseContext &ctx) {
     // clang-format off
     const std::unordered_map<clobber::Token::Type, ParseDelegate> special_form_parse_fns = {
@@ -311,195 +323,183 @@ try_parse_call_expr_or_special_form(ParseContext &ctx) {
     return parse_fn(ctx);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_let_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token let_token;
-    std::unique_ptr<clobber::BindingVectorExpr> binding_vector_expr;
-    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
     Option<clobber::Token> current_token;
 
-    open_paren_token    = ctx.tokens[ctx.current_idx++];
-    let_token           = ctx.tokens[ctx.current_idx++]; // asserted by caller
-    binding_vector_expr = std::unique_ptr<clobber::BindingVectorExpr>(try_parse_binding_vector_expr(ctx));
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token let_token        = ctx.tokens[ctx.current_idx++]; // asserted by caller
 
+    std::expected<std::unique_ptr<clobber::BindingVectorExpr>, Diagnostic> binding_vector_expr_result = try_parse_binding_vector_expr(ctx);
+    if (!binding_vector_expr_result) {
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
     current_token = try_get_token(ctx.tokens, ctx.current_idx);
     while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
-        std::unique_ptr<clobber::Expr> expr = try_parse(ctx);
+        ParseResult expr = try_parse(ctx);
         if (expr) {
-            body_exprs.push_back(std::move(expr));
+            body_exprs.push_back(std::move(expr.value()));
         }
 
         current_token = try_get_token(ctx.tokens, ctx.current_idx);
     }
 
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::LetExpr>(open_paren_token, let_token, std::move(binding_vector_expr), std::move(body_exprs),
-                                              close_paren_token);
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::LetExpr>(open_paren_token, let_token, std::move(binding_vector_expr_result.value()),
+                                              std::move(body_exprs), close_paren_token);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_fn_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token fn_token;
-    std::unique_ptr<clobber::ParameterVectorExpr> parameter_vector_expr;
-    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
     Option<clobber::Token> current_token;
 
-    open_paren_token = ctx.tokens[ctx.current_idx++];
-    fn_token         = ctx.tokens[ctx.current_idx++]; // asserted by caller
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token fn_token         = ctx.tokens[ctx.current_idx++]; // asserted by caller
 
-    parameter_vector_expr = std::unique_ptr<clobber::ParameterVectorExpr>(try_parse_parameter_vector_expr(ctx));
+    std::expected<std::unique_ptr<clobber::ParameterVectorExpr>, Diagnostic> parameter_vector_expr_result =
+        try_parse_parameter_vector_expr(ctx);
+    if (!parameter_vector_expr_result) {
+        return nullptr;
+    }
 
+    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
     current_token = try_get_token(ctx.tokens, ctx.current_idx);
     while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
-        std::unique_ptr<clobber::Expr> expr = try_parse(ctx);
+        ParseResult expr = try_parse(ctx);
         if (!expr) {
             return nullptr;
         }
 
-        body_exprs.push_back(std::move(expr));
+        body_exprs.push_back(std::move(expr.value()));
         current_token = try_get_token(ctx.tokens, ctx.current_idx);
     }
 
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::FnExpr>(open_paren_token, fn_token, std::move(parameter_vector_expr), std::move(body_exprs),
-                                             close_paren_token);
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::FnExpr>(open_paren_token, fn_token, std::move(parameter_vector_expr_result.value()),
+                                             std::move(body_exprs), close_paren_token);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse_def_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token def_token;
-    std::unique_ptr<clobber::IdentifierExpr> identifier;
-    std::unique_ptr<clobber::Expr> value;
     Option<clobber::Token> current_token;
 
-    open_paren_token = ctx.tokens[ctx.current_idx++];
-    def_token        = ctx.tokens[ctx.current_idx++]; // asserted by caller
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token def_token        = ctx.tokens[ctx.current_idx++]; // asserted by caller
 
-    std::unique_ptr<clobber::Expr> ident_expr_base = try_parse_identifier(ctx);
-    if (ident_expr_base) {
+    std::unique_ptr<clobber::IdentifierExpr> identifier;
+    ParseResult ident_expr_base_result = try_parse_identifier(ctx);
+    if (ident_expr_base_result) {
+        std::unique_ptr<clobber::Expr> ident_expr_base = std::move(ident_expr_base_result.value());
         if (auto *raw = dynamic_cast<clobber::IdentifierExpr *>(ident_expr_base.get())) {
             std::unique_ptr<clobber::IdentifierExpr> temp(static_cast<clobber::IdentifierExpr *>(ident_expr_base.release()));
             identifier = std::move(temp);
         }
     }
 
-    value             = try_parse(ctx);
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::DefExpr>(open_paren_token, def_token, std::move(identifier), std::move(value), close_paren_token);
-}
-
-std::unique_ptr<clobber::Expr>
-try_parse_do_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token do_token;
-    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
-    Option<clobber::Token> current_token;
-
-    open_paren_token = ctx.tokens[ctx.current_idx++];
-    do_token         = ctx.tokens[ctx.current_idx++]; // asserted by caller
-
-    current_token = try_get_token(ctx.tokens, ctx.current_idx);
-    while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
-        std::unique_ptr<clobber::Expr> expr = try_parse(ctx);
-        if (expr) {
-            body_exprs.push_back(std::move(expr));
-        }
-
-        current_token = try_get_token(ctx.tokens, ctx.current_idx);
-    }
-
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::DoExpr>(open_paren_token, do_token, std::move(body_exprs), close_paren_token);
-}
-
-std::unique_ptr<clobber::Expr>
-try_parse_accel_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token accel_token;
-    std::unique_ptr<clobber::BindingVectorExpr> binding_vector_expr;
-    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
-    Option<clobber::Token> current_token;
-
-    open_paren_token = ctx.tokens[ctx.current_idx++];
-    accel_token      = ctx.tokens[ctx.current_idx++]; // asserted by caller
-
-    binding_vector_expr = try_parse_binding_vector_expr(ctx);
-
-    current_token = try_get_token(ctx.tokens, ctx.current_idx);
-    while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
-        std::unique_ptr<clobber::Expr> expr = try_parse(ctx);
-        if (expr) {
-            body_exprs.push_back(std::move(expr));
-        }
-
-        current_token = try_get_token(ctx.tokens, ctx.current_idx);
-    }
-
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::accel::AccelExpr>(open_paren_token, accel_token, std::move(binding_vector_expr), std::move(body_exprs),
-                                                       close_paren_token);
-}
-
-std::unique_ptr<clobber::Expr>
-try_parse_matmul_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token mat_mul_token;
-    std::unique_ptr<clobber::Expr> fst_operand;
-    std::unique_ptr<clobber::Expr> snd_operand;
-    Option<clobber::Token> current_token;
-
-    open_paren_token  = ctx.tokens[ctx.current_idx++];
-    mat_mul_token     = ctx.tokens[ctx.current_idx++]; // asserted by caller
-    fst_operand       = try_parse(ctx);
-    snd_operand       = try_parse(ctx);
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::accel::MatMulExpr>(open_paren_token, mat_mul_token, std::move(fst_operand), std::move(snd_operand),
-                                                        close_paren_token);
-}
-
-std::unique_ptr<clobber::Expr>
-try_parse_relu_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    clobber::Token relu_token;
-    std::unique_ptr<clobber::Expr> operand;
-    Option<clobber::Token> current_token;
-
-    open_paren_token = ctx.tokens[ctx.current_idx++];
-    relu_token       = ctx.tokens[ctx.current_idx++]; // asserted by caller
-
-    operand = try_parse(ctx);
-
-    // TODO: add more checks like these
-    if (ctx.tokens[ctx.current_idx + 1].type != clobber::Token::Type::CloseParenToken) {
-
-        recover(ctx.tokens, ctx.current_idx);
+    ParseResult value = try_parse(ctx);
+    if (!value) {
         return nullptr;
     }
 
-    close_paren_token = ctx.tokens[ctx.current_idx++];
-    return std::make_unique<clobber::accel::RelUExpr>(open_paren_token, relu_token, std::move(operand), close_paren_token);
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::DefExpr>(open_paren_token, def_token, std::move(identifier), std::move(value.value()),
+                                              close_paren_token);
 }
 
-std::unique_ptr<clobber::Expr>
-try_parse_call_expr(ParseContext &ctx) {
-    clobber::Token open_paren_token;
-    clobber::Token close_paren_token;
-    std::vector<std::unique_ptr<clobber::Expr>> arguments;
+ParseResult
+try_parse_do_expr(ParseContext &ctx) {
     Option<clobber::Token> current_token;
 
-    open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token do_token         = ctx.tokens[ctx.current_idx++]; // asserted by caller
 
-    std::unique_ptr<clobber::Expr> operator_expr = try_parse(ctx);
+    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
+    current_token = try_get_token(ctx.tokens, ctx.current_idx);
+    while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
+        ParseResult expr = try_parse(ctx);
+        if (expr) {
+            body_exprs.push_back(std::move(expr.value()));
+        }
+
+        current_token = try_get_token(ctx.tokens, ctx.current_idx);
+    }
+
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::DoExpr>(open_paren_token, do_token, std::move(body_exprs), close_paren_token);
+}
+
+ParseResult
+try_parse_accel_expr(ParseContext &ctx) {
+    Option<clobber::Token> current_token;
+
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token accel_token      = ctx.tokens[ctx.current_idx++]; // asserted by caller
+
+    std::expected<std::unique_ptr<clobber::BindingVectorExpr>, Diagnostic> binding_vector_expr_result = try_parse_binding_vector_expr(ctx);
+    if (!binding_vector_expr_result) {
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<clobber::Expr>> body_exprs;
+    current_token = try_get_token(ctx.tokens, ctx.current_idx);
+    while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
+        ParseResult expr = try_parse(ctx);
+        if (expr) {
+            body_exprs.push_back(std::move(expr.value()));
+        }
+
+        current_token = try_get_token(ctx.tokens, ctx.current_idx);
+    }
+
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::accel::AccelExpr>(open_paren_token, accel_token, std::move(binding_vector_expr_result.value()),
+                                                       std::move(body_exprs), close_paren_token);
+}
+
+ParseResult
+try_parse_matmul_expr(ParseContext &ctx) {
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token mat_mul_token    = ctx.tokens[ctx.current_idx++]; // asserted by caller
+
+    ParseResult fst_operand = try_parse(ctx);
+    if (!fst_operand) {
+        return nullptr;
+    }
+
+    ParseResult snd_operand = try_parse(ctx);
+    if (!snd_operand) {
+        return nullptr;
+    }
+
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::accel::MatMulExpr>(open_paren_token, mat_mul_token, std::move(fst_operand.value()),
+                                                        std::move(snd_operand.value()), close_paren_token);
+}
+
+ParseResult
+try_parse_relu_expr(ParseContext &ctx) {
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+    clobber::Token relu_token       = ctx.tokens[ctx.current_idx++]; // asserted by caller
+
+    ParseResult operand = try_parse(ctx);
+    if (!operand) {
+        return nullptr;
+    }
+
+    clobber::Token close_paren_token = ctx.tokens[ctx.current_idx++];
+    return std::make_unique<clobber::accel::RelUExpr>(open_paren_token, relu_token, std::move(operand.value()), close_paren_token);
+}
+
+ParseResult
+try_parse_call_expr(ParseContext &ctx) {
+    clobber::Token close_paren_token;
+    Option<clobber::Token> current_token;
+
+    clobber::Token open_paren_token = ctx.tokens[ctx.current_idx++];
+
+    ParseResult operator_expr = try_parse(ctx);
     if (!operator_expr) {
         // TODO: throw some bullshit here
         return nullptr;
@@ -507,10 +507,11 @@ try_parse_call_expr(ParseContext &ctx) {
 
     current_token = try_get_token(ctx.tokens, ctx.current_idx);
 
+    std::vector<std::unique_ptr<clobber::Expr>> arguments;
     while (current_token && current_token.value().type != clobber::Token::Type::CloseParenToken) {
-        std::unique_ptr<clobber::Expr> arg_expr = try_parse(ctx);
+        ParseResult arg_expr = try_parse(ctx);
         if (arg_expr) {
-            arguments.push_back(std::move(arg_expr));
+            arguments.push_back(std::move(arg_expr.value()));
         }
 
         current_token = try_get_token(ctx.tokens, ctx.current_idx);
@@ -521,10 +522,10 @@ try_parse_call_expr(ParseContext &ctx) {
     }
 
     ctx.current_idx++;
-    return std::make_unique<clobber::CallExpr>(open_paren_token, std::move(operator_expr), std::move(arguments), close_paren_token);
+    return std::make_unique<clobber::CallExpr>(open_paren_token, std::move(operator_expr.value()), std::move(arguments), close_paren_token);
 }
 
-std::unique_ptr<clobber::Expr>
+ParseResult
 try_parse(ParseContext &ctx) {
     clobber::Token current_token;
     Option<clobber::Token> token_opt;
@@ -568,9 +569,9 @@ clobber::parse(const std::string &source_text, const std::vector<clobber::Token>
         }
 
         // 'current_idx' passed by reference, implicitly modified
-        std::unique_ptr<clobber::Expr> parsed_expr = try_parse(ctx);
+        ParseResult parsed_expr = try_parse(ctx);
         if (parsed_expr) {
-            exprs.push_back(std::move(parsed_expr));
+            exprs.push_back(std::move(parsed_expr.value()));
         }
     }
 

@@ -62,7 +62,7 @@ namespace ParserTestsHelpers {
     std::vector<std::string> get_error_msgs(const std::string &, const std::string &, const std::vector<clobber::Diagnostic> &);
 
     ::testing::AssertionResult are_compilation_units_equivalent(const std::string &source_text, std::vector<clobber::Expr *> expected,
-                                                                std::vector<clobber::Expr *> actual, bool print);
+                                                                std::vector<clobber::Expr *> actual);
 } // namespace ParserTestsHelpers
 
 namespace SemanticTestsHelpers {

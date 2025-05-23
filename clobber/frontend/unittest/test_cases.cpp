@@ -733,9 +733,9 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                 DoExpr({
                     DefExpr(IdentifierExpr("x"), NumLiteralExpr("10")),
                     DefExpr(IdentifierExpr("y"), NumLiteralExpr("5")),
-                    CallExpr("*", {
+                    CallExpr("+", {
                         IdentifierExpr("x"), 
-                        IdentifierExpr("x")
+                        IdentifierExpr("y")
                         }
                     )
                 })
