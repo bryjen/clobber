@@ -207,5 +207,6 @@ namespace SyntaxFactory {
 
     clobber::accel::AccelExpr *AccelExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs);
     clobber::accel::TOSAOpExpr *TosaOpExpr(const clobber::Token op_token, std::vector<clobber::Expr *> values);
+    clobber::accel::TensorExpr *TensorExpr(std::vector<clobber::Expr *> values);
 
 }; // namespace SyntaxFactory

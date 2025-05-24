@@ -264,6 +264,12 @@ namespace ParserTestsHelpers {
         }
 
         void
+        on_tensor_expr(const clobber::accel::TensorExpr &te) override {
+            strs.push_back(expr_get_repr(te));
+            on_token(te.tensor_token);
+        }
+
+        void
         on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
             strs.push_back(expr_get_repr(nle));
             on_token(nle.token);

@@ -60,6 +60,7 @@ namespace clobber {
 
         virtual void on_accel_expr(const accel::AccelExpr &)    = 0;
         virtual void on_tosa_op_expr(const accel::TOSAOpExpr &) = 0;
+        virtual void on_tensor_expr(const accel::TensorExpr &)  = 0;
 
         /* @brief Callback when descending to a child note. */
         virtual void on_descent_callback() = 0;

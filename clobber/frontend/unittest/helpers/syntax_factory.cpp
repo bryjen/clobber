@@ -358,4 +358,18 @@ namespace SyntaxFactory {
         ce->metadata[default_str_metadata_tag] = std::string(std::format("({} {})", get_repr(&op_token), str_utils::join(" ", value_strs)));
         return ce;
     }
+
+    clobber::accel::TensorExpr *
+    TensorExpr(std::vector<clobber::Expr *> values) {
+        std::vector<std::string> value_strs;
+        std::vector<std::unique_ptr<clobber::Expr>> value_uptrs;
+        for (const auto &value : values) {
+            value_uptrs.push_back(std::unique_ptr<clobber::Expr>(value));
+            value_strs.push_back(get_repr(value));
+        }
+
+        auto ce = new clobber::accel::TensorExpr(OpenParen(), TensorKeyword(), std::move(value_uptrs), CloseParen());
+        ce->metadata[default_str_metadata_tag] = std::string(std::format("(tensor {})", str_utils::join(" ", value_strs)));
+        return ce;
+    }
 } // namespace SyntaxFactory

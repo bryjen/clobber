@@ -123,7 +123,7 @@ clobber::accel::TOSAOpExpr::span() const {
 }
 
 clobber::Span
-clobber::accel::TensorToken::span() const {
+clobber::accel::TensorExpr::span() const {
     size_t start = this->open_paren_token.span.start;
     size_t end   = this->close_paren_token.span.start + this->close_paren_token.span.length;
     return Span{start, end - start};

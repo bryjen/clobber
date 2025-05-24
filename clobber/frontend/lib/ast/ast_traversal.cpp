@@ -380,5 +380,16 @@ clobber::AstWalker::walk(const Expr &e) {
         on_ascent_callback();
         break;
     }
+    case Expr::Type::TensorExpr: {
+        const TensorExpr &te = static_cast<const TensorExpr &>(e);
+        on_tensor_expr(te);
+
+        on_descent_callback();
+        for (const auto &arg : te.arguments) {
+            walk(*arg);
+        }
+        on_ascent_callback();
+        break;
+    }
     }
 }

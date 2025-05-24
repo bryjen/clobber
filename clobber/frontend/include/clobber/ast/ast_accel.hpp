@@ -49,12 +49,12 @@ namespace clobber {
         // direct mapping to a tosa op, but we would like to have multiple ways to declare a tensor (ex. zero init by passing i32
         // dimensions, or by passing a vector of values and infer the shape from there)
         /* @brief Represents a tensor declaration. */
-        struct TensorToken final : ParenthesizedExpr {
+        struct TensorExpr final : ParenthesizedExpr {
             Token tensor_token;
             std::vector<std::unique_ptr<Expr>> arguments;
 
-            TensorToken(const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&, const Token &);
-            TensorToken(const TensorToken &);
+            TensorExpr(const Token &, const Token &, std::vector<std::unique_ptr<Expr>> &&, const Token &);
+            TensorExpr(const TensorExpr &);
 
         public:
             Span span() const override;

@@ -612,18 +612,8 @@ const std::vector<std::string> test_cases::parser::sources = {
 
     // 4
     R"(
-(accel [x 10 y 10] 
+(accel [x (tensor :shape 2 224 224) y (tensor :values [[1 2 3] [4 5 6] [7 8 9]])] 
     (relu (matmul x y :shape [3 224 224])))
-    )",
-
-    R"(
-(accel [x 10 y 10] 
-    (relu (matmul x y :shape [ 10 ])))
-    )",
-
-    R"(
-(accel [x 10 y 10] 
-    (relu (matmul (reshape x :shape [5 10]) y)))
     )",
 };
 
@@ -765,8 +755,32 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                             IdentifierExpr("y")
                         },
                         {
-                            NumLiteralExpr("10"), 
-                            NumLiteralExpr("10")
+                            TensorExpr({
+                                KeywordLiteralExpr("shape"),
+                                NumLiteralExpr("2"), 
+                                NumLiteralExpr("224"), 
+                                NumLiteralExpr("224")
+                            }),
+                            TensorExpr({
+                                KeywordLiteralExpr("values"),
+                                VectorExpr({
+                                    VectorExpr({
+                                        NumLiteralExpr("1"),
+                                        NumLiteralExpr("2"),
+                                        NumLiteralExpr("3"),
+                                    }),
+                                    VectorExpr({
+                                        NumLiteralExpr("4"),
+                                        NumLiteralExpr("5"),
+                                        NumLiteralExpr("6"),
+                                    }),
+                                    VectorExpr({
+                                        NumLiteralExpr("7"),
+                                        NumLiteralExpr("8"),
+                                        NumLiteralExpr("9"),
+                                    }),
+                                })
+                            }),
                         }
                     ),
                     {
@@ -779,13 +793,11 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                                         IdentifierExpr("x"),
                                         IdentifierExpr("y"),
                                         KeywordLiteralExpr("shape"),
-                                        VectorExpr(
-                                            {
-                                                NumLiteralExpr("3"),
-                                                NumLiteralExpr("224"),
-                                                NumLiteralExpr("224")
-                                            }
-                                        )
+                                        VectorExpr({
+                                            NumLiteralExpr("3"),
+                                            NumLiteralExpr("224"),
+                                            NumLiteralExpr("224")
+                                        })
                                     }
                                 )
                             }

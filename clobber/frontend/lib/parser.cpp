@@ -523,7 +523,7 @@ try_parse_tensor_expr(ParseContext &ctx) {
     clobber::Token close_paren_token = current_token.value();
 
     ctx.current_idx++;
-    return std::make_unique<clobber::accel::TensorToken>(open_paren_token, tensor_token, std::move(arguments), close_paren_token);
+    return std::make_unique<clobber::accel::TensorExpr>(open_paren_token, tensor_token, std::move(arguments), close_paren_token);
 }
 
 ParseResult
