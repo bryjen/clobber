@@ -248,6 +248,22 @@ namespace ParserTestsHelpers {
         }
 
         void
+        on_vector_expr(const clobber::VectorExpr &ve) override {
+            strs.push_back(expr_get_repr(ve));
+        }
+
+        void
+        on_keyword_literal_expr(const clobber::KeywordLiteralExpr &kle) override {
+            strs.push_back(expr_get_repr(kle));
+        }
+
+        void
+        on_tosa_op_expr(const clobber::accel::TOSAOpExpr &toe) override {
+            strs.push_back(expr_get_repr(toe));
+            on_token(toe.op_token);
+        }
+
+        void
         on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
             strs.push_back(expr_get_repr(nle));
             on_token(nle.token);
@@ -343,27 +359,6 @@ namespace ParserTestsHelpers {
                 walk(*body_expr);
             }
             on_token(ae.close_paren_token);
-        }
-
-        void
-        on_mat_mul_expr(const clobber::accel::MatMulExpr &mme) override {
-            strs.push_back(expr_get_repr(mme));
-
-            on_token(mme.open_paren_token);
-            on_token(mme.mat_mul_token);
-            walk(*mme.fst_operand);
-            walk(*mme.snd_operand);
-            on_token(mme.close_paren_token);
-        }
-
-        void
-        on_relu_expr(const clobber::accel::RelUExpr &re) override {
-            strs.push_back(expr_get_repr(re));
-
-            on_token(re.open_paren_token);
-            on_token(re.relu_token);
-            walk(*re.operand);
-            on_token(re.close_paren_token);
         }
 
         void

@@ -611,7 +611,20 @@ const std::vector<std::string> test_cases::parser::sources = {
   (+ x y)))",
 
     // 4
-    R"((accel [] (relu (matmul tensor1 tensor2)))",
+    R"(
+(accel [x 10 y 10] 
+    (relu (matmul x y :shape [3 224 224])))
+    )",
+
+    R"(
+(accel [x 10 y 10] 
+    (relu (matmul x y :shape [ 10 ])))
+    )",
+
+    R"(
+(accel [x 10 y 10] 
+    (relu (matmul (reshape x :shape [5 10]) y)))
+    )",
 };
 
 const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parser::expected_exprs = {
@@ -746,9 +759,37 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         {
             std::shared_ptr<clobber::Expr>(
                 AccelExpr(
-                    BindingVectorExpr({},{}),
+                    BindingVectorExpr(
+                        {
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("y")
+                        },
+                        {
+                            NumLiteralExpr("10"), 
+                            NumLiteralExpr("10")
+                        }
+                    ),
                     {
-                        MatMulExpr(IdentifierExpr("tensor1"), IdentifierExpr("tensor2"))
+                        TosaOpExpr(
+                            ReluKeyword(),
+                            {
+                                TosaOpExpr(
+                                    MatmulKeyword(),
+                                    {
+                                        IdentifierExpr("x"),
+                                        IdentifierExpr("y"),
+                                        KeywordLiteralExpr("shape"),
+                                        VectorExpr(
+                                            {
+                                                NumLiteralExpr("3"),
+                                                NumLiteralExpr("224"),
+                                                NumLiteralExpr("224")
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+                        )
                     }
                 )
             )

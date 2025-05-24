@@ -466,3 +466,65 @@ clobber::CompilationUnit::CompilationUnit(const CompilationUnit &other)
     : source_text(other.source_text)
     , exprs(deepcopy_exprs(other.exprs))
     , diagnostics(other.diagnostics) {}
+
+clobber::VectorExpr::VectorExpr(const Token &open_bracket_token, std::vector<std::unique_ptr<Expr>> &&values, std::vector<Token> &&commas,
+                                const Token &close_bracket_token)
+    : Expr(Expr::Type::VectorExpr)
+    , open_bracket_token(open_bracket_token)
+    , values(std::move(values))
+    , commas(std::move(commas))
+    , close_bracket_token(close_bracket_token) {}
+
+clobber::VectorExpr::VectorExpr(const VectorExpr &other)
+    : Expr(other.type)
+    , open_bracket_token(other.open_bracket_token)
+    , values(deepcopy_exprs(other.values))
+    , commas(other.commas)
+    , close_bracket_token(other.close_bracket_token) {}
+
+size_t
+clobber::VectorExpr::hash() const {
+    std::vector<size_t> hashes;
+    hashes.push_back(std::hash<std::type_index>{}(std::type_index(typeid(*this))));
+    for (const auto &value : this->values) {
+        hashes.push_back(value->hash());
+    }
+    for (const auto &comma : this->commas) {
+        hashes.push_back(comma.hash());
+    }
+    return combine_hashes(hashes);
+}
+
+std::unique_ptr<clobber::Expr>
+clobber::VectorExpr::clone() const {
+    throw 0;
+}
+
+clobber::KeywordLiteralExpr::KeywordLiteralExpr(const std::string &name, const Token &token)
+    : Expr(Expr::Type::KeywordLiteralExpr)
+    , name(name)
+    , token(token) {}
+
+clobber::KeywordLiteralExpr::KeywordLiteralExpr(const KeywordLiteralExpr &other)
+    : Expr(other.type)
+    , name(other.name)
+    , token(other.token) {}
+
+size_t
+clobber::KeywordLiteralExpr::hash() const {
+    std::vector<size_t> hashes;
+    hashes.push_back(std::hash<std::type_index>{}(std::type_index(typeid(*this))));
+    hashes.push_back(std::hash<std::string>{}(this->name));
+    hashes.push_back(this->token.hash());
+    return combine_hashes(hashes);
+}
+
+std::unique_ptr<clobber::Expr>
+clobber::KeywordLiteralExpr::clone() const {
+    throw 0;
+}
+
+std::unique_ptr<clobber::KeywordLiteralExpr>
+clobber::KeywordLiteralExpr::clone_nowrap() {
+    return std::make_unique<KeywordLiteralExpr>(this->name, this->token);
+}

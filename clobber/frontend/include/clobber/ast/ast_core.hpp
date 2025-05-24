@@ -119,6 +119,10 @@ namespace clobber {
             NumericLiteralExpr,
             StringLiteralExpr,
             CharLiteralExpr,
+            VectorExpr,
+            TensorExpr,
+
+            KeywordLiteralExpr,
             IdentifierExpr,
 
             TypeExpr,
@@ -130,8 +134,7 @@ namespace clobber {
             DoExpr,
 
             AccelExpr,
-            MatMulExpr,
-            RelUExpr,
+            TosaOpExpr,
         };
 
         Expr::Type type;
@@ -267,6 +270,21 @@ namespace clobber {
         std::unique_ptr<ParameterVectorExpr> clone_nowrap() const;
     };
 
+    struct VectorExpr final : Expr {
+        Token open_bracket_token;
+        std::vector<std::unique_ptr<Expr>> values;
+        std::vector<Token> commas; // optional
+        Token close_bracket_token;
+
+    public:
+        VectorExpr(const Token &, std::vector<std::unique_ptr<Expr>> &&, std::vector<Token> &&, const Token &);
+        VectorExpr(const VectorExpr &);
+
+        Span span() const override;
+        size_t hash() const override;
+        std::unique_ptr<Expr> clone() const override;
+    };
+
     /* @brief Represents a numerical literal expression. */
     struct NumLiteralExpr final : Expr {
         Token token;
@@ -305,6 +323,22 @@ namespace clobber {
     public:
         CharLiteralExpr(const std::string &, const Token &);
         CharLiteralExpr(const CharLiteralExpr &);
+
+        Span span() const override;
+        size_t hash() const override;
+        std::unique_ptr<Expr> clone() const override;
+    };
+
+    /* @brief Represents a keyword literal, for example `:param_name`. */
+    struct KeywordLiteralExpr final : Expr {
+        Token token;
+        std::string name; // without colon
+
+    public:
+        KeywordLiteralExpr(const std::string &, const Token &);
+        KeywordLiteralExpr(const KeywordLiteralExpr &);
+
+        std::unique_ptr<KeywordLiteralExpr> clone_nowrap();
 
         Span span() const override;
         size_t hash() const override;

@@ -148,6 +148,14 @@ namespace SyntaxFactory {
         return token;
     }
 
+    inline clobber::Token
+    KeywordLiteralInsertColon(const std::string &name) {
+        clobber::Token token{};
+        token.type                               = clobber::Token::Type::KeywordLiteralToken;
+        token.metadata[default_str_metadata_tag] = std::string(name);
+        return token;
+    }
+
     /* @remarks String parameter represents what a numeric literal expression references in source code.
                 Useful for avoiding inaccuracies when comparing floating point numbers. */
     inline clobber::Token
@@ -186,6 +194,8 @@ namespace SyntaxFactory {
     clobber::NumLiteralExpr *NumLiteralExpr(double value);
     clobber::StringLiteralExpr *StringLiteralExpr(const std::string &value);
     clobber::CharLiteralExpr *CharLiteralExpr(char value);
+    clobber::KeywordLiteralExpr *KeywordLiteralExpr(const std::string &value);
+    clobber::VectorExpr *VectorExpr(std::vector<clobber::Expr *> values);
 
     clobber::LetExpr *LetExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs);
     clobber::FnExpr *FnExpr(clobber::ParameterVectorExpr *pve, std::vector<clobber::Expr *> body_exprs);
@@ -196,7 +206,6 @@ namespace SyntaxFactory {
     clobber::CallExpr *CallExpr(const std::string &fn_name, std::vector<clobber::Expr *> arguments);
 
     clobber::accel::AccelExpr *AccelExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs);
-    clobber::accel::MatMulExpr *MatMulExpr(clobber::Expr *fst_operand, clobber::Expr *snd_operand);
-    clobber::accel::RelUExpr *RelUExpr(clobber::Expr *operand);
+    clobber::accel::TOSAOpExpr *TosaOpExpr(const clobber::Token op_token, std::vector<clobber::Expr *> values);
 
 }; // namespace SyntaxFactory

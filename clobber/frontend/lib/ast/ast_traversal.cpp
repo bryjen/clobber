@@ -51,14 +51,6 @@ clobber::AstRewriter::on_expr(clobber::Expr *e) {
         accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(e);
         return on_accel_expr(ae);
     }
-    case clobber::Expr::Type::MatMulExpr: {
-        accel::MatMulExpr *mme = static_cast<accel::MatMulExpr *>(e);
-        return on_mat_mul_expr(mme);
-    }
-    case clobber::Expr::Type::RelUExpr: {
-        accel::RelUExpr *re = static_cast<accel::RelUExpr *>(e);
-        return on_relu_expr(re);
-    }
     default: {
         return nullptr;
     }
@@ -111,14 +103,6 @@ clobber::AstRewriter::on_paren_expr(clobber::ParenthesizedExpr *pe) {
     case clobber::Expr::Type::AccelExpr: {
         accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(pe);
         return on_accel_expr(ae);
-    }
-    case clobber::Expr::Type::MatMulExpr: {
-        accel::MatMulExpr *mme = static_cast<accel::MatMulExpr *>(pe);
-        return on_mat_mul_expr(mme);
-    }
-    case clobber::Expr::Type::RelUExpr: {
-        accel::RelUExpr *re = static_cast<accel::RelUExpr *>(pe);
-        return on_relu_expr(re);
     }
     default: {
         return nullptr;
@@ -271,40 +255,6 @@ clobber::AstRewriter::on_accel_expr(clobber::accel::AccelExpr *ae) {
     return ae;
 }
 
-clobber::accel::MatMulExpr *
-clobber::AstRewriter::on_mat_mul_expr(clobber::accel::MatMulExpr *mme) {
-    {
-        auto old_ptr = mme->fst_operand.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            mme->fst_operand.reset(new_ptr);
-        }
-    }
-
-    {
-        auto old_ptr = mme->snd_operand.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            mme->snd_operand.reset(new_ptr);
-        }
-    }
-
-    return mme;
-}
-
-clobber::accel::RelUExpr *
-clobber::AstRewriter::on_relu_expr(clobber::accel::RelUExpr *re) {
-    {
-        auto old_ptr = re->operand.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            re->operand.reset(new_ptr);
-        }
-    }
-
-    return re;
-}
-
 void
 clobber::AstWalker::walk(const Expr &e) {
     switch (e.type) {
@@ -328,6 +278,22 @@ clobber::AstWalker::walk(const Expr &e) {
     case Expr::Type::IdentifierExpr: {
         const IdentifierExpr &casted = static_cast<const IdentifierExpr &>(e);
         on_identifier_expr(casted);
+        break;
+    }
+    case Expr::Type::KeywordLiteralExpr: {
+        const KeywordLiteralExpr &casted = static_cast<const KeywordLiteralExpr &>(e);
+        on_keyword_literal_expr(casted);
+        break;
+    }
+    case Expr::Type::VectorExpr: {
+        const VectorExpr &ve = static_cast<const VectorExpr &>(e);
+        on_vector_expr(ve);
+
+        on_descent_callback();
+        for (const auto &value : ve.values) {
+            walk(*value);
+        }
+        on_ascent_callback();
         break;
     }
 
@@ -402,22 +368,15 @@ clobber::AstWalker::walk(const Expr &e) {
         on_ascent_callback();
         break;
     }
-    case Expr::Type::MatMulExpr: {
-        const MatMulExpr &casted = static_cast<const MatMulExpr &>(e);
-        on_mat_mul_expr(casted);
+
+    case Expr::Type::TosaOpExpr: {
+        const TOSAOpExpr &toe = static_cast<const TOSAOpExpr &>(e);
+        on_tosa_op_expr(toe);
 
         on_descent_callback();
-        walk(*casted.fst_operand);
-        walk(*casted.snd_operand);
-        on_ascent_callback();
-        break;
-    }
-    case Expr::Type::RelUExpr: {
-        const RelUExpr &casted = static_cast<const RelUExpr &>(e);
-        on_relu_expr(casted);
-
-        on_descent_callback();
-        walk(*casted.operand);
+        for (const auto &arg : toe.arguments) {
+            walk(*arg);
+        }
         on_ascent_callback();
         break;
     }

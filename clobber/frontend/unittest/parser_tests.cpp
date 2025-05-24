@@ -129,6 +129,5 @@ TEST_P(ParserTests, ParserTests) {
     EXPECT_TRUE(true);
 }
 
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(1));
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));

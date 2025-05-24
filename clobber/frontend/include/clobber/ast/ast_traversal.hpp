@@ -15,7 +15,11 @@ namespace clobber {
         virtual NumLiteralExpr *on_num_literal_expr(NumLiteralExpr *);
         virtual StringLiteralExpr *on_string_literal_expr(StringLiteralExpr *);
         virtual CharLiteralExpr *on_char_literal_expr(CharLiteralExpr *);
+
         virtual IdentifierExpr *on_identifier_expr(IdentifierExpr *);
+        virtual KeywordLiteralExpr *on_keyword_literal_expr(KeywordLiteralExpr *);
+
+        virtual VectorExpr *on_vector_expr(VectorExpr **);
 
         // 'node' exprs
         virtual ParenthesizedExpr *on_paren_expr(ParenthesizedExpr *);
@@ -29,8 +33,6 @@ namespace clobber {
 
         // hardware acceleration exprs
         virtual accel::AccelExpr *on_accel_expr(accel::AccelExpr *);
-        virtual accel::MatMulExpr *on_mat_mul_expr(accel::MatMulExpr *);
-        virtual accel::RelUExpr *on_relu_expr(accel::RelUExpr *);
     };
 
     class AstWalker {
@@ -43,19 +45,21 @@ namespace clobber {
         // notes:
         // no callback for binding/parameterized vectors, inheritor
 
-        virtual void on_num_literal_expr(const NumLiteralExpr &)       = 0;
-        virtual void on_string_literal_expr(const StringLiteralExpr &) = 0;
-        virtual void on_char_literal_expr(const CharLiteralExpr &)     = 0;
-        virtual void on_identifier_expr(const IdentifierExpr &)        = 0;
-        virtual void on_let_expr(const LetExpr &)                      = 0;
-        virtual void on_fn_expr(const FnExpr &)                        = 0;
-        virtual void on_def_expr(const DefExpr &)                      = 0;
-        virtual void on_do_expr(const DoExpr &)                        = 0;
-        virtual void on_call_expr(const CallExpr &)                    = 0;
+        virtual void on_num_literal_expr(const NumLiteralExpr &)         = 0;
+        virtual void on_string_literal_expr(const StringLiteralExpr &)   = 0;
+        virtual void on_char_literal_expr(const CharLiteralExpr &)       = 0;
+        virtual void on_identifier_expr(const IdentifierExpr &)          = 0;
+        virtual void on_keyword_literal_expr(const KeywordLiteralExpr &) = 0;
+        virtual void on_vector_expr(const VectorExpr &)                  = 0;
+
+        virtual void on_let_expr(const LetExpr &)   = 0;
+        virtual void on_fn_expr(const FnExpr &)     = 0;
+        virtual void on_def_expr(const DefExpr &)   = 0;
+        virtual void on_do_expr(const DoExpr &)     = 0;
+        virtual void on_call_expr(const CallExpr &) = 0;
 
         virtual void on_accel_expr(const accel::AccelExpr &)    = 0;
-        virtual void on_mat_mul_expr(const accel::MatMulExpr &) = 0;
-        virtual void on_relu_expr(const accel::RelUExpr &)      = 0;
+        virtual void on_tosa_op_expr(const accel::TOSAOpExpr &) = 0;
 
         /* @brief Callback when descending to a child note. */
         virtual void on_descent_callback() = 0;

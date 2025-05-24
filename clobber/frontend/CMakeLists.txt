@@ -12,7 +12,7 @@ add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast/ast_traversal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast/ast_span.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/diagnostic_factory.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/diagnostic_factory.cpp
 )
 
 target_precompile_headers(clobber PRIVATE 

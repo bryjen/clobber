@@ -308,55 +308,54 @@ namespace SyntaxFactory {
 
     clobber::accel::AccelExpr *
     AccelExpr(clobber::BindingVectorExpr *bve, std::vector<clobber::Expr *> body_exprs) {
-        std::vector<std::string> strs;
-        strs.push_back("(");
-        strs.push_back("accel");
-
         auto bve_uptr = std::unique_ptr<clobber::BindingVectorExpr>(bve);
-        strs.push_back(get_repr(bve_uptr.get()));
 
+        std::vector<std::string> value_strs;
         std::vector<std::unique_ptr<clobber::Expr>> body_expr_uptrs;
         for (const auto &body_expr : body_exprs) {
             body_expr_uptrs.push_back(std::unique_ptr<clobber::Expr>(body_expr));
+            value_strs.push_back(get_repr(body_expr));
         }
 
-        strs.push_back(")");
-
         auto ae = new clobber::accel::AccelExpr(OpenParen(), AccelKeyword(), std::move(bve_uptr), std::move(body_expr_uptrs), CloseParen());
-        ae->metadata[default_str_metadata_tag] = std::string(str_utils::join("", strs));
+        ae->metadata[default_str_metadata_tag] = std::string(std::format("(accel {} {})", get_repr(bve), str_utils::join(" ", value_strs)));
         return ae;
     }
 
-    clobber::accel::MatMulExpr *
-    MatMulExpr(clobber::Expr *fst_operand, clobber::Expr *snd_operand) {
-        std::vector<std::string> strs;
-        strs.push_back("(");
-        strs.push_back("matmul");
-
-        auto fst_operand_uptr = std::unique_ptr<clobber::Expr>(fst_operand);
-        auto snd_operand_uptr = std::unique_ptr<clobber::Expr>(snd_operand);
-
-        strs.push_back(")");
-
-        auto mme = new clobber::accel::MatMulExpr(OpenParen(), MatmulKeyword(), std::move(fst_operand_uptr), std::move(snd_operand_uptr),
-                                                  CloseParen());
-        mme->metadata[default_str_metadata_tag] = std::string(str_utils::join("", strs));
-        return mme;
+    clobber::KeywordLiteralExpr *
+    KeywordLiteralExpr(const std::string &name) {
+        auto ie                                = new clobber::KeywordLiteralExpr(name, KeywordLiteralInsertColon(name));
+        ie->metadata[default_str_metadata_tag] = std::string(":" + name);
+        return ie;
     }
 
-    clobber::accel::RelUExpr *
-    RelUExpr(clobber::Expr *operand) {
+    clobber::VectorExpr *
+    VectorExpr(std::vector<clobber::Expr *> values) {
         std::vector<std::string> strs;
-        strs.push_back("(");
-        strs.push_back("relu");
+        std::vector<std::unique_ptr<clobber::Expr>> value_uptrs;
+        for (const auto &value : values) {
+            strs.push_back(get_repr(value));
+            value_uptrs.push_back(std::unique_ptr<clobber::Expr>(value));
+        }
 
-        auto operand_uptr = std::unique_ptr<clobber::Expr>(operand);
+        std::vector<clobber::Token> commas;
 
-        strs.push_back(")");
-
-        auto re = new clobber::accel::RelUExpr(OpenParen(), ReluKeyword(), std::move(operand_uptr), CloseParen());
-        re->metadata[default_str_metadata_tag] = std::string(str_utils::join("", strs));
-        return re;
+        auto ve = new clobber::VectorExpr(OpenBracket(), std::move(value_uptrs), std::move(commas), CloseBrace());
+        ve->metadata[default_str_metadata_tag] = std::string(std::format("[{}]", str_utils::join(" ", strs)));
+        return ve;
     }
 
+    clobber::accel::TOSAOpExpr *
+    TosaOpExpr(const clobber::Token op_token, std::vector<clobber::Expr *> values) {
+        std::vector<std::string> value_strs;
+        std::vector<std::unique_ptr<clobber::Expr>> value_uptrs;
+        for (const auto &value : values) {
+            value_uptrs.push_back(std::unique_ptr<clobber::Expr>(value));
+            value_strs.push_back(get_repr(value));
+        }
+
+        auto ce = new clobber::accel::TOSAOpExpr(OpenParen(), op_token, std::move(value_uptrs), CloseParen());
+        ce->metadata[default_str_metadata_tag] = std::string(std::format("({} {})", get_repr(&op_token), str_utils::join(" ", value_strs)));
+        return ce;
+    }
 } // namespace SyntaxFactory
