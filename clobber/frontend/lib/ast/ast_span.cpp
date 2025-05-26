@@ -4,7 +4,6 @@
 #include <typeindex>
 
 #include "clobber/ast/ast.hpp"
-#include "clobber/internal/utils.hpp"
 
 clobber::Span
 clobber::VectorExpr::span() const {
@@ -126,5 +125,24 @@ clobber::Span
 clobber::accel::TensorExpr::span() const {
     size_t start = this->open_paren_token.span.start;
     size_t end   = this->close_paren_token.span.start + this->close_paren_token.span.length;
+    return Span{start, end - start};
+}
+
+clobber::Span
+clobber::Binding::span() const {
+    size_t start = this->identifier->span().start;
+    size_t end   = this->value->span().start + this->value->span().length;
+    return Span{start, end - start};
+}
+
+clobber::Span
+clobber::Parameter::span() const {
+    size_t start = this->identifier->span().start;
+
+    size_t end = this->identifier->span().start + this->identifier->span().length;
+    if (type_annot) {
+        end = this->type_annot->span().start + this->type_annot->span().length;
+    }
+
     return Span{start, end - start};
 }

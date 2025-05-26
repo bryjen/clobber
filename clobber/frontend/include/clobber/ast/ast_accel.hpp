@@ -24,7 +24,6 @@ namespace clobber {
 
             Span span() const override;
             size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
         };
 
         // rationale:
@@ -42,7 +41,6 @@ namespace clobber {
         public:
             Span span() const override;
             size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
         };
 
         // rationale:
@@ -59,7 +57,6 @@ namespace clobber {
         public:
             Span span() const override;
             size_t hash() const override;
-            std::unique_ptr<Expr> clone() const override;
         };
     }; // namespace accel
 }; // namespace clobber

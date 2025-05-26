@@ -596,13 +596,14 @@ const std::vector<std::string> test_cases::parser::sources = {
 (+ 10.0d 0.2d))",
 
     // 1
-    R"((let [x 10
-      y 5]
+    R"(
+(let [x ^i32 10
+      y ^i32 5]
   (+ x y)))",
 
     // 2
-    R"((fn [x] (* x x))
-((fn [x] (* x x)) 5))",
+    R"((fn [x ^i32] (* x x))
+((fn [x ^i32] (* x x)) 5))",
 
     // 3
     R"((do
@@ -612,9 +613,16 @@ const std::vector<std::string> test_cases::parser::sources = {
 
     // 4
     R"(
-(accel [x (tensor :shape 2 224 224) y (tensor :values [[1 2 3] [4 5 6] [7 8 9]])] 
+(accel [x ^i32 (tensor :shape 2 224 224) 
+        y ^i32 (tensor :values [[1 2 3] [4 5 6] [7 8 9]])] 
     (relu (matmul x y :shape [3 224 224])))
     )",
+
+    // 5
+    R"(
+(let [x ^i32 10
+      y ^tensor<^i32,3,244,244> (tensor :type ^i32 :shape 2 244 244)]
+  (+ x y)))",
 };
 
 const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parser::expected_exprs = {
@@ -673,6 +681,7 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         }
     },
     { // 1
+        /*
         {
             std::shared_ptr<clobber::Expr>(
                 LetExpr(
@@ -696,8 +705,27 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                 )
             ),
         }
+        */
+        {
+            std::shared_ptr<clobber::Expr>(
+                LetExpr(
+                    BindingVector({
+                        Binding(IdentifierExpr("x"), BuiltinType(I32Keyword()), NumLiteralExpr("10")),
+                        Binding(IdentifierExpr("y"), BuiltinType(I32Keyword()), NumLiteralExpr("5"))
+                    }),
+                    {
+                        CallExpr("+", { 
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("y")
+                            }
+                        )
+                    }
+                )
+            ),
+        }
     },
     { // 2
+        /*
         {
             std::shared_ptr<clobber::Expr>(
                 FnExpr(
@@ -729,6 +757,38 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                 )
             )
         }
+         */
+        {
+            std::shared_ptr<clobber::Expr>(
+                FnExpr(
+                    ParameterVector({ Parameter(IdentifierExpr("x"), BuiltinType(I32Keyword())) }),
+                    { 
+                        CallExpr("*", {
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("x")
+                            }
+                        )
+                    }
+                )
+            ),
+            std::shared_ptr<clobber::Expr>(
+                CallExpr(
+                    FnExpr(
+                        ParameterVector({ Parameter(IdentifierExpr("x"), BuiltinType(I32Keyword())) }),
+                        { 
+                            CallExpr("*", {
+                                IdentifierExpr("x"), 
+                                IdentifierExpr("x")
+                                }
+                            )
+                        }
+                    ),
+                    {
+                        NumLiteralExpr("5")
+                    }
+                )
+            )
+        }
     },
     { // 3
         {
@@ -746,6 +806,7 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         }
     },
     { // 4
+        /*
         {
             std::shared_ptr<clobber::Expr>(
                 AccelExpr(
@@ -806,6 +867,111 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
                 )
             )
         }
-    }
+        */
+        {
+            std::shared_ptr<clobber::Expr>(
+                AccelExpr(
+                    BindingVector({
+                        Binding(
+                            IdentifierExpr("x"), 
+                            BuiltinType(I32Keyword()),
+                            TensorExpr({
+                                KeywordLiteralExpr("shape"),
+                                NumLiteralExpr("2"), 
+                                NumLiteralExpr("224"), 
+                                NumLiteralExpr("224")
+                            })
+                        ),
+                        Binding(
+                            IdentifierExpr("y"), 
+                            BuiltinType(I32Keyword()),
+                            TensorExpr({
+                                KeywordLiteralExpr("values"),
+                                VectorExpr({
+                                    VectorExpr({
+                                        NumLiteralExpr("1"),
+                                        NumLiteralExpr("2"),
+                                        NumLiteralExpr("3"),
+                                    }),
+                                    VectorExpr({
+                                        NumLiteralExpr("4"),
+                                        NumLiteralExpr("5"),
+                                        NumLiteralExpr("6"),
+                                    }),
+                                    VectorExpr({
+                                        NumLiteralExpr("7"),
+                                        NumLiteralExpr("8"),
+                                        NumLiteralExpr("9"),
+                                    }),
+                                })
+                            })
+                        ),
+                    }),
+                    {
+                        TosaOpExpr(
+                            ReluKeyword(),
+                            {
+                                TosaOpExpr(
+                                    MatmulKeyword(),
+                                    {
+                                        IdentifierExpr("x"),
+                                        IdentifierExpr("y"),
+                                        KeywordLiteralExpr("shape"),
+                                        VectorExpr({
+                                            NumLiteralExpr("3"),
+                                            NumLiteralExpr("224"),
+                                            NumLiteralExpr("224")
+                                        })
+                                    }
+                                )
+                            }
+                        )
+                    }
+                )
+            )
+        }
+    },
+    { // 5
+        {
+            std::shared_ptr<clobber::Expr>(
+                LetExpr(
+                    BindingVector({
+                        Binding(
+                            IdentifierExpr("x"), 
+                            BuiltinType(I32Keyword()), 
+                            NumLiteralExpr("10")
+                        ),
+                        Binding(
+                            IdentifierExpr("y"), 
+                            ParameterizedType(
+                                BuiltinType(TensorKeyword()),
+                                {
+                                    BuiltinType(I32Keyword()),
+                                    NumLiteralExpr("3"),
+                                    NumLiteralExpr("244"),
+                                    NumLiteralExpr("244")
+                                }
+                            ),
+                            TensorExpr({
+                                KeywordLiteralExpr("type"),
+                                BuiltinType(I32Keyword()),
+                                KeywordLiteralExpr("shape"),
+                                NumLiteralExpr("2"),
+                                NumLiteralExpr("244"),
+                                NumLiteralExpr("244")
+                            })
+                        ),
+                    }),
+                    {
+                        CallExpr("+", { 
+                            IdentifierExpr("x"), 
+                            IdentifierExpr("y")
+                            }
+                        )
+                    }
+                )
+            ),
+        }
+    },
     // clang-format on
 };

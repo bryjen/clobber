@@ -301,6 +301,7 @@ type_infer_let_expr(SemanticContext &context, const clobber::Expr &expr) {
     const clobber::LetExpr &let_expr = static_cast<const clobber::LetExpr &>(expr);
     context.symbol_table.enter_scope();
 
+    /*
     const clobber::BindingVectorExpr &binding_vector_expr = std::cref(*let_expr.binding_vector_expr);
     for (size_t i = 0; i < binding_vector_expr.num_bindings; i++) {
         const clobber::IdentifierExpr &identifier_expr = std::cref(*binding_vector_expr.identifiers[i]);
@@ -316,6 +317,7 @@ type_infer_let_expr(SemanticContext &context, const clobber::Expr &expr) {
         symbol.type = identifier_type;
         context.symbol_table.insert_symbol(symbol);
     }
+    */
 
     std::shared_ptr<clobber::Type> last_type;
     auto expr_views = ptr_utils::get_expr_views(let_expr.body_exprs);

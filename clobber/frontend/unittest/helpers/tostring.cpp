@@ -1,5 +1,6 @@
 #include "tostring.hpp"
 #include "pch.hpp"
+#include <concepts>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -17,6 +18,15 @@ namespace {
     std::string
     indent(size_t indentation, const std::string &str) {
         return std::format("{}{}", str_utils::spaces(indentation), str);
+    }
+
+    template <typename T>
+    concept ParserEnumTypes = std::same_as<T, clobber::Expr::Type> || std::same_as<T, clobber::TypeExpr::Type>;
+
+    template <ParserEnumTypes E>
+    inline std::string
+    type_tostring(E e) {
+        return std::string(magic_enum::enum_name(e));
     }
 
     inline std::string
@@ -81,12 +91,75 @@ private:
 
 protected:
     void
+    on_parameter(const clobber::Parameter &param) {
+        clobber::Span span       = param.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(param.metadata);
+        std::string str          = indent(current_indentation, std::format("[Parameter] `{}` {}", full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_identifier_expr(*param.identifier);
+        if (param.type_annot) {
+            on_type_expr(*param.type_annot);
+        }
+    }
+
+    void
+    on_binding(const clobber::Binding &binding) {
+        clobber::Span span       = binding.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(binding.metadata);
+        std::string str          = indent(current_indentation, std::format("[Binding] `{}` {}", full_text, str_metadata));
+        lines.push_back(str);
+
+        IndentationGuard _(*this);
+        on_identifier_expr(*binding.identifier);
+        if (binding.type_annot) {
+            on_type_expr(*binding.type_annot);
+        }
+        on_expr(*binding.value);
+    }
+
+    void
+    on_builtin_type_expr(const clobber::BuiltinTypeExpr &bte) {
+        clobber::Span span       = bte.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(bte.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(bte.type_kind), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_user_defined_type_expr(const clobber::UserDefinedTypeExpr &udte) {
+        clobber::Span span       = udte.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(udte.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(udte.type_kind), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
+    on_parameterized_type_expr(const clobber::ParameterizedTypeExpr &pte) {
+        clobber::Span span       = pte.span();
+        std::string full_text    = norm(source_text.substr(span.start, span.length));
+        std::string str_metadata = format_string_metadata(pte.metadata);
+        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(pte.type_kind), full_text, str_metadata));
+        lines.push_back(str);
+    }
+
+    void
     on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
         clobber::Span span       = pve.span();
         std::string full_text    = norm(source_text.substr(span.start, span.length));
         std::string str_metadata = format_string_metadata(pve.metadata);
         std::string str          = indent(current_indentation, std::format("[ParameterVectorExpr] `{}` {}", full_text, str_metadata));
         lines.push_back(str);
+
+        ImmutableTreeVisualizer itv(source_text, lines, current_indentation + indentation_width); // sub itv for walking bve
+        for (const auto &parameter : pve.parameters) {
+            itv.on_parameter(*parameter);
+        }
     }
 
     void
@@ -98,9 +171,8 @@ protected:
         lines.push_back(str);
 
         ImmutableTreeVisualizer itv(source_text, lines, current_indentation + indentation_width); // sub itv for walking bve
-        for (size_t i = 0; i < bve.num_bindings; i++) {
-            itv.on_identifier_expr(*bve.identifiers[i]);
-            itv.walk(*bve.exprs[i]);
+        for (const auto &binding : bve.bindings) {
+            itv.on_binding(*binding);
         }
     }
 

@@ -12,12 +12,6 @@ clobber::accel::AccelExpr::AccelExpr(const Token &open_paren_token, const Token 
     , binding_vector_expr(std::move(binding_vector_expr))
     , body_exprs(std::move(body_exprs)) {}
 
-clobber::accel::AccelExpr::AccelExpr(const AccelExpr &other)
-    : ParenthesizedExpr(other.type, other.open_paren_token, other.close_paren_token)
-    , accel_token(other.accel_token)
-    , binding_vector_expr(std::move(other.binding_vector_expr->clone_nowrap()))
-    , body_exprs(deepcopy_exprs(other.body_exprs)) {}
-
 size_t
 clobber::accel::AccelExpr::hash() const {
     std::vector<size_t> hashes;
@@ -33,21 +27,11 @@ clobber::accel::AccelExpr::hash() const {
     return combine_hashes(hashes);
 }
 
-std::unique_ptr<clobber::Expr>
-clobber::accel::AccelExpr::clone() const {
-    throw 0;
-}
-
 clobber::accel::TOSAOpExpr::TOSAOpExpr(const Token &open_paren_token, const Token &op_token, std::vector<std::unique_ptr<Expr>> &&arguments,
                                        const Token &close_paren_token)
     : ParenthesizedExpr(Expr::Type::TosaOpExpr, open_paren_token, close_paren_token)
     , op_token(op_token)
     , arguments(std::move(arguments)) {}
-
-clobber::accel::TOSAOpExpr::TOSAOpExpr(const TOSAOpExpr &other)
-    : ParenthesizedExpr(Expr::Type::TosaOpExpr, other.open_paren_token, other.close_paren_token)
-    , op_token(other.op_token)
-    , arguments(deepcopy_exprs(other.arguments)) {}
 
 size_t
 clobber::accel::TOSAOpExpr::hash() const {
@@ -64,21 +48,11 @@ clobber::accel::TOSAOpExpr::hash() const {
     return combine_hashes(hashes);
 }
 
-std::unique_ptr<clobber::Expr>
-clobber::accel::TOSAOpExpr::clone() const {
-    throw 0;
-}
-
 clobber::accel::TensorExpr::TensorExpr(const Token &open_paren_token, const Token &tensor_token,
                                        std::vector<std::unique_ptr<Expr>> &&arguments, const Token &close_paren_token)
-    : ParenthesizedExpr(Expr::Type::TosaOpExpr, open_paren_token, close_paren_token)
+    : ParenthesizedExpr(Expr::Type::TensorExpr, open_paren_token, close_paren_token)
     , tensor_token(tensor_token)
     , arguments(std::move(arguments)) {}
-
-clobber::accel::TensorExpr::TensorExpr(const TensorExpr &other)
-    : ParenthesizedExpr(Expr::Type::TosaOpExpr, other.open_paren_token, other.close_paren_token)
-    , tensor_token(other.tensor_token)
-    , arguments(deepcopy_exprs(other.arguments)) {}
 
 size_t
 clobber::accel::TensorExpr::hash() const {
@@ -93,9 +67,4 @@ clobber::accel::TensorExpr::hash() const {
     }
 
     return combine_hashes(hashes);
-}
-
-std::unique_ptr<clobber::Expr>
-clobber::accel::TensorExpr::clone() const {
-    throw 0;
 }

@@ -3,257 +3,9 @@
 #include <typeindex>
 
 #include "clobber/ast/ast.hpp"
-#include "clobber/internal/utils.hpp"
 
 using namespace clobber;
 using namespace clobber::accel;
-
-clobber::Expr *
-clobber::AstRewriter::on_expr(clobber::Expr *e) {
-    switch (e->type) {
-    case clobber::Expr::Type::LetExpr: {
-        ParenthesizedExpr *pe = static_cast<ParenthesizedExpr *>(e);
-        return on_paren_expr(pe);
-    }
-    case clobber::Expr::Type::NumericLiteralExpr: {
-        NumLiteralExpr *nle = static_cast<NumLiteralExpr *>(e);
-        return on_num_literal_expr(nle);
-    }
-    case clobber::Expr::Type::StringLiteralExpr: {
-        StringLiteralExpr *sle = static_cast<StringLiteralExpr *>(e);
-        return on_string_literal_expr(sle);
-    }
-    case clobber::Expr::Type::CharLiteralExpr: {
-        CharLiteralExpr *cle = static_cast<CharLiteralExpr *>(e);
-        return on_char_literal_expr(cle);
-    }
-    case clobber::Expr::Type::IdentifierExpr: {
-        IdentifierExpr *ie = static_cast<IdentifierExpr *>(e);
-        return on_identifier_expr(ie);
-    }
-    case clobber::Expr::Type::FnExpr: {
-        FnExpr *fe = static_cast<FnExpr *>(e);
-        return on_fn_expr(fe);
-    }
-    case clobber::Expr::Type::DefExpr: {
-        DefExpr *de = static_cast<DefExpr *>(e);
-        return on_def_expr(de);
-    }
-    case clobber::Expr::Type::DoExpr: {
-        DoExpr *de = static_cast<DoExpr *>(e);
-        return on_do_expr(de);
-    }
-    case clobber::Expr::Type::CallExpr: {
-        CallExpr *ce = static_cast<CallExpr *>(e);
-        return on_call_expr(ce);
-    }
-    case clobber::Expr::Type::AccelExpr: {
-        accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(e);
-        return on_accel_expr(ae);
-    }
-    default: {
-        return nullptr;
-    }
-    }
-}
-
-clobber::NumLiteralExpr *
-clobber::AstRewriter::on_num_literal_expr(clobber::NumLiteralExpr *nle) {
-    return nle;
-}
-
-clobber::StringLiteralExpr *
-clobber::AstRewriter::on_string_literal_expr(clobber::StringLiteralExpr *sle) {
-    return sle;
-}
-
-clobber::CharLiteralExpr *
-clobber::AstRewriter::on_char_literal_expr(clobber::CharLiteralExpr *cle) {
-    return cle;
-}
-
-clobber::IdentifierExpr *
-clobber::AstRewriter::on_identifier_expr(clobber::IdentifierExpr *ie) {
-    return ie;
-}
-
-clobber::ParenthesizedExpr *
-clobber::AstRewriter::on_paren_expr(clobber::ParenthesizedExpr *pe) {
-    switch (pe->type) {
-    case clobber::Expr::Type::LetExpr: {
-        LetExpr *le = static_cast<LetExpr *>(pe);
-        return on_let_expr(le);
-    }
-    case clobber::Expr::Type::FnExpr: {
-        FnExpr *fe = static_cast<FnExpr *>(pe);
-        return on_fn_expr(fe);
-    }
-    case clobber::Expr::Type::DefExpr: {
-        DefExpr *de = static_cast<DefExpr *>(pe);
-        return on_def_expr(de);
-    }
-    case clobber::Expr::Type::DoExpr: {
-        DoExpr *de = static_cast<DoExpr *>(pe);
-        return on_do_expr(de);
-    }
-    case clobber::Expr::Type::CallExpr: {
-        CallExpr *ce = static_cast<CallExpr *>(pe);
-        return on_call_expr(ce);
-    }
-    case clobber::Expr::Type::AccelExpr: {
-        accel::AccelExpr *ae = static_cast<accel::AccelExpr *>(pe);
-        return on_accel_expr(ae);
-    }
-    default: {
-        return nullptr;
-    }
-    }
-}
-
-clobber::BindingVectorExpr *
-clobber::AstRewriter::on_binding_vector_expr(clobber::BindingVectorExpr *bve) {
-    for (size_t i = 0; i < bve->num_bindings; i++) {
-        {
-            auto old_ptr = bve->identifiers[i].get();
-            auto new_ptr = on_identifier_expr(old_ptr);
-            if (old_ptr != new_ptr) {
-                bve->identifiers[i].reset(new_ptr);
-            }
-        }
-
-        {
-            auto old_ptr = bve->exprs[i].get();
-            auto new_ptr = on_expr(old_ptr);
-            if (old_ptr != new_ptr) {
-                bve->exprs[i].reset(new_ptr);
-            }
-        }
-    }
-
-    return bve;
-}
-
-clobber::ParameterVectorExpr *
-clobber::AstRewriter::on_parameter_vector_expr(clobber::ParameterVectorExpr *pe) {
-    for (std::unique_ptr<clobber::IdentifierExpr> &identifier_uptr : pe->identifiers) {
-        auto old_ptr = identifier_uptr.get();
-        auto new_ptr = on_identifier_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            identifier_uptr.reset(new_ptr);
-        }
-    }
-
-    return pe;
-}
-
-clobber::LetExpr *
-clobber::AstRewriter::on_let_expr(clobber::LetExpr *le) {
-    { // local scope so I can use variables 'old_ptr' and 'new_ptr' names, too lazy
-        auto old_ptr = le->binding_vector_expr.get();
-        auto new_ptr = on_binding_vector_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            le->binding_vector_expr.reset(new_ptr);
-        }
-    }
-
-    for (std::unique_ptr<clobber::Expr> &expr_uptr : le->body_exprs) {
-        auto old_ptr = expr_uptr.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            expr_uptr.reset(new_ptr);
-        }
-    }
-
-    return le;
-}
-
-clobber::FnExpr *
-clobber::AstRewriter::on_fn_expr(clobber::FnExpr *fe) {
-    {
-        auto old_ptr = fe->parameter_vector_expr.get();
-        auto new_ptr = on_parameter_vector_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            fe->parameter_vector_expr.reset(new_ptr);
-        }
-    }
-
-    for (std::unique_ptr<clobber::Expr> &expr_uptr : fe->body_exprs) {
-        auto old_ptr = expr_uptr.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            expr_uptr.reset(new_ptr);
-        }
-    }
-
-    return fe;
-}
-
-clobber::DefExpr *
-clobber::AstRewriter::on_def_expr(clobber::DefExpr *de) {
-    {
-        auto old_ptr = de->identifier.get();
-        auto new_ptr = on_identifier_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            de->identifier.reset(new_ptr);
-        }
-    }
-
-    {
-        auto old_ptr = de->value.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            de->value.reset(new_ptr);
-        }
-    }
-
-    return de;
-}
-
-clobber::DoExpr *
-clobber::AstRewriter::on_do_expr(clobber::DoExpr *de) {
-    for (std::unique_ptr<clobber::Expr> &expr_uptr : de->body_exprs) {
-        auto old_ptr = expr_uptr.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            expr_uptr.reset(new_ptr);
-        }
-    }
-
-    return de;
-}
-
-clobber::CallExpr *
-clobber::AstRewriter::on_call_expr(clobber::CallExpr *ce) {
-    for (std::unique_ptr<clobber::Expr> &expr_uptr : ce->arguments) {
-        auto old_ptr = expr_uptr.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            expr_uptr.reset(new_ptr);
-        }
-    }
-
-    return ce;
-}
-
-clobber::accel::AccelExpr *
-clobber::AstRewriter::on_accel_expr(clobber::accel::AccelExpr *ae) {
-    {
-        auto old_ptr = ae->binding_vector_expr.get();
-        auto new_ptr = on_binding_vector_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            ae->binding_vector_expr.reset(new_ptr);
-        }
-    }
-
-    for (std::unique_ptr<clobber::Expr> &expr_uptr : ae->body_exprs) {
-        auto old_ptr = expr_uptr.get();
-        auto new_ptr = on_expr(old_ptr);
-        if (old_ptr != new_ptr) {
-            expr_uptr.reset(new_ptr);
-        }
-    }
-    return ae;
-}
 
 void
 clobber::AstWalker::walk(const Expr &e) {
@@ -297,7 +49,11 @@ clobber::AstWalker::walk(const Expr &e) {
         break;
     }
 
-        // TODO: Add case for type exprs nd shi
+    case Expr::Type::TypeExpr: {
+        const TypeExpr &te = static_cast<const TypeExpr &>(e);
+        on_type_expr(te);
+        break;
+    }
 
         // node/parent node types needing traversal
     case Expr::Type::CallExpr: {
@@ -389,6 +145,36 @@ clobber::AstWalker::walk(const Expr &e) {
             walk(*arg);
         }
         on_ascent_callback();
+        break;
+    }
+    }
+}
+
+void
+clobber::AstWalker::on_type_expr(const TypeExpr &expr) {
+    switch (expr.type_kind) {
+    case TypeExpr::Type::BuiltinType: {
+        const clobber::BuiltinTypeExpr &casted = static_cast<const clobber::BuiltinTypeExpr &>(expr);
+        on_builtin_type_expr(casted);
+        break;
+    }
+    case TypeExpr::Type::UserDefinedType: {
+        const clobber::UserDefinedTypeExpr &casted = static_cast<const clobber::UserDefinedTypeExpr &>(expr);
+        on_user_defined_type_expr(casted);
+        break;
+    }
+    case TypeExpr::Type::ParameterizedType: {
+        const clobber::ParameterizedTypeExpr &casted = static_cast<const clobber::ParameterizedTypeExpr &>(expr);
+        on_parameterized_type_expr(casted);
+
+        on_descent_callback();
+        for (const auto &values : casted.param_values) {
+            on_expr(*values);
+        }
+        on_ascent_callback();
+        break;
+    }
+    default: {
         break;
     }
     }

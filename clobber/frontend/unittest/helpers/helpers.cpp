@@ -191,6 +191,8 @@ namespace ParserTestsHelpers {
             const std::function<std::string(const clobber::Token &)> token_get_repr             = 0;
             const std::function<std::string(const clobber::BindingVectorExpr &)> bve_get_repr   = 0;
             const std::function<std::string(const clobber::ParameterVectorExpr &)> pve_get_repr = 0;
+            const std::function<std::string(const clobber::Parameter &)> param_get_repr         = 0;
+            const std::function<std::string(const clobber::Binding &)> binding_get_repr         = 0;
         };
 
         static std::vector<std::string>
@@ -203,99 +205,134 @@ namespace ParserTestsHelpers {
     private:
         std::vector<std::string> strs;
         const std::string &source_text;
-        const std::function<std::string(const clobber::Expr &)> expr_get_repr               = 0;
-        const std::function<std::string(const clobber::Token &)> token_get_repr             = 0;
-        const std::function<std::string(const clobber::BindingVectorExpr &)> bve_get_repr   = 0;
-        const std::function<std::string(const clobber::ParameterVectorExpr &)> pve_get_repr = 0;
+        const FlattenerCallbacks &callbacks;
 
         TreeReprFlattener(const std::string &source_text, const FlattenerCallbacks &callbacks)
             : source_text(source_text)
-            , expr_get_repr(callbacks.expr_get_repr)
-            , token_get_repr(callbacks.token_get_repr)
-            , bve_get_repr(callbacks.bve_get_repr)
-            , pve_get_repr(callbacks.pve_get_repr)
+            , callbacks(callbacks)
             , strs({}) {}
 
     protected:
         void
         on_token(const clobber::Token &token) {
-            strs.push_back(token_get_repr(token));
+            strs.push_back(callbacks.token_get_repr(token));
+        }
+
+        void
+        on_parameter(const clobber::Parameter &param) {
+            strs.push_back(callbacks.param_get_repr(param));
+
+            on_identifier_expr(*param.identifier);
+            if (param.type_annot) {
+                on_type_expr(*param.type_annot);
+            }
         }
 
         void
         on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
-            clobber::Span span = pve.span();
-            strs.push_back(pve_get_repr(pve));
+            strs.push_back(callbacks.pve_get_repr(pve));
 
             on_token(pve.open_bracket_token);
-            for (const auto &id : pve.identifiers) {
-                on_identifier_expr(*id);
+            for (const auto &parameter : pve.parameters) {
+                on_parameter(*parameter);
             }
             on_token(pve.close_bracket_token);
         }
 
         void
+        on_binding(const clobber::Binding &binding) {
+            strs.push_back(callbacks.binding_get_repr(binding));
+
+            on_identifier_expr(*binding.identifier);
+            if (binding.type_annot) {
+                on_type_expr(*binding.type_annot);
+            }
+            on_expr(*binding.value);
+        }
+
+        void
         on_binding_vector_expr(const clobber::BindingVectorExpr &bve) {
-            clobber::Span span = bve.span();
-            strs.push_back(bve_get_repr(bve));
+            strs.push_back(callbacks.bve_get_repr(bve));
 
             on_token(bve.open_bracket_token);
-            for (size_t i = 0; i < bve.num_bindings; i++) {
-                on_identifier_expr(*bve.identifiers[i]);
-                walk(*bve.identifiers[i]);
+            for (const auto &binding : bve.bindings) {
+                on_binding(*binding);
             }
             on_token(bve.close_bracket_token);
         }
 
         void
+        on_builtin_type_expr(const clobber::BuiltinTypeExpr &bte) {
+            strs.push_back(callbacks.token_get_repr(bte.caret_token));
+            strs.push_back(callbacks.token_get_repr(bte.type_keyword_token));
+        }
+
+        void
+        on_user_defined_type_expr(const clobber::UserDefinedTypeExpr &udte) {
+            strs.push_back(callbacks.token_get_repr(udte.caret_token));
+            strs.push_back(callbacks.token_get_repr(udte.identifier_token));
+        }
+
+        void
+        on_parameterized_type_expr(const clobber::ParameterizedTypeExpr &pte) {
+            on_type_expr(*pte.type_expr);
+
+            on_token(pte.less_than_token);
+            for (const auto &value : pte.param_values) {
+                on_expr(*value);
+            }
+            on_token(pte.greater_than_token);
+        }
+
+        void
         on_vector_expr(const clobber::VectorExpr &ve) override {
-            strs.push_back(expr_get_repr(ve));
+            strs.push_back(callbacks.expr_get_repr(ve));
         }
 
         void
         on_keyword_literal_expr(const clobber::KeywordLiteralExpr &kle) override {
-            strs.push_back(expr_get_repr(kle));
+            strs.push_back(callbacks.expr_get_repr(kle));
         }
 
         void
         on_tosa_op_expr(const clobber::accel::TOSAOpExpr &toe) override {
-            strs.push_back(expr_get_repr(toe));
+            strs.push_back(callbacks.expr_get_repr(toe));
             on_token(toe.op_token);
         }
 
         void
         on_tensor_expr(const clobber::accel::TensorExpr &te) override {
-            strs.push_back(expr_get_repr(te));
+            strs.push_back(callbacks.expr_get_repr(te));
             on_token(te.tensor_token);
         }
 
         void
         on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
-            strs.push_back(expr_get_repr(nle));
+            strs.push_back(callbacks.expr_get_repr(nle));
             on_token(nle.token);
         }
 
         void
         on_string_literal_expr(const clobber::StringLiteralExpr &sle) override {
-            strs.push_back(expr_get_repr(sle));
+            strs.push_back(callbacks.expr_get_repr(sle));
             on_token(sle.token);
         }
 
         void
         on_char_literal_expr(const clobber::CharLiteralExpr &cle) override {
-            strs.push_back(expr_get_repr(cle));
+            strs.push_back(callbacks.expr_get_repr(cle));
             on_token(cle.token);
         }
 
         void
         on_identifier_expr(const clobber::IdentifierExpr &ie) override {
-            strs.push_back(expr_get_repr(ie));
+            strs.push_back(callbacks.expr_get_repr(ie));
             on_token(ie.token);
         }
 
         void
         on_let_expr(const clobber::LetExpr &le) override {
-            strs.push_back(expr_get_repr(le));
+            strs.push_back(callbacks.expr_get_repr(le));
 
             on_token(le.open_paren_token);
             on_token(le.let_token);
@@ -308,7 +345,7 @@ namespace ParserTestsHelpers {
 
         void
         on_fn_expr(const clobber::FnExpr &fe) override {
-            strs.push_back(expr_get_repr(fe));
+            strs.push_back(callbacks.expr_get_repr(fe));
 
             on_token(fe.open_paren_token);
             on_token(fe.fn_token);
@@ -321,7 +358,7 @@ namespace ParserTestsHelpers {
 
         void
         on_def_expr(const clobber::DefExpr &de) override {
-            strs.push_back(expr_get_repr(de));
+            strs.push_back(callbacks.expr_get_repr(de));
 
             on_token(de.open_paren_token);
             on_token(de.def_token);
@@ -332,7 +369,7 @@ namespace ParserTestsHelpers {
 
         void
         on_do_expr(const clobber::DoExpr &de) override {
-            strs.push_back(expr_get_repr(de));
+            strs.push_back(callbacks.expr_get_repr(de));
 
             on_token(de.open_paren_token);
             on_token(de.do_token);
@@ -344,7 +381,7 @@ namespace ParserTestsHelpers {
 
         void
         on_call_expr(const clobber::CallExpr &ce) override {
-            strs.push_back(expr_get_repr(ce));
+            strs.push_back(callbacks.expr_get_repr(ce));
 
             on_token(ce.open_paren_token);
             walk(*ce.operator_expr);
@@ -356,7 +393,7 @@ namespace ParserTestsHelpers {
 
         void
         on_accel_expr(const clobber::accel::AccelExpr &ae) override {
-            strs.push_back(expr_get_repr(ae));
+            strs.push_back(callbacks.expr_get_repr(ae));
 
             on_token(ae.open_paren_token);
             on_token(ae.accel_token);
@@ -431,12 +468,23 @@ namespace ParserTestsHelpers {
         auto expected_pve_get_repr = [&source_text](const clobber::ParameterVectorExpr &pve) {
             return norm(std::any_cast<std::string>(pve.metadata.at(default_str_metadata_tag)));
         };
+
+        auto expected_parameter_get_repr = [&source_text](const clobber::Parameter &parameter) {
+            return norm(std::any_cast<std::string>(parameter.metadata.at(default_str_metadata_tag)));
+        };
+
+        auto expected_binding_get_repr = [&source_text](const clobber::Binding &binding) {
+            return norm(std::any_cast<std::string>(binding.metadata.at(default_str_metadata_tag)));
+        };
+
         // clang-format off
         TreeReprFlattener::FlattenerCallbacks expected_callbacks{
             .expr_get_repr = expected_expr_get_repr,
             .token_get_repr = expected_token_get_repr,
             .bve_get_repr = expected_bve_get_repr,
-            .pve_get_repr = expected_pve_get_repr
+            .pve_get_repr = expected_pve_get_repr,
+            .param_get_repr = expected_parameter_get_repr,
+            .binding_get_repr = expected_binding_get_repr
         };
         // clang-format on
 
@@ -460,12 +508,25 @@ namespace ParserTestsHelpers {
             clobber::Span span = pve.span();
             return norm(source_text.substr(span.start, span.length));
         };
+
+        auto actual_parameter_get_repr = [&source_text](const clobber::Parameter &parameter) {
+            clobber::Span span = parameter.span();
+            return norm(source_text.substr(span.start, span.length));
+        };
+
+        auto actual_binding_get_repr = [&source_text](const clobber::Binding &binding) {
+            clobber::Span span = binding.span();
+            return norm(source_text.substr(span.start, span.length));
+        };
+
         // clang-format off
         TreeReprFlattener::FlattenerCallbacks actual_callbacks{
             .expr_get_repr = actual_expr_get_repr,
             .token_get_repr = actual_token_get_repr,
             .bve_get_repr = actual_bve_get_repr,
-            .pve_get_repr = actual_pve_get_repr
+            .pve_get_repr = actual_pve_get_repr,
+            .param_get_repr = actual_parameter_get_repr,
+            .binding_get_repr = actual_binding_get_repr
         };
 
         std::vector<std::string> expected_flattened;

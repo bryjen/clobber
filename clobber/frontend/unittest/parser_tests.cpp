@@ -95,7 +95,8 @@ TEST_P(ParserTests, ParserTests) {
     spdlog::info("\nexpected tree:");
     print_tree_vis(source_text, expected_exprs);
 
-    std::vector<clobber::Token> tokens           = clobber::tokenize(source_text);
+    std::vector<clobber::Token> tokens = clobber::tokenize(source_text);
+
     std::unique_ptr<clobber::CompilationUnit> cu = clobber::parse(source_text, tokens, diagnostics);
 
     if (cu->diagnostics.size() > 0) {
@@ -129,5 +130,5 @@ TEST_P(ParserTests, ParserTests) {
     EXPECT_TRUE(true);
 }
 
-// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3));
-INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(4));
+INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(0, 1, 2, 3, 4, 5));
+// INSTANTIATE_TEST_SUITE_P(EvenValues, ParserTests, ::testing::Values(5));
