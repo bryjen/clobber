@@ -1,8 +1,17 @@
 #pragma once
 
+#include <stacktrace>
+
 #include <clobber/common/pch.hpp>
 
-#define NOT_IMPLEMENTED() throw 69420;
+// #define NOT_IMPLEMENTED() throw 69420;
+
+#define NOT_IMPLEMENTED()                                                                                                                  \
+    do {                                                                                                                                   \
+        std::cerr << "Not implemented error (stack trace):" << '\n';                                                                       \
+        std::cerr << std::stacktrace::current() << '\n';                                                                                   \
+        throw std::runtime_error("Not implemented error");                                                                                 \
+    } while (0);
 
 namespace PointerUtils {
 

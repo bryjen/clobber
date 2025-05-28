@@ -49,8 +49,8 @@ target_compile_definitions(clobber_tests PRIVATE
     # SHOW_FLATTENED_ASTS  # display the flattened asts when comparing compilation units
 
     # ENABLE_TOKENIZER_TESTS
-    ENABLE_PARSER_TESTS
-    # ENABLE_SEMANTICS_TESTS
+    # ENABLE_PARSER_TESTS
+    ENABLE_SEMANTICS_TESTS
 )
 
 # copy test files into output executable directory

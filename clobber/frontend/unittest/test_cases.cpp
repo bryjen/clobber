@@ -681,31 +681,6 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         }
     },
     { // 1
-        /*
-        {
-            std::shared_ptr<clobber::Expr>(
-                LetExpr(
-                    BindingVectorExpr(
-                        {
-                            IdentifierExpr("x"), 
-                            IdentifierExpr("y")
-                        },
-                        {
-                            NumLiteralExpr("10"), 
-                            NumLiteralExpr("5")
-                        }
-                    ),
-                    {
-                        CallExpr("+", { 
-                            IdentifierExpr("x"), 
-                            IdentifierExpr("y")
-                            }
-                        )
-                    }
-                )
-            ),
-        }
-        */
         {
             std::shared_ptr<clobber::Expr>(
                 LetExpr(
@@ -725,39 +700,6 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         }
     },
     { // 2
-        /*
-        {
-            std::shared_ptr<clobber::Expr>(
-                FnExpr(
-                    ParameterVectorExpr({ IdentifierExpr("x") }),
-                    { 
-                        CallExpr("*", {
-                            IdentifierExpr("x"), 
-                            IdentifierExpr("x")
-                            }
-                        )
-                    }
-                )
-            ),
-            std::shared_ptr<clobber::Expr>(
-                CallExpr(
-                    FnExpr(
-                        ParameterVectorExpr({ IdentifierExpr("x") }),
-                        { 
-                            CallExpr("*", {
-                                IdentifierExpr("x"), 
-                                IdentifierExpr("x")
-                                }
-                            )
-                        }
-                    ),
-                    {
-                        NumLiteralExpr("5")
-                    }
-                )
-            )
-        }
-         */
         {
             std::shared_ptr<clobber::Expr>(
                 FnExpr(
@@ -806,68 +748,6 @@ const std::vector<std::vector<std::shared_ptr<clobber::Expr>>> test_cases::parse
         }
     },
     { // 4
-        /*
-        {
-            std::shared_ptr<clobber::Expr>(
-                AccelExpr(
-                    BindingVectorExpr(
-                        {
-                            IdentifierExpr("x"), 
-                            IdentifierExpr("y")
-                        },
-                        {
-                            TensorExpr({
-                                KeywordLiteralExpr("shape"),
-                                NumLiteralExpr("2"), 
-                                NumLiteralExpr("224"), 
-                                NumLiteralExpr("224")
-                            }),
-                            TensorExpr({
-                                KeywordLiteralExpr("values"),
-                                VectorExpr({
-                                    VectorExpr({
-                                        NumLiteralExpr("1"),
-                                        NumLiteralExpr("2"),
-                                        NumLiteralExpr("3"),
-                                    }),
-                                    VectorExpr({
-                                        NumLiteralExpr("4"),
-                                        NumLiteralExpr("5"),
-                                        NumLiteralExpr("6"),
-                                    }),
-                                    VectorExpr({
-                                        NumLiteralExpr("7"),
-                                        NumLiteralExpr("8"),
-                                        NumLiteralExpr("9"),
-                                    }),
-                                })
-                            }),
-                        }
-                    ),
-                    {
-                        TosaOpExpr(
-                            ReluKeyword(),
-                            {
-                                TosaOpExpr(
-                                    MatmulKeyword(),
-                                    {
-                                        IdentifierExpr("x"),
-                                        IdentifierExpr("y"),
-                                        KeywordLiteralExpr("shape"),
-                                        VectorExpr({
-                                            NumLiteralExpr("3"),
-                                            NumLiteralExpr("224"),
-                                            NumLiteralExpr("224")
-                                        })
-                                    }
-                                )
-                            }
-                        )
-                    }
-                )
-            )
-        }
-        */
         {
             std::shared_ptr<clobber::Expr>(
                 AccelExpr(

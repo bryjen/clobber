@@ -1,6 +1,7 @@
 #include "tostring.hpp"
 #include "pch.hpp"
 #include <concepts>
+#include <variant>
 
 #include <magic_enum/magic_enum.hpp>
 
@@ -9,6 +10,7 @@
 #include <clobber/semantics.hpp>
 
 #include <clobber/common/utils.hpp>
+#include <clobber/common/variant.hpp>
 
 using namespace str_utils;
 
@@ -25,7 +27,7 @@ namespace {
 
     template <ParserEnumTypes E>
     inline std::string
-    type_tostring(E e) {
+    parser_enum_type_tostring(E e) {
         return std::string(magic_enum::enum_name(e));
     }
 
@@ -126,7 +128,8 @@ protected:
         clobber::Span span       = bte.span();
         std::string full_text    = norm(source_text.substr(span.start, span.length));
         std::string str_metadata = format_string_metadata(bte.metadata);
-        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(bte.type_kind), full_text, str_metadata));
+        std::string str =
+            indent(current_indentation, std::format("[{}] `{}` {}", parser_enum_type_tostring(bte.type_kind), full_text, str_metadata));
         lines.push_back(str);
     }
 
@@ -135,7 +138,8 @@ protected:
         clobber::Span span       = udte.span();
         std::string full_text    = norm(source_text.substr(span.start, span.length));
         std::string str_metadata = format_string_metadata(udte.metadata);
-        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(udte.type_kind), full_text, str_metadata));
+        std::string str =
+            indent(current_indentation, std::format("[{}] `{}` {}", parser_enum_type_tostring(udte.type_kind), full_text, str_metadata));
         lines.push_back(str);
     }
 
@@ -144,7 +148,8 @@ protected:
         clobber::Span span       = pte.span();
         std::string full_text    = norm(source_text.substr(span.start, span.length));
         std::string str_metadata = format_string_metadata(pte.metadata);
-        std::string str = indent(current_indentation, std::format("[{}] `{}` {}", type_tostring(pte.type_kind), full_text, str_metadata));
+        std::string str =
+            indent(current_indentation, std::format("[{}] `{}` {}", parser_enum_type_tostring(pte.type_kind), full_text, str_metadata));
         lines.push_back(str);
     }
 
@@ -317,7 +322,7 @@ protected:
         inc_indentation();
     }
 
-    virtual void
+    void
     on_ascent_callback() override {
         dec_indentation();
     }
@@ -363,44 +368,65 @@ expr_visualize_tree(const std::string &source_text, clobber::Expr &expr) {
     return ImmutableTreeVisualizer::visualize(source_text, expr);
 }
 
-std::string
-type_tostring(const clobber::Type &type) {
-    std::string repr;
-    switch (type.kind) {
-    case clobber::Type::Int: {
-        repr = "int";
-        break;
-    }
-    case clobber::Type::Float: {
-        repr = "float";
-        break;
-    }
-    case clobber::Type::Double: {
-        repr = "double";
-        break;
-    }
-    case clobber::Type::String: {
-        repr = "string";
-        break;
-    }
-    case clobber::Type::Char: {
-        repr = "string";
-        break;
-    }
-    case clobber::Type::Bool: {
-        repr = "bool";
-        break;
-    }
-    case clobber::Type::Func: {
-        std::vector<std::string> type_strs;
-        /*
-        for (const auto &type_param : type.params) {
-        }
-        */
-        repr = std::format("({})", str_utils::join(" -> ", type_strs));
-        break;
-    }
+namespace {
+    std::string
+    on_primitive_type(const clobber::PrimitiveType &pt) {
+        // clang-format off
+        std::unordered_map<clobber::PrimitiveType::Kind, std::string> kind_repr_map = {
+            {clobber::PrimitiveType::Kind::I8, "i8"},
+            {clobber::PrimitiveType::Kind::I16, "i16"},
+            {clobber::PrimitiveType::Kind::I32, "i32"},
+            {clobber::PrimitiveType::Kind::I64, "i64"},
+            {clobber::PrimitiveType::Kind::F32, "f32"},
+            {clobber::PrimitiveType::Kind::F64, "f64"},
+            {clobber::PrimitiveType::Kind::Bool, "bool"},
+            {clobber::PrimitiveType::Kind::Str, "str"},
+            {clobber::PrimitiveType::Kind::Char, "char"},
+        };
+        // clang-format on
+
+        auto it = kind_repr_map.find(pt.kind);
+        return it != kind_repr_map.end() ? it->second : "<ERROR>";
     }
 
-    return repr;
+    std::string
+    on_vector_type(const clobber::VectorType &vt) {
+        return "vector";
+    }
+
+    std::string
+    on_tensor_type(const clobber::TensorType &tt) {
+        return "vector";
+    }
+
+    std::string
+    on_function_type(const clobber::FunctionType &ft) {
+        std::vector<std::string> strs;
+        for (const auto &param_type : ft.params) {
+            strs.push_back(type_tostring(param_type));
+        }
+        strs.push_back(type_tostring(ft.ret));
+        return std::format("[{}]", str_utils::join(" -> ", strs));
+    }
+
+    std::string
+    on_user_defined_type(const clobber::UserDefinedType &udt) {
+        return udt.name;
+    }
+}; // namespace
+
+std::string
+type_tostring(const clobber::Type &type) {
+    // clang-format off
+    return std::visit(
+        overload{
+            [](const clobber::NilType& nt)          { return std::string("nil"); },
+            [](const clobber::PrimitiveType& pt)    { return std::string(on_primitive_type(pt)); },
+            [](const clobber::VectorType& vt)       { return std::string(on_vector_type(vt)); },
+            [](const clobber::TensorType& tt)       { return std::string(on_tensor_type(tt)); },
+            [](const clobber::FunctionType& ft)     { return std::string(on_function_type(ft)); },
+            [](const clobber::UserDefinedType& udt) { return std::string(on_user_defined_type(udt)); }
+        },
+        type->v);
+    // clang-format on
 }

@@ -409,7 +409,7 @@ namespace ParserTestsHelpers {
             return;
         }
 
-        virtual void
+        void
         on_ascent_callback() override {
             return;
         }
@@ -528,18 +528,17 @@ namespace ParserTestsHelpers {
             .param_get_repr = actual_parameter_get_repr,
             .binding_get_repr = actual_binding_get_repr
         };
+        // clang-format on
 
         std::vector<std::string> expected_flattened;
         for (const auto &expr : expected) {
-            std::vector<std::string> flattened =
-                TreeReprFlattener::flatten_expr(source_text, expected_callbacks, *expr);
+            std::vector<std::string> flattened = TreeReprFlattener::flatten_expr(source_text, expected_callbacks, *expr);
             expected_flattened.insert(expected_flattened.end(), flattened.begin(), flattened.end());
         }
 
         std::vector<std::string> actual_flattened;
         for (const auto &expr : actual) {
-            std::vector<std::string> flattened =
-                TreeReprFlattener::flatten_expr(source_text, actual_callbacks, *expr);
+            std::vector<std::string> flattened = TreeReprFlattener::flatten_expr(source_text, actual_callbacks, *expr);
             actual_flattened.insert(actual_flattened.end(), flattened.begin(), flattened.end());
         }
 
@@ -572,6 +571,195 @@ namespace ParserTestsHelpers {
 
 namespace SemanticTestsHelpers {
 
+    constexpr bool show_hash = false;
+
+#define ON_EXPR(EXPR_NAME)                                                                                                                   \
+    size_t hash                 = EXPR_NAME.hash();                                                                                          \
+    const std::string &src_text = semantic_model.compilation_unit->source_text;                                                              \
+    auto it                     = semantic_model.type_map.find(hash);                                                                        \
+    std::string type_str        = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";                              \
+    std::string hash_str        = show_hash ? std::format("|{}", fmt_hash(hash)) : "";                                                       \
+    std::string out_str         = indent(current_indentation, std::format("[{}{}]: `{}` `{}`", expr_type_tostring(EXPR_NAME.type), hash_str, \
+                                                                          type_str, norm(expr_tostring(src_text, EXPR_NAME))));              \
+    this->lines.push_back(out_str);
+
+    class SemanticTreeVisualizer final : public clobber::AstWalker {
+    public:
+        static std::string
+        visualize(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
+            std::vector<std::string> lines;
+            SemanticTreeVisualizer itv(semantic_model, lines);
+            itv.on_expr(expr);
+            return str_utils::join("\n", itv.lines);
+        }
+
+    private:
+        const clobber::SemanticModel &semantic_model;
+        size_t current_indentation;
+        std::vector<std::string> &lines;
+
+        const size_t indentation_width = 4;
+
+        SemanticTreeVisualizer(const clobber::SemanticModel &semantic_model, std::vector<std::string> &lines)
+            : semantic_model(semantic_model)
+            , current_indentation(0)
+            , lines(lines) {}
+
+        SemanticTreeVisualizer(const clobber::SemanticModel &semantic_model, std::vector<std::string> &lines, int indentation)
+            : semantic_model(semantic_model)
+            , current_indentation(indentation)
+            , lines(lines) {}
+
+        std::string
+        fmt_hash(size_t hash) {
+            std::string as_str = std::to_string(hash); // so that we can easily truncate it
+            return std::format("{:>3.3}", as_str);
+        }
+
+        std::string
+        indent(size_t indentation, const std::string &str) {
+            return std::format("{}{}", str_utils::spaces(indentation), str);
+        }
+
+        inline std::string
+        expr_type_tostring(clobber::Expr::Type expr_type) {
+            return std::string(magic_enum::enum_name(expr_type));
+        }
+
+    protected:
+        void
+        on_token(const clobber::Token &token) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_parameter(const clobber::Parameter &param) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_binding(const clobber::Binding &binding) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_builtin_type_expr(const clobber::BuiltinTypeExpr &bte) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_user_defined_type_expr(const clobber::UserDefinedTypeExpr &udte) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_parameterized_type_expr(const clobber::ParameterizedTypeExpr &pte) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_parameter_vector_expr(const clobber::ParameterVectorExpr &pve) {
+            NOT_IMPLEMENTED();
+        }
+
+        void
+        on_binding_vector_expr(const clobber::BindingVectorExpr &bve) {
+            NOT_IMPLEMENTED();
+        }
+
+#pragma region overrides
+        void
+        on_vector_expr(const clobber::VectorExpr &ve) override {
+            ON_EXPR(ve);
+        }
+
+        void
+        on_keyword_literal_expr(const clobber::KeywordLiteralExpr &kle) override {
+            ON_EXPR(kle);
+        }
+
+        void
+        on_tosa_op_expr(const clobber::accel::TOSAOpExpr &toe) override {
+            ON_EXPR(toe);
+        }
+
+        void
+        on_tensor_expr(const clobber::accel::TensorExpr &te) override {
+            ON_EXPR(te);
+        }
+
+        void
+        on_num_literal_expr(const clobber::NumLiteralExpr &nle) override {
+            ON_EXPR(nle);
+        }
+
+        void
+        on_string_literal_expr(const clobber::StringLiteralExpr &sle) override {
+            ON_EXPR(sle);
+        }
+
+        void
+        on_char_literal_expr(const clobber::CharLiteralExpr &cle) override {
+            ON_EXPR(cle);
+        }
+
+        void
+        on_identifier_expr(const clobber::IdentifierExpr &ie) override {
+            ON_EXPR(ie);
+        }
+
+        void
+        on_let_expr(const clobber::LetExpr &le) override {
+            ON_EXPR(le);
+        }
+
+        void
+        on_fn_expr(const clobber::FnExpr &fe) override {
+            ON_EXPR(fe);
+        }
+
+        void
+        on_def_expr(const clobber::DefExpr &de) override {
+            ON_EXPR(de);
+        }
+
+        void
+        on_do_expr(const clobber::DoExpr &de) override {
+            ON_EXPR(de);
+        }
+
+        void
+        on_call_expr(const clobber::CallExpr &ce) override {
+            ON_EXPR(ce);
+        }
+
+        void
+        on_accel_expr(const clobber::accel::AccelExpr &ae) override {
+            ON_EXPR(ae);
+        }
+
+        void
+        on_descent_callback() override {
+            inc_indentation();
+        }
+
+        void
+        on_ascent_callback() override {
+            dec_indentation();
+        }
+#pragma endregion
+
+        void
+        inc_indentation() {
+            current_indentation = std::max((size_t)0, current_indentation + indentation_width);
+        }
+
+        void
+        dec_indentation() {
+            current_indentation = std::max((size_t)0, current_indentation - indentation_width);
+        }
+    };
+
 // source text shorthand for semantic models
 #define SRC_TXT semantic_model.compilation_unit.get()->source_text
 
@@ -583,61 +771,65 @@ namespace SemanticTestsHelpers {
 
     std::vector<std::string> get_expr_inferred_type_strs_core(const clobber::SemanticModel &, clobber::Expr &);
 
+    [[deprecated]]
     std::vector<std::string>
     num_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::NumLiteralExpr &nle_expr = static_cast<clobber::NumLiteralExpr &>(expr);
 
         size_t hash          = nle_expr.hash();
-        auto it              = semantic_model.type_map->find(hash);
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(hash);
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(hash), type_str, norm(expr_tostring(SRC_TXT, nle_expr))));
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     str_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::StringLiteralExpr &sle = static_cast<clobber::StringLiteralExpr &>(expr);
 
-        auto it              = semantic_model.type_map->find(sle.hash());
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(sle.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(sle.hash()), type_str, norm(expr_tostring(SRC_TXT, sle))));
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     char_lit_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::CharLiteralExpr &cle = static_cast<clobber::CharLiteralExpr &>(expr);
 
-        auto it              = semantic_model.type_map->find(cle.hash());
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(cle.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(cle.hash()), type_str, norm(expr_tostring(SRC_TXT, cle))));
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     ident_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::IdentifierExpr &iden_expr = static_cast<clobber::IdentifierExpr &>(expr);
 
-        auto it              = semantic_model.type_map->find(iden_expr.hash());
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(iden_expr.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(iden_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, iden_expr))));
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     let_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::LetExpr &let_expr = static_cast<clobber::LetExpr &>(expr);
 
-        auto it              = semantic_model.type_map->find(let_expr.hash());
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(let_expr.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(let_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, let_expr))));
 
-        // auto body_expr_views = ptr_utils::get_expr_views(let_expr.body_exprs);
         for (const auto &body_expr_view : let_expr.body_exprs) {
             auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, *body_expr_view);
             strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
@@ -646,28 +838,44 @@ namespace SemanticTestsHelpers {
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     fn_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
-        throw 0;
+        std::vector<std::string> strs{};
+        clobber::FnExpr &fn_expr = static_cast<clobber::FnExpr &>(expr);
+
+        auto it              = semantic_model.type_map.find(fn_expr.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
+        strs.push_back(std::format("{}: {} `{}`", fmt_hash(fn_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, fn_expr))));
+
+        for (const auto &body_expr_view : fn_expr.body_exprs) {
+            auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, *body_expr_view);
+            strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
+        }
+
+        return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     def_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
-        throw 0;
+        NOT_IMPLEMENTED();
     }
 
+    [[deprecated]]
     std::vector<std::string>
     do_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
-        throw 0;
+        NOT_IMPLEMENTED();
     }
 
+    [[deprecated]]
     std::vector<std::string>
     call_expr_inferred_strs(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         std::vector<std::string> strs{};
         clobber::CallExpr &call_expr = static_cast<clobber::CallExpr &>(expr);
 
-        auto it              = semantic_model.type_map->find(call_expr.hash());
-        std::string type_str = it != semantic_model.type_map->end() ? type_tostring(*it->second) : "<NOTYPE>";
+        auto it              = semantic_model.type_map.find(call_expr.hash());
+        std::string type_str = it != semantic_model.type_map.end() ? type_tostring(it->second) : "<NOTYPE>";
         strs.push_back(std::format("{}: {} `{}`", fmt_hash(call_expr.hash()), type_str, norm(expr_tostring(SRC_TXT, call_expr))));
 
         // auto argument_expr_views = ptr_utils::get_expr_views(call_expr.arguments);
@@ -679,6 +887,7 @@ namespace SemanticTestsHelpers {
         return strs;
     }
 
+    [[deprecated]]
     std::vector<std::string>
     get_expr_inferred_type_strs_core(const clobber::SemanticModel &semantic_model, clobber::Expr &expr) {
         using InferredTypeStrsDelegate = std::vector<std::string> (*)(const clobber::SemanticModel &, clobber::Expr &);
@@ -691,6 +900,7 @@ namespace SemanticTestsHelpers {
             {clobber::Expr::Type::IdentifierExpr, ident_expr_inferred_strs},
             {clobber::Expr::Type::LetExpr, let_expr_inferred_strs},
             {clobber::Expr::Type::CallExpr, call_expr_inferred_strs},
+            {clobber::Expr::Type::FnExpr, fn_expr_inferred_strs},
         };
         // clang-format on
 
@@ -701,10 +911,14 @@ namespace SemanticTestsHelpers {
     std::vector<std::string>
     get_expr_inferred_type_strs(const clobber::SemanticModel &semantic_model) {
         std::vector<std::string> strs;
-        // auto expr_views = ptr_utils::get_expr_views(semantic_model.compilation_unit->exprs);
-        for (auto &expr_view : semantic_model.compilation_unit->exprs) {
-            auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, *expr_view);
+        for (auto &expr : semantic_model.compilation_unit->exprs) {
+            /*
+            auto sub_strs = get_expr_inferred_type_strs_core(semantic_model, *expr);
             strs.insert(strs.end(), sub_strs.begin(), sub_strs.end());
+            */
+
+            auto str_tree = SemanticTreeVisualizer::visualize(semantic_model, *expr);
+            strs.push_back(str_tree);
         }
         return strs;
     }

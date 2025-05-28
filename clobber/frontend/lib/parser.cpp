@@ -153,7 +153,6 @@ try_parse_type_expr(ParseContext &ctx) {
         // clang-format off
         std::unordered_set<clobber::Token::Type> token_types = {
             clobber::Token::Type::TensorKeywordToken,
-
             clobber::Token::Type::CharKeywordToken,
             clobber::Token::Type::StringKeywordToken,
             clobber::Token::Type::VectorKeywordToken,
@@ -371,11 +370,7 @@ try_parse_call_expr_or_special_form(ParseContext &ctx) {
         { clobber::Token::Type::DoKeywordToken, try_parse_do_expr},
         { clobber::Token::Type::AccelKeywordToken, try_parse_accel_expr},
 
-        // { clobber::Token::Type::MatmulKeywordToken, try_parse_matmul_expr},
-        // { clobber::Token::Type::ReluKeywordToken, try_parse_relu_expr},
-
         { clobber::Token::Type::TensorKeywordToken, try_parse_tensor_expr },
-
         { clobber::Token::Type::ReshapeKeywordToken, try_parse_tosa_op_expr },
         { clobber::Token::Type::TransposeKeywordToken, try_parse_tosa_op_expr },
         { clobber::Token::Type::TileKeywordToken, try_parse_tosa_op_expr },
@@ -654,25 +649,20 @@ try_parse_call_expr(ParseContext &ctx) {
 
 ParseResult
 try_parse(ParseContext &ctx) {
-    clobber::Token current_token;
-    Option<clobber::Token> token_opt;
-    ParseDelegate parse_fn;
-    Option<ParseDelegate> parse_fn_opt;
-
-    token_opt = try_get_token(ctx.tokens, ctx.current_idx);
+    Option<clobber::Token> token_opt = try_get_token(ctx.tokens, ctx.current_idx);
     if (!token_opt) {
         return nullptr; // silently error
     }
-    current_token = token_opt.value();
+    clobber::Token current_token = token_opt.value();
 
-    parse_fn_opt = try_get_parse_fun(current_token.type);
+    Option<ParseDelegate> parse_fn_opt = try_get_parse_fun(current_token.type);
     if (!parse_fn_opt) {
         recover(Recovery::SeekCloseParen, ctx);
         const std::string token_str = std::string(magic_enum::enum_name(current_token.type));
         const std::string err_msg   = std::format("Could not find a parse function for the token type `{}`", token_str);
         return std::unexpected(diag::parser::internal_err(current_token.span, err_msg));
     }
-    parse_fn = parse_fn_opt.value();
+    ParseDelegate parse_fn = parse_fn_opt.value();
     return parse_fn(ctx);
 }
 
@@ -693,7 +683,6 @@ clobber::parse(const std::string &source_text, const std::vector<clobber::Token>
             break;
         }
 
-        // 'current_idx' passed by reference, implicitly modified
         ParseResult parsed_expr = try_parse(ctx);
         if (parsed_expr) {
             exprs.push_back(std::move(parsed_expr.value()));

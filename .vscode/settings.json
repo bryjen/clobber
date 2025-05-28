@@ -126,6 +126,14 @@
     "sim_type_traits": "cpp",
     "sim_unordered_map": "cpp",
     "sim_unordered_set": "cpp",
-    "sim_vector": "cpp"
+    "sim_vector": "cpp",
+    "__bit_reference": "cpp",
+    "__hash_table": "cpp",
+    "__locale": "cpp",
+    "__split_buffer": "cpp",
+    "__tree": "cpp",
+    "__verbose_abort": "cpp",
+    "string_view": "cpp",
+    "__node_handle": "cpp"
   }
 }

@@ -3,7 +3,6 @@ project(clobber CXX)
 add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/tokenizer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/parser.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/semantics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/macro_expand.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast/ast_accel.cpp
@@ -12,7 +11,7 @@ add_library(clobber
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast/ast_traversal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/ast/ast_span.cpp
 
-#    ${CMAKE_CURRENT_SOURCE_DIR}/lib/clobber/internal/diagnostic_factory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/semantics/semantics.cpp
 )
 
 target_precompile_headers(clobber PRIVATE 

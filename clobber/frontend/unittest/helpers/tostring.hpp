@@ -5,30 +5,9 @@
 
 #include "pch.hpp"
 
-namespace clobber {
-    // clobber/ast.hpp
-    struct Expr;
-    struct NumLiteralExpr;
-    struct CallExpr;
-    struct IdentifierExpr;
-    struct BindingVectorExpr;
-    struct LetExpr;
-    struct ParameterVectorExpr;
-    struct FnExpr;
-    struct DefExpr;
-    struct DoExpr;
-    struct StringLiteralExpr;
-    struct CharLiteralExpr;
-
-    namespace accel {
-        struct AccelExpr;
-        struct MatMulExpr;
-        struct RelUExpr;
-    }; // namespace accel
-
-    // clobber/semantics.hpp
-    struct Type;
-}; // namespace clobber
+#include <clobber/ast/ast.hpp>
+#include <clobber/parser.hpp>
+#include <clobber/semantics.hpp>
 
 /* @brief Gets the text encompassed by the passed expr as represented in the source text. */
 std::string expr_tostring(const std::string &source_text, const clobber::Expr &expr);

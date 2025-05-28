@@ -11,6 +11,8 @@
 #include <clobber/parser.hpp>
 #include <clobber/semantics.hpp>
 
+#include "test_cases.hpp"
+
 using namespace SemanticTestsHelpers;
 
 class SemanticsTests : public ::testing::TestWithParam<size_t> {
@@ -45,28 +47,18 @@ TEST_P(SemanticsTests, SemanticsTests) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    size_t test_case_idx;
-    std::string file_path;
-    std::string source_text;
-    std::vector<clobber::Token> tokens;
-
     std::vector<clobber::Diagnostic> diagnostics;
-    std::unique_ptr<clobber::CompilationUnit> compilation_unit;
-    std::unique_ptr<clobber::SemanticModel> semantic_model;
 
-    std::vector<std::string> inferred_type_strs;
+    size_t test_case_idx    = GetParam();
+    std::string source_text = test_cases::parser::sources[test_case_idx];
 
-    test_case_idx = GetParam();
-    file_path     = std::format("./test_files/{}.clj", test_case_idx);
-    source_text   = read_all_text(file_path);
+    spdlog::info(std::format("src:\n```\n{}\n```", source_text));
 
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+    std::vector<clobber::Token> tokens                     = clobber::tokenize(source_text);
+    std::unique_ptr<clobber::CompilationUnit> cu           = clobber::parse(source_text, tokens, diagnostics);
+    std::unique_ptr<clobber::SemanticModel> semantic_model = clobber::get_semantic_model(std::move(cu), diagnostics);
 
-    tokens           = clobber::tokenize(source_text);
-    compilation_unit = clobber::parse(source_text, tokens, diagnostics);
-    semantic_model   = clobber::get_semantic_model(std::move(compilation_unit), diagnostics);
-
-    inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
+    std::vector<std::string> inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
     spdlog::info(str_utils::join("\n", inferred_type_strs));
 
 #ifdef CRT_ENABLED
@@ -78,5 +70,5 @@ TEST_P(SemanticsTests, SemanticsTests) {
     EXPECT_TRUE(true);
 }
 
-// INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0));
-INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0, 1));
+// INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(0, 1, 2, 3));
+INSTANTIATE_TEST_SUITE_P(SemanticsTests, SemanticsTests, ::testing::Values(4));
