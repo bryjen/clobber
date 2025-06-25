@@ -42,7 +42,7 @@ namespace {
         for (auto &expr : exprs) {
             tree_strs.push_back(expr_visualize_tree(source_text, *expr));
         }
-        spdlog::info(std::format("```\n{}\n```", str_utils::join("\n", tree_strs)));
+        logging::info(std::format("```\n{}\n```", str_utils::join("\n", tree_strs)));
     }
 }; // namespace
 
@@ -91,8 +91,8 @@ TEST_P(ParserTests, ParserTests) {
     auto expected_expr_sptrs = test_cases::parser::expected_exprs[test_case_idx];
     auto expected_exprs      = get_raw_ptrs(expected_expr_sptrs);
 
-    spdlog::info(std::format("source text:\n```\n{}\n```", source_text));
-    spdlog::info("\nexpected tree:");
+    logging::info(std::format("source text:\n```\n{}\n```", source_text));
+    logging::info("\nexpected tree:");
     print_tree_vis(source_text, expected_exprs);
 
     std::vector<clobber::Token> tokens           = clobber::tokenize(source_text);
@@ -110,11 +110,11 @@ TEST_P(ParserTests, ParserTests) {
         return;
     }
 
-    spdlog::info("\nactual tree:");
+    logging::info("\nactual tree:");
     print_tree_vis(source_text, get_raw_ptrs(cu->exprs));
-    spdlog::info("\nreconstructed:");
+    logging::info("\nreconstructed:");
     for (const auto &expr : cu->exprs) {
-        spdlog::info(expr_tostring(source_text, *expr));
+        logging::info(expr_tostring(source_text, *expr));
     }
 
     auto actual_exprs = get_raw_ptrs(cu->exprs);
@@ -122,7 +122,7 @@ TEST_P(ParserTests, ParserTests) {
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
-        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+        logging::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
     }
 #endif
 

@@ -1,4 +1,3 @@
-
 #include "pch.hpp"
 
 #include "helpers/helpers.hpp"
@@ -60,18 +59,18 @@ TEST_P(SemanticsTests, SemanticsTests) {
     file_path     = std::format("./test_files/{}.clj", test_case_idx);
     source_text   = read_all_text(file_path);
 
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+    logging::info(std::format("source:\n```\n{}\n```", source_text));
 
     tokens           = clobber::tokenize(source_text);
     compilation_unit = clobber::parse(source_text, tokens, diagnostics);
     semantic_model   = clobber::get_semantic_model(std::move(compilation_unit), diagnostics);
 
     inferred_type_strs = get_expr_inferred_type_strs(*semantic_model);
-    spdlog::info(str_utils::join("\n", inferred_type_strs));
+    logging::info(str_utils::join("\n", inferred_type_strs));
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
-        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+        logging::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
     }
 #endif
 

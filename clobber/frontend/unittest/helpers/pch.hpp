@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
-#include <fmt/core.h>
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -19,10 +18,8 @@
 // -- gtest --
 #include <gtest/gtest.h>
 
-// -- spdlog --
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
+// -- logging helper --
+#include "logging_helper.hpp"
 
 // -- magic enum --
 #include <magic_enum/magic_enum.hpp>

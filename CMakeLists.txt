@@ -1,13 +1,20 @@
-cmake_minimum_required(VERSION 3.11)
-project(clobber CXX)
+cmake_minimum_required(VERSION 3.12)
+project(clobber C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS_LINK_COMPILE_COMMANDS ON)
 
-# TEMP; TODO REMOVE
-add_compile_options(/W0)
+add_custom_target(link_compile_commands ALL
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_SOURCE_DIR}/compile_commands.json
+    DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json
+    COMMENT "Creating symlink to compile_commands.json"
+)
 
 # global build options (propagated to sub-projects)
 if (CLOBBER_STRICT)
@@ -38,7 +45,6 @@ if (CLOBBER_STRICT)
             /Zc:__cplusplus
         )
     endif()
-    # TODO: maybe add support for GCC?
 endif()
 
 
@@ -63,8 +69,6 @@ enable_testing()
 add_subdirectory(clobber/frontend)
 add_subdirectory(clobber/common)
 add_subdirectory(clobber/backend-mlir)
-
-add_subdirectory(clobber-cli)
 
 if (MSVC)
     # global compiler flags (shoutout chatgpt)

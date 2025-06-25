@@ -1,10 +1,10 @@
-project(clobber_mlir_backend CXX)
+project(clobber_mlir_backend C CXX)
 
 add_library(clobber_mlir_backend
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/emitter.cpp
 )
 
-target_precompile_headers(clobber_common PRIVATE 
+target_precompile_headers(clobber_common PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include/clobber/mlir-backend/pch.hpp"
 )
 
@@ -16,7 +16,7 @@ message(STATUS "[CMAKE_PREFIX_PATH]:  ${CMAKE_PREFIX_PATH}")
 find_package(MLIR REQUIRED CONFIG)
 find_package(magic_enum CONFIG REQUIRED)
 
-target_link_libraries(clobber_mlir_backend 
+target_link_libraries(clobber_mlir_backend
   PRIVATE
     MLIRSupport
     MLIRIR
@@ -64,7 +64,7 @@ target_link_libraries(clobber_mlir_backend
 )
 
 target_include_directories(clobber_mlir_backend
-  PUBLIC  
+  PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 
   PRIVATE

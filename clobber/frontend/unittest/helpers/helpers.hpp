@@ -36,7 +36,6 @@ namespace clobber {
 namespace clobber {}; // namespace clobber
 
 namespace {
-    std::string get_executable_directory();
     std::string to_string_any(const std::any &a); // helper function for converting a `std::any` to a string
     std::string read_all_text(const std::string &);
     std::string reconstruct_source_text_from_tokens(const std::string &, const std::vector<clobber::Token> &);

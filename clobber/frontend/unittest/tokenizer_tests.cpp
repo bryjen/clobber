@@ -60,7 +60,7 @@ TEST_P(TokenizerTests, tokenizer_tests) {
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
-        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+        logging::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
     }
 #endif
 }

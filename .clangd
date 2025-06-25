@@ -1,0 +1,14 @@
+CompileFlags:
+  Add: 
+    - -Iclobber
+    - -Iclobber/frontend/include
+    - -Iclobber/frontend/unittest/helpers
+    - -Iclobber/common/include
+    - -Iclobber/backend-mlir/include
+    - -Iclobber/backend-mlir/unittest/helpers
+    - -Iclobber/backend-mlir/lib
+    - -Iclobber/backend-mlir/unittest
+    - -std=c++23
+
+  CompilationDatabase: 
+    - compile_commands.json

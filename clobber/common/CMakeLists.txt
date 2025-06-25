@@ -1,11 +1,11 @@
-project(clobber_common CXX)
+project(clobber_common C CXX)
 
-add_library(clobber_common 
+add_library(clobber_common
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/diagnostic.cpp
 )
 
-target_precompile_headers(clobber_common PRIVATE 
+target_precompile_headers(clobber_common PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include/clobber/common/pch.hpp"
 )
 

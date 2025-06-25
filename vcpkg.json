@@ -4,7 +4,6 @@
     "dependencies": [
         "gtest",
         "cli11",
-        "spdlog",
         "magic-enum"
     ]
 }

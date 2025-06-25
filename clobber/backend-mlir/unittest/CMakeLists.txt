@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
-project(clobber_mlir_backend_tests CXX)
+project(clobber_mlir_backend_tests C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,13 +17,11 @@ target_include_directories(clobber_mlir_backend_tests PRIVATE
 )
 
 find_package(MLIR CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 
-target_link_libraries(clobber_mlir_backend_tests PRIVATE 
-    GTest::gtest GTest::gtest_main     
-    spdlog::spdlog_header_only
+target_link_libraries(clobber_mlir_backend_tests PRIVATE
+    GTest::gtest GTest::gtest_main
     magic_enum::magic_enum
     clobber clobber_mlir_backend clobber_common
 )
@@ -34,12 +31,11 @@ target_compile_definitions(clobber_mlir_backend_tests PRIVATE
 )
 
 if (MSVC)
-  target_compile_options(clobber_mlir_backend_tests PRIVATE /MP)
+    target_compile_options(clobber_mlir_backend_tests PRIVATE /MP)
 endif()
 
 include(GoogleTest)
 add_test(NAME all_clobber_tests COMMAND clobber_mlir_backend_tests)
-
 
 # copy test files into output executable directory
 add_custom_command(

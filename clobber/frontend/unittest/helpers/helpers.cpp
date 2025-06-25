@@ -1,8 +1,6 @@
-#include "pch.hpp"
 
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
+#include <any>
+#include <format>
 
 #include "helpers.hpp"
 #include "syntax_factory.hpp"
@@ -59,15 +57,6 @@ namespace {
 
         return builder.str();
     }
-
-    std::string
-    get_executable_directory() {
-        char buffer[MAX_PATH];
-        GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-        std::filesystem::path exe_path(buffer);
-        return exe_path.parent_path().string();
-    }
-
 } // namespace
 
 // ast flattening
@@ -81,21 +70,14 @@ namespace {
 namespace Logging {
     void
     init_logger(const std::string &logger_name, const std::string &out_log_path) {
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>(out_log_path, true);
-
-        std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-        auto logger = std::make_shared<spdlog::logger>(logger_name, sinks.begin(), sinks.end());
-        spdlog::set_default_logger(logger);
-
-        // spdlog::set_pattern("[%H:%M:%S.%e; %^%l%$]: %v");
-        spdlog::set_pattern("%v");
+        // No-op for std::cout based logging
+        logging::set_pattern("%v");
     }
 
     void
     dispose_logger(const std::string &logger_name) {
-        spdlog::get(logger_name)->flush();
-        spdlog::drop(logger_name);
+        logging::flush();
+        logging::drop(logger_name);
     }
 }; // namespace Logging
 
@@ -104,23 +86,23 @@ namespace TokenizerTestsHelpers {
     print_tokens(const std::string &source_text, const std::vector<clobber::Token> &expected_tokens,
                  const std::vector<clobber::Token> &actual_tokens) {
 #ifndef CRT_ENABLED
-        spdlog::info(std::format("[Expected; n={}]", expected_tokens.size()));
-        spdlog::info("---------------------------------------------------------");
+        logging::info(std::format("[Expected; n={}]", expected_tokens.size()));
+        logging::info("---------------------------------------------------------");
         for (size_t i = 0; i < expected_tokens.size(); i++) {
             clobber::Token token = expected_tokens[i];
-            spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(source_text, token, true)));
+            logging::info(std::format("[{:>2}] {}", i, clobber_token_tostring(source_text, token, true)));
         }
-        spdlog::info(std::format("Source text:\n```\n{}\n```\n", source_text));
+        logging::info(std::format("Source text:\n```\n{}\n```\n", source_text));
 
-        spdlog::info("");
-        spdlog::info(std::format("[Actual; n={}]", actual_tokens.size()));
-        spdlog::info("---------------------------------------------------------");
+        logging::info("");
+        logging::info(std::format("[Actual; n={}]", actual_tokens.size()));
+        logging::info("---------------------------------------------------------");
         for (size_t i = 0; i < actual_tokens.size(); i++) {
             clobber::Token token = actual_tokens[i];
-            spdlog::info(std::format("[{:>2}] {}", i, clobber_token_tostring(source_text, token, true)));
+            logging::info(std::format("[{:>2}] {}", i, clobber_token_tostring(source_text, token, true)));
         }
         const std::string reconstructed = reconstruct_source_text_from_tokens(source_text, actual_tokens);
-        spdlog::info(std::format("Reconstructed text:\n```\n{}\n```\n", reconstructed));
+        logging::info(std::format("Reconstructed text:\n```\n{}\n```\n", reconstructed));
 #endif
     }
 
@@ -382,8 +364,8 @@ namespace ParserTestsHelpers {
         std::vector<std::string> actual_modified(eft.begin(), eft.end());
         const std::string actual_str = std::format("[ {} ]", str_utils::join(", ", actual_modified));
 
-        spdlog::info(std::format("Expected:\n{}", expected_str));
-        spdlog::info(std::format("Actual:\n{}", actual_str));
+        logging::info(std::format("Expected:\n{}", expected_str));
+        logging::info(std::format("Actual:\n{}", actual_str));
     }
 
     std::vector<std::string>

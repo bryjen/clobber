@@ -62,6 +62,7 @@ out/
 compile_commands.json
 build/
 logs/
+.cache/
 
 # generated bootstrap files
 vcpkg_installed/

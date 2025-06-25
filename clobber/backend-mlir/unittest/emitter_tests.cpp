@@ -35,10 +35,6 @@
 #include <mlir/Dialect/LLVMIR/LLVMTypes.h>
 #pragma warning(pop)
 
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
-
 #include <clobber/common/diagnostic.hpp>
 
 #include <clobber/ast.hpp>
@@ -46,6 +42,24 @@
 #include <clobber/semantics.hpp>
 
 #include "clobber/mlir-backend/emitter.hpp"
+
+// Simple logging helper
+namespace logging {
+    inline void
+    info(const std::string &message) {
+        std::cout << message << std::endl;
+    }
+
+    inline void
+    warn(const std::string &message) {
+        std::cout << "[WARN] " << message << std::endl;
+    }
+
+    inline void
+    set_pattern(const std::string &pattern) {
+        // No-op for std::cout, but kept for compatibility
+    }
+} // namespace logging
 
 // clang-format off
 const std::vector<std::string> test_source_contents = {
@@ -77,7 +91,7 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     INIT_CRT_DEBUG();
     ::testing::GTEST_FLAG(output) = "none";
 #endif
-    spdlog::set_pattern("%v");
+    logging::set_pattern("%v");
 
     size_t test_case_idx;
     std::string file_path;
@@ -92,7 +106,7 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     file_path     = std::format("./test_files/{}.clj", test_case_idx);
     source_text   = test_source_contents[test_case_idx];
 
-    spdlog::info(std::format("source:\n```\n{}\n```", source_text));
+    logging::info(std::format("source:\n```\n{}\n```", source_text));
 
     std::vector<clobber::Diagnostic> diagnostics;
 
@@ -110,9 +124,9 @@ TEST_P(EmitterTests, EmitterTestsCore) {
     semantic_model   = clobber::get_semantic_model(std::move(compilation_unit), diagnostics);
     _module          = clobber::emit(context, *semantic_model, diagnostics);
 
-    spdlog::info(std::format("\nMLIR:\n```"));
+    logging::info(std::format("\nMLIR:\n```"));
     _module->dump();
-    spdlog::info(std::format("```"));
+    logging::info(std::format("```"));
 
     try {
         if (mlir::failed(mlir::verify(_module))) {
@@ -126,7 +140,7 @@ TEST_P(EmitterTests, EmitterTestsCore) {
 
 #ifdef CRT_ENABLED
     if (_CrtDumpMemoryLeaks()) {
-        spdlog::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
+        logging::warn("^ Okay (empty if alright)\nv Memory leaks (not aight)\n");
     }
 #endif
 }
